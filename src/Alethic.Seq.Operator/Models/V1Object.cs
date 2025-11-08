@@ -1,7 +1,5 @@
-﻿using System.Collections;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
-using Alethic.Seq.Operator.Core.Extensions;
 using Alethic.Seq.Operator.Core.Models;
 using Alethic.Seq.Operator.Core.Models.Object;
 
@@ -53,7 +51,7 @@ namespace Alethic.Seq.Operator.Models
             public string? Id { get; set; }
 
             [JsonPropertyName("lastConf")]
-            public object? LastConf { get; set; }
+            public string? LastConf { get; set; }
 
         }
 

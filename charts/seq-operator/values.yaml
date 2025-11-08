@@ -9,7 +9,7 @@ operator:
 
   # Specify the Operator container image to use for the deployment.
   image:
-    repository: ghcr.io/alethic/auth0-operator-image
+    repository: ghcr.io/alethic/seq-operator-image
     pullPolicy: IfNotPresent
 
   # An array of Kubernetes secrets to use for pulling images from a private ``image.repository``.
@@ -62,7 +62,7 @@ operator:
               - key: name
                 operator: In
                 values:
-                  - auth0-operator
+                  - seq-operator
           topologyKey: kubernetes.io/hostname
 
   # An array of `Toleration labels <https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/>`__ to associate to Operator pods.

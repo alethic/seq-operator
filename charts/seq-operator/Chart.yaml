@@ -1,14 +1,14 @@
 apiVersion: v2
-name: auth0-operator
-description: Operator that manages Auth0 Tenant, Client and ResourceServer entities.
+name: seq-operator
+description: Operator that manages a Seq instances.
 type: application
 version: 0.0.0
 appVersion: "0.0.0"
 keywords:
-  - auth0
-home: https://github.com/alethic/auth0-operator
+  - seq
+home: https://github.com/alethic/seq-operator
 sources:
-  - https://github.com/alethic/auth0-operator
+  - https://github.com/alethic/seq-operator
 maintainers:
   - name: Jerome Haltom
     email: jhaltom@alethic.solutions

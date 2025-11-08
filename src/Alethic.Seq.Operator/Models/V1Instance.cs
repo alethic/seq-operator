@@ -57,7 +57,11 @@ namespace Alethic.Seq.Operator.Models
         public class StatusDef : V1EntityStatus
         {
 
+            [JsonPropertyName("id")]
+            public string? Id { get; set; }
 
+            [JsonPropertyName("lastConf")]
+            public string? LastConf { get; set; }
 
         }
 

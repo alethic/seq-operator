@@ -10,7 +10,7 @@ using KubeOps.Abstractions.Finalizer;
 namespace Alethic.Seq.Operator.Finalizers
 {
 
-    public class V1ClientFinalizer : IEntityFinalizer<V1Object>
+    public class V1ObjectFinalizer : IEntityFinalizer<V1Object>
     {
 
         readonly V1ObjectController _controller;
@@ -19,7 +19,7 @@ namespace Alethic.Seq.Operator.Finalizers
         /// Initializes a new instance.
         /// </summary>
         /// <param name="controller"></param>
-        public V1ClientFinalizer(V1ObjectController controller)
+        public V1ObjectFinalizer(V1ObjectController controller)
         {
             _controller = controller ?? throw new ArgumentNullException(nameof(controller));
         }

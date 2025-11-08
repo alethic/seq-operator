@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: auth0-operator
+  name: seq-operator
   namespace: {{ .Release.Namespace }}
-  labels: {{- include "auth0-operator.labels" . | nindent 4 }}
+  labels: {{- include "seq-operator.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.operator.replicaCount }}
   selector:
-    matchLabels: {{- include "auth0-operator.selectorLabels" . | nindent 6 }}
+    matchLabels: {{- include "seq-operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "auth0-operator.labels" . | nindent 8 }}
-        {{- include "auth0-operator.selectorLabels" . | nindent 8 }}
+        {{- include "seq-operator.labels" . | nindent 8 }}
+        {{- include "seq-operator.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.operator.imagePullSecrets }}
       imagePullSecrets: {{- toYaml . | nindent 8 }}
@@ -20,7 +20,7 @@ spec:
       {{- with .Values.operator.runtimeClassName }}
       runtimeClassName: {{ . }}
       {{- end }}
-      serviceAccountName: auth0-operator
+      serviceAccountName: seq-operator
       {{- with .Values.operator.securityContext }}
       securityContext: {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -56,11 +56,11 @@ spec:
               value: 'true'
 
 {{ if .Values.options.namespace }}
-            - name: Auth0__Operator__Namespace
+            - name: seq__Operator__Namespace
               value: {{ .Values.options.namespace | quote }}
 {{ end }}
 {{ if .Values.options.reconciliation.interval }}
-            - name: Auth0__Operator__Reconciliation__Interval
+            - name: seq__Operator__Reconciliation__Interval
               value: {{ .Values.options.reconciliation.interval | quote }}
 {{ end }}
 {{ range .Values.operator.env }}

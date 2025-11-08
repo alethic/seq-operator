@@ -1,0 +1,17 @@
+namespace: alethic.seq.operator-system
+namePrefix: alethic.seq.operator-
+commonLabels:
+  operator: alethic.seq.operator
+resources:
+- operator-role.yaml
+- operator-role-binding.yaml
+- deployment.yaml
+- instances_k8s_seq_datalust_co.yaml
+- clients_k8s_seq_datalust_co.yaml
+- namespace.yaml
+images:
+- name: operator
+  newName: accessible-docker-image
+  newTag: latest
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
