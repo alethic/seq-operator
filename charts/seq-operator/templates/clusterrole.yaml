@@ -4,4 +4,59 @@ metadata:
   name: seq-operator-role
   labels: {{- include "seq-operator.labels" . | nindent 4 }}
 rules:
-[]    
+- apiGroups:
+  - k8s.seq.datalust.co
+  resources:
+  - instances
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - '*'
+- apiGroups:
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - '*'
+- apiGroups:
+  - k8s.seq.datalust.co
+  resources:
+  - objects
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - create
+  - update
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - '*'
+- apiGroups:
+  - k8s.seq.datalust.co
+  resources:
+  - instances/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - k8s.seq.datalust.co
+  resources:
+  - objects/status
+  verbs:
+  - get
+  - update
+  - patch
+---

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,7 +10,6 @@ using Alethic.Seq.Operator.Options;
 using k8s.Models;
 
 using KubeOps.Abstractions.Controller;
-using KubeOps.Abstractions.Entities;
 using KubeOps.Abstractions.Queue;
 using KubeOps.Abstractions.Rbac;
 using KubeOps.KubernetesClient;
@@ -97,56 +95,8 @@ namespace Alethic.Seq.Operator.Controllers
         /// <inheritdoc />
         protected override async Task ApplyStatus(object api, V1Object entity, Hashtable lastConf, string defaultNamespace, CancellationToken cancellationToken)
         {
-            if (entity.Spec.SecretRef is not null)
-            {
-                throw new NotImplementedException();
-                await ApplySecret(entity, null, null, defaultNamespace, cancellationToken);
-            }
-
+            throw new NotImplementedException();
             await base.ApplyStatus(api, entity, lastConf, defaultNamespace, cancellationToken);
-        }
-
-        /// <summary>
-        /// Applies the client secret.
-        /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="clientId"></param>
-        /// <param name="clientSecret"></param>
-        /// <param name="defaultNamespace"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        async Task ApplySecret(V1Object entity, string? clientId, string? clientSecret, string defaultNamespace, CancellationToken cancellationToken)
-        {
-            if (entity.Spec.SecretRef is null)
-                return;
-
-            // find existing secret or create
-            var secret = await ResolveSecretRef(entity.Spec.SecretRef, entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, cancellationToken);
-            if (secret is null)
-            {
-                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName} which does not exist: creating.", EntityTypeName, entity.Namespace(), entity.Name(), entity.Spec.SecretRef.Name);
-                secret = await Kube.CreateAsync(
-                    new V1Secret(
-                        metadata: new V1ObjectMeta(namespaceProperty: entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, name: entity.Spec.SecretRef.Name))
-                        .WithOwnerReference(entity),
-                    cancellationToken);
-            }
-
-            // only apply actual values if we are the owner
-            if (secret.IsOwnedBy(entity))
-            {
-                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName}: updating.", EntityTypeName, entity.Namespace(), entity.Name(), entity.Spec.SecretRef.Name);
-                secret.StringData ??= new Dictionary<string, string>();
-
-                throw new NotImplementedException();
-
-                secret = await Kube.UpdateAsync(secret, cancellationToken);
-                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} successfully updated secret {SecretName}", EntityTypeName, entity.Namespace(), entity.Name(), entity.Spec.SecretRef.Name);
-            }
-            else
-            {
-                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} secret {SecretName} exists but is not owned by this client, skipping update", EntityTypeName, entity.Namespace(), entity.Name(), entity.Spec.SecretRef.Name);
-            }
         }
 
         /// <inheritdoc />

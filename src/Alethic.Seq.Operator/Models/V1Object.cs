@@ -12,8 +12,8 @@ namespace Alethic.Seq.Operator.Models
 {
 
     [EntityScope(EntityScope.Namespaced)]
-    [KubernetesEntity(Group = "k8s.seq.datalust.co", ApiVersion = "v1", Kind = "Client")]
-    [KubernetesEntityShortNames("a0app")]
+    [KubernetesEntity(Group = "k8s.seq.datalust.co", ApiVersion = "v1alpha1", Kind = "Object")]
+    [KubernetesEntityShortNames("seqobject")]
     public partial class V1Object :
         CustomKubernetesEntity<V1Object.SpecDef, V1Object.StatusDef>,
         V1InstanceEntity<V1Object.SpecDef, V1Object.StatusDef, ObjectConf>
@@ -25,12 +25,9 @@ namespace Alethic.Seq.Operator.Models
             [JsonPropertyName("policy")]
             public V1EntityPolicyType[]? Policy { get; set; }
 
-            [JsonPropertyName("tenantRef")]
+            [JsonPropertyName("instanceRef")]
             [Required]
             public V1InstanceReference? InstanceRef { get; set; }
-
-            [JsonPropertyName("secretRef")]
-            public V1SecretReference? SecretRef { get; set; }
 
             [JsonPropertyName("find")]
             public ObjectFind? Find { get; set; }
