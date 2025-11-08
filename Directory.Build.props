@@ -1,0 +1,59 @@
+<Project>
+
+    <ItemGroup>
+        <Authors Include="Jerome Haltom" />
+    </ItemGroup>
+
+    <PropertyGroup Label="Copyright Info">
+        <ProductName>Seq Operator</ProductName>
+        <Authors>@(Authors, ',')</Authors>
+        <CurrentYear Condition=" '$(CurrentYear)' == '' ">$([System.DateTime]::UtcNow.Year.ToString())</CurrentYear>
+        <Copyright>Copyright © $(CurrentYear) @(Authors, ', ')</Copyright>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Version Info">
+        <DefaultMajorVersion>1</DefaultMajorVersion>
+        <Version Condition=" '$(Version)' == '' ">$(DefaultMajorVersion).0.0-dev</Version>
+        <AssemblyVersion Condition=" '$(AssemblyVersion)' == '' ">$(DefaultMajorVersion).0.0.0</AssemblyVersion>
+        <FileVersion Condition=" '$(FileVersion)' == '' ">$(DefaultMajorVersion).0.0.0</FileVersion>
+        <InformationalVersion Condition=" '$(InformationalVersion)' == '' ">$(DefaultMajorVersion).0.0.0</InformationalVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Package Info">
+        <RepositoryUrl Condition=" '$(RepositoryUrl)' == '' ">https://github.com/alethic/seq-operator.git</RepositoryUrl>
+        <RepositoryType Condition=" '$(RepositoryType)' == '' ">git</RepositoryType>
+        <PackageProjectUrl Condition=" '$(PackageProjectUrl)' == '' ">https://github.com/alethic/seq-operator</PackageProjectUrl>
+        <PackageVersion Condition=" '$(PackageVersion)' == '' ">$(Version)</PackageVersion>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Build Info">
+        <LangVersion Condition=" '$(LangVersion)' == '' ">12.0</LangVersion>
+        <AutoGenerateBindingRedirects Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net461'))">true</AutoGenerateBindingRedirects>
+        <GenerateBindingRedirectsOutputType Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net461'))">true</GenerateBindingRedirectsOutputType>
+        <AddSyntheticProjectReferencesForSolutionDependencies>false</AddSyntheticProjectReferencesForSolutionDependencies>
+        <CopyRetryCount>60</CopyRetryCount>
+        <CopyRetryDelayMilliseconds>15000</CopyRetryDelayMilliseconds>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ContainerImageTag>$(Version)</ContainerImageTag>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ContainerLabel Include="application" Value="seq-operator" />
+        <ContainerLabel Include="version" Value="$(Version)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="IKVM.Core.MSBuild" Version="0.1.107">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+</Project>

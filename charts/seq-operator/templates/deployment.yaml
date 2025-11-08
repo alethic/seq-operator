@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth0-operator
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "auth0-operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.operator.replicaCount }}
+  selector:
+    matchLabels: {{- include "auth0-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "auth0-operator.labels" . | nindent 8 }}
+        {{- include "auth0-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.operator.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.operator.runtimeClassName }}
+      runtimeClassName: {{ . }}
+      {{- end }}
+      serviceAccountName: auth0-operator
+      {{- with .Values.operator.securityContext }}
+      securityContext: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.operator.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.operator.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.operator.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.operator.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.operator.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.operator.initContainers }}
+      initContainers: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ .Values.operator.image.repository }}:{{ .Values.operator.image.digest | default .Values.operator.image.tag | default $.Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+          env:
+            # By default we want to use a formatter more suited to Kubernetes.
+            - name: Logging__Console__FormatterName
+              value: "simple"
+            - name: Logging__Console__FormatterOptions__TimestampFormat
+              value: "yyyy-MM-dd HH:mm:ss "
+            - name: Logging__Console__FormatterOptions__SingleLine
+              value: 'true'
+
+{{ if .Values.options.namespace }}
+            - name: Auth0__Operator__Namespace
+              value: {{ .Values.options.namespace | quote }}
+{{ end }}
+{{ if .Values.options.reconciliation.interval }}
+            - name: Auth0__Operator__Reconciliation__Interval
+              value: {{ .Values.options.reconciliation.interval | quote }}
+{{ end }}
+{{ range .Values.operator.env }}
+            - name: {{ .name | quote }}
+              value: {{ .value | quote }}
+{{ end }}
+          resources: {{- toYaml .Values.operator.resources | nindent 12 }}
+          {{- with .Values.operator.containerSecurityContext }}
+          securityContext: {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.operator.volumeMounts }}
+          volumeMounts: {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.operator.volumes }}
+      volumes: {{- toYaml . | nindent 8 }}
+      {{- end }}

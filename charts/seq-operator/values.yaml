@@ -1,0 +1,86 @@
+operator:
+  env: []
+
+  # An array of additional annotations to be applied to the operator service account
+  serviceAccountAnnotations: []
+
+  # additional labels to be applied to operator resources
+  additionalLabels: {}
+
+  # Specify the Operator container image to use for the deployment.
+  image:
+    repository: ghcr.io/alethic/auth0-operator-image
+    pullPolicy: IfNotPresent
+
+  # An array of Kubernetes secrets to use for pulling images from a private ``image.repository``.
+  # Only one array element is supported at this time.
+  imagePullSecrets: [ ]
+
+  # An array of `initContainers <https://kubernetes.io/docs/concepts/workloads/pods/init-containers/>`__ to start up before the Operator pods.
+  initContainers: [ ]
+
+  # The number of Operator pods to deploy.
+  replicaCount: 1
+
+  # You may need to modify these values to meet your cluster's security and access settings.
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    runAsNonRoot: true
+    fsGroup: 1000
+
+  # You may need to modify these values to meet your cluster's security and access settings.
+  containerSecurityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+  # The volumes must exist *and* be accessible to the Operator pods.
+  volumes: [ ]
+
+  # An array of volume mount points associated to each Operator container.
+  volumeMounts: [ ]
+
+  # Any `Node Selectors <https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/>`__ to apply to Operator pods.
+  nodeSelector: { }
+
+  # The `Pod Priority <https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/>`__ to assign to Operator pods.
+  priorityClassName: ""
+
+  # The `affinity <https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes-using-node-affinity/>`__ or anti-affinity settings to apply to Operator pods.
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: name
+                operator: In
+                values:
+                  - auth0-operator
+          topologyKey: kubernetes.io/hostname
+
+  # An array of `Toleration labels <https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/>`__ to associate to Operator pods.
+  tolerations: [ ]
+
+  # An array of `Topology Spread Constraints <https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/>`__ to associate to Operator pods.
+  topologySpreadConstraints: [ ]
+
+  # The `Requests or Limits <https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/>`__ for resources to associate to Operator pods.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Various configuration options.
+options:
+    # Limit operation to the single specified namespace. This can be used to install a namespace-specific instance of the operator.
+    # NOT YET SUPORTED
+    #namespace:
+  reconciliation:
+    interval:

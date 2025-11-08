@@ -1,0 +1,14 @@
+apiVersion: v2
+name: auth0-operator
+description: Operator that manages Auth0 Tenant, Client and ResourceServer entities.
+type: application
+version: 0.0.0
+appVersion: "0.0.0"
+keywords:
+  - auth0
+home: https://github.com/alethic/auth0-operator
+sources:
+  - https://github.com/alethic/auth0-operator
+maintainers:
+  - name: Jerome Haltom
+    email: jhaltom@alethic.solutions
