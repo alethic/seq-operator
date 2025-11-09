@@ -156,7 +156,7 @@ jobs:
       with:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-        registry: ghcr.io/${{ github.repository_owner }}
+        registry: ghcr.io/${{ github.repository }}
     - name: Push Containers (GitHub)
       if: github.event_name != 'pull_request'
       uses: docker://quay.io/skopeo/stable:latest
@@ -164,5 +164,5 @@ jobs:
         args: copy "--dest-creds=${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" docker-archive:/github/workspace/dist/containers/seq-operator-image.tar docker://ghcr.io/${{ github.repository }}/auth0-operator-image:${{ steps.GitVersion.outputs.semVer }}
     - name: Push Charts (GitHub)
       if: github.event_name != 'pull_request'
-      run: helm push dist/charts/*.tgz oci://ghcr.io/${{ github.repository_owner }}
+      run: helm push dist/charts/*.tgz oci://ghcr.io/${{ github.repository }}
   
