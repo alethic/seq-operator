@@ -170,10 +170,6 @@ namespace Alethic.Seq.Operator.Core.Models.Instance
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? ThemeStyles { get; set; }
 
-        [JsonPropertyName("enabledFeatures")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string[]? EnabledFeatures { get; set; }
-
     }
 
 }
