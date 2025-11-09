@@ -165,4 +165,3 @@ jobs:
     - name: Push Charts (GitHub)
       if: github.event_name != 'pull_request'
       run: helm push dist/charts/*.tgz oci://ghcr.io/${{ github.repository }}
-  
