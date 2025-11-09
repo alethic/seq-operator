@@ -46,6 +46,34 @@ namespace Alethic.Seq.Operator.Controllers
         protected override async Task Reconcile(V1Alpha1Instance entity, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
+
+            var api = await GetInstanceConnectionAsync(entity, cancellationToken);
+            if (api == null)
+                throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}:{entity.Name()} failed to retrieve API client.");
+
+            //var settings = await api.Settings.FindNamedAsync( global::Seq.Api.Model.Settings.SettingName.)
+            //if (settings is null)
+            //    throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} cannot be loaded from API.");
+
+            //// configuration was specified
+            //if (entity.Spec.Conf is { } conf)
+            //{
+            //    // verify that no changes to enable_sso are being made
+            //    if (conf.Flags != null && conf.Flags.EnableSSO != null && settings.Flags.EnableSSO != null && conf.Flags.EnableSSO != settings.Flags.EnableSSO)
+            //        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()}: updating the enable_sso flag is not allowed.");
+
+            //    // push update to Auth0
+            //    var req = TransformToNewtonsoftJson<TenantConf, TenantSettingsUpdateRequest>(conf);
+            //    req.Flags.EnableSSO = null;
+            //    settings = await api.TenantSettings.UpdateAsync(req, cancellationToken);
+            //}
+
+            //// retrieve and copy applied settings to status
+            //settings = await api.TenantSettings.GetAsync(cancellationToken: cancellationToken);
+            //entity.Status.LastConf = TransformToSystemTextJson<Hashtable>(settings);
+            //entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
+
+            await ReconcileSuccessAsync(entity, cancellationToken);
         }
 
         /// <inheritdoc />
