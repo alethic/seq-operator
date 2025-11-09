@@ -158,7 +158,7 @@ jobs:
       if: github.event_name != 'pull_request'
       uses: docker://quay.io/skopeo/stable:latest
       with:
-        args: copy "--dest-creds=${{ github.actor }}:${{ github.token }}" docker-archive:/github/workspace/dist/containers/auth0-operator-image.tar docker://ghcr.io/${{ github.repository_owner }}/auth0-operator-image:${{ steps.GitVersion.outputs.semVer }}
+        args: copy "--dest-creds=${{ github.actor }}:${{ github.token }}" docker-archive:/github/workspace/dist/containers/seq-operator-image.tar docker://ghcr.io/${{ github.repository_owner }}/auth0-operator-image:${{ steps.GitVersion.outputs.semVer }}
     - name: Push Charts (GitHub)
       if: github.event_name != 'pull_request'
       run: helm push dist/charts/*.tgz oci://ghcr.io/${{ github.repository_owner }}
