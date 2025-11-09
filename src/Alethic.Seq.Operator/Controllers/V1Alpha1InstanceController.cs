@@ -291,8 +291,9 @@ namespace Alethic.Seq.Operator.Controllers
                 return;
             }
 
-            // disable authentication
-            await PutSettingValueAsync(api, SettingName.IsAuthenticationEnabled, false, cancellationToken);
+            // disable authentication if previously enabled
+            if (info is null or { Local: not null } or { ActiveDirectory: not null } or { Entra: not null } or { Oidc: not null })
+                await PutSettingValueAsync(api, SettingName.IsAuthenticationEnabled, false, cancellationToken);
         }
 
         /// <summary>
