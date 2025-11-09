@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,14 +18,17 @@ using KubeOps.KubernetesClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
+using Seq.Api;
+
 namespace Alethic.Seq.Operator.Controllers
 {
 
-    public abstract class V1Controller<TEntity, TSpec, TStatus, TConf> : IEntityController<TEntity>
-        where TEntity : IKubernetesObject<V1ObjectMeta>, V1Entity<TSpec, TStatus, TConf>
-        where TSpec : V1EntitySpec<TConf>
-        where TStatus : V1EntityStatus
+    public abstract class V1Alpha1Controller<TEntity, TSpec, TStatus, TConf, TInfo> : IEntityController<TEntity>
+        where TEntity : IKubernetesObject<V1ObjectMeta>, V1Alpha1Entity<TSpec, TStatus, TConf, TInfo>
+        where TSpec : V1Alpha1EntitySpec<TConf>
+        where TStatus : V1Alpha1EntityStatus<TInfo>
         where TConf : class
+        where TInfo : class
     {
 
         readonly IKubernetesClient _kube;
@@ -39,7 +43,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="requeue"></param>
         /// <param name="cache"></param>
         /// <param name="logger"></param>
-        public V1Controller(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, ILogger logger)
+        public V1Alpha1Controller(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, ILogger logger)
         {
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _kube = kube ?? throw new ArgumentNullException(nameof(kube));
@@ -100,7 +104,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<V1Instance?> ResolveInstanceRef(V1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
+        public async Task<V1Alpha1Instance?> ResolveInstanceRef(V1Alpha1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
         {
             if (instanceRef is null)
                 return null;
@@ -112,7 +116,7 @@ namespace Alethic.Seq.Operator.Controllers
             if (string.IsNullOrWhiteSpace(ns))
                 throw new InvalidOperationException($"Instance reference {instanceRef} has no discovered namesace.");
 
-            var tenant = await _kube.GetAsync<V1Instance>(instanceRef.Name, ns, cancellationToken);
+            var tenant = await _kube.GetAsync<V1Alpha1Instance>(instanceRef.Name, ns, cancellationToken);
             if (tenant is null)
                 throw new RetryException($"Instance reference {instanceRef} cannot be resolved.");
 
@@ -120,14 +124,127 @@ namespace Alethic.Seq.Operator.Controllers
         }
 
         /// <summary>
-        /// Gets an active <see cref="object"/> for the specified instance.
+        /// Creates a new instance connection for the Login authentication method.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="endpoint"></param>
+        /// <param name="loginDef"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="RetryException"></exception>
+        async Task<SeqConnection> CreateSeqConnectionAsync(V1Alpha1Instance instance, string endpoint, V1Alpha1Instance.SpecDef.LoginAuthentication loginDef, CancellationToken cancellationToken)
+        {
+            var secretRef = loginDef.SecretRef;
+            if (secretRef == null)
+                throw new InvalidOperationException($"Instance {instance.Namespace()}/{instance.Name()} has no login authentication secret.");
+
+            if (string.IsNullOrWhiteSpace(secretRef.Name))
+                throw new InvalidOperationException($"Instance {instance.Namespace()}/{instance.Name()} has no secret name.");
+
+            var secret = _kube.Get<V1Secret>(secretRef.Name, secretRef.NamespaceProperty ?? instance.Namespace());
+            if (secret == null)
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has missing secret.");
+
+            if (secret.Data.TryGetValue("username", out var usernameBuf) == false)
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has missing username value on secret.");
+
+            if (secret.Data.TryGetValue("password", out var passwordBuf) == false)
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has missing password value on secret.");
+
+            // unpack buffers
+            var username = Encoding.UTF8.GetString(usernameBuf);
+            var password = Encoding.UTF8.GetString(passwordBuf);
+
+            // create connection and login
+            var connection = new SeqConnection(endpoint);
+            await connection.Users.LoginAsync(username, password);
+
+            return connection;
+        }
+
+        /// <summary>
+        /// Creates a new Seq connection for the ApiKey authentication method.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="endpoint"></param>
+        /// <param name="apiKeyDef"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="RetryException"></exception>
+        async Task<SeqConnection> CreateSeqConnectionAsync(V1Alpha1Instance instance, string endpoint, V1Alpha1Instance.SpecDef.ApiKeyAuthentication apiKeyDef, CancellationToken cancellationToken)
+        {
+            var secretRef = apiKeyDef.SecretRef;
+            if (secretRef == null)
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no apikey authentication secret.");
+
+            if (string.IsNullOrWhiteSpace(secretRef.Name))
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no secret name.");
+
+            var secret = _kube.Get<V1Secret>(secretRef.Name, secretRef.NamespaceProperty ?? instance.Namespace());
+            if (secret == null)
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has missing secret.");
+
+            if (secret.Data.TryGetValue("apikey", out var apikeyBuf) == false)
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has missing apikey value on secret.");
+
+            // unpack buffers
+            var apikey = Encoding.UTF8.GetString(apikeyBuf);
+
+            // create connection
+            var connection = new SeqConnection(endpoint, apikey);
+
+            return connection;
+        }
+
+        /// <summary>
+        /// Creates a new Seq connection for the specified instance.
         /// </summary>
         /// <param name="instance"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<object> GetInstanceClientAsync(V1Instance instance, CancellationToken cancellationToken)
+        /// <exception cref="InvalidOperationException"></exception>
+        async Task<SeqConnection> CreateSeqConnectionAsync(V1Alpha1Instance instance, V1Alpha1Instance.SpecDef.ConnectionDef remoteDef, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var endpoint = remoteDef.Endpoint;
+            if (string.IsNullOrWhiteSpace(endpoint))
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no remote endpoint.");
+
+            if (remoteDef.Login != null)
+                return await CreateSeqConnectionAsync(instance, endpoint, remoteDef.Login, cancellationToken);
+
+            if (remoteDef.ApiKey != null)
+                return await CreateSeqConnectionAsync(instance, endpoint, remoteDef.ApiKey, cancellationToken);
+
+            throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has valid authentication information.");
+        }
+
+        /// <summary>
+        /// Gets an active <see cref="SeqConnection"/> for the specified instance.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<SeqConnection> GetInstanceConnectionAsync(V1Alpha1Instance instance, CancellationToken cancellationToken)
+        {
+            var connection = await _cache.GetOrCreateAsync((instance.Namespace(), instance.Name()), async entry =>
+            {
+                if (instance.Spec.Connection is null)
+                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no remote connection information.");
+
+                var connection = await CreateSeqConnectionAsync(instance, instance.Spec.Connection, cancellationToken);
+                if (connection is null)
+                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not retrieve connection.");
+
+                // cache connection for 1 minute
+                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
+                return connection;
+            });
+
+            if (connection is null)
+                throw new RetryException("Cannot retrieve tenant API client.");
+
+            return connection;
         }
 
         /// <summary>

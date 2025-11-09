@@ -11,6 +11,12 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - k8s.seq.datalust.co
+  resources:
+  - apikeys
+  verbs:
+  - '*'
+- apiGroups:
   - ""
   resources:
   - secrets
@@ -20,12 +26,6 @@ rules:
   - events.k8s.io
   resources:
   - events
-  verbs:
-  - '*'
-- apiGroups:
-  - k8s.seq.datalust.co
-  resources:
-  - objects
   verbs:
   - '*'
 - apiGroups:
@@ -54,7 +54,7 @@ rules:
 - apiGroups:
   - k8s.seq.datalust.co
   resources:
-  - objects/status
+  - apikeys/status
   verbs:
   - get
   - update

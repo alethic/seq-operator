@@ -1,7 +1,10 @@
 ﻿namespace Alethic.Seq.Operator.Models
 {
 
-    public enum V1EntityPolicyType
+    /// <summary>
+    /// Describes the permitted operations on the entity.
+    /// </summary>
+    public enum V1Alpha1EntityPolicyType
     {
 
         /// <summary>

@@ -1,0 +1,310 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: apikeys.k8s.seq.datalust.co
+spec:
+  group: k8s.seq.datalust.co
+  names:
+    kind: ApiKey
+    listKind: ApiKeyList
+    plural: apikeys
+    shortNames:
+    - seqapikey
+    singular: apikey
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          status:
+            nullable: false
+            properties:
+              id:
+                nullable: true
+                type: string
+              info:
+                nullable: true
+                properties:
+                  token:
+                    nullable: true
+                    type: string
+                  tokenPrefix:
+                    nullable: true
+                    type: string
+                  title:
+                    nullable: true
+                    type: string
+                  isDefault:
+                    nullable: true
+                    type: boolean
+                  ownerId:
+                    nullable: true
+                    type: string
+                  assignedPermissions:
+                    items:
+                      enum:
+                      - Undefined
+                      - Public
+                      - Ingest
+                      - Read
+                      - Write
+                      - Setup
+                      - Project
+                      - System
+                      - Organization
+                      type: string
+                    nullable: true
+                    type: array
+                  inputSettings:
+                    nullable: true
+                    properties:
+                      appliedProperties:
+                        items:
+                          properties:
+                            name:
+                              nullable: true
+                              type: string
+                            value:
+                              nullable: true
+                              type: string
+                          type: object
+                        nullable: true
+                        type: array
+                      filter:
+                        nullable: true
+                        properties:
+                          description:
+                            nullable: true
+                            type: string
+                          descriptionIsExcluded:
+                            nullable: true
+                            type: boolean
+                          filter:
+                            nullable: true
+                            type: string
+                          filterNonStrict:
+                            nullable: true
+                            type: string
+                        type: object
+                      minimumLevel:
+                        enum:
+                        - Verbose
+                        - Debug
+                        - Information
+                        - Warning
+                        - Error
+                        - Fatal
+                        nullable: true
+                        type: string
+                      useServerTimestamps:
+                        nullable: true
+                        type: boolean
+                    type: object
+                type: object
+            type: object
+          spec:
+            nullable: false
+            properties:
+              policy:
+                items:
+                  enum:
+                  - Create
+                  - Update
+                  - Delete
+                  type: string
+                nullable: true
+                type: array
+              instanceRef:
+                nullable: true
+                properties:
+                  namespace:
+                    nullable: true
+                    type: string
+                  name:
+                    nullable: true
+                    type: string
+                required:
+                - name
+                type: object
+              secretRef:
+                nullable: true
+                properties:
+                  name:
+                    nullable: false
+                    type: string
+                  namespace:
+                    nullable: false
+                    type: string
+                type: object
+              find:
+                nullable: true
+                properties:
+                  title:
+                    nullable: true
+                    type: string
+                  ownerId:
+                    nullable: true
+                    type: string
+                type: object
+              init:
+                nullable: true
+                properties:
+                  token:
+                    nullable: true
+                    type: string
+                  title:
+                    nullable: true
+                    type: string
+                  isDefault:
+                    nullable: true
+                    type: boolean
+                  ownerId:
+                    nullable: true
+                    type: string
+                  assignedPermissions:
+                    items:
+                      enum:
+                      - Undefined
+                      - Public
+                      - Ingest
+                      - Read
+                      - Write
+                      - Setup
+                      - Project
+                      - System
+                      - Organization
+                      type: string
+                    nullable: true
+                    type: array
+                  inputSettings:
+                    nullable: true
+                    properties:
+                      appliedProperties:
+                        items:
+                          properties:
+                            name:
+                              nullable: true
+                              type: string
+                            value:
+                              nullable: true
+                              type: string
+                          type: object
+                        nullable: true
+                        type: array
+                      filter:
+                        nullable: true
+                        properties:
+                          description:
+                            nullable: true
+                            type: string
+                          descriptionIsExcluded:
+                            nullable: true
+                            type: boolean
+                          filter:
+                            nullable: true
+                            type: string
+                          filterNonStrict:
+                            nullable: true
+                            type: string
+                        type: object
+                      minimumLevel:
+                        enum:
+                        - Verbose
+                        - Debug
+                        - Information
+                        - Warning
+                        - Error
+                        - Fatal
+                        nullable: true
+                        type: string
+                      useServerTimestamps:
+                        nullable: true
+                        type: boolean
+                    type: object
+                type: object
+              conf:
+                nullable: true
+                properties:
+                  token:
+                    nullable: true
+                    type: string
+                  title:
+                    nullable: true
+                    type: string
+                  isDefault:
+                    nullable: true
+                    type: boolean
+                  ownerId:
+                    nullable: true
+                    type: string
+                  assignedPermissions:
+                    items:
+                      enum:
+                      - Undefined
+                      - Public
+                      - Ingest
+                      - Read
+                      - Write
+                      - Setup
+                      - Project
+                      - System
+                      - Organization
+                      type: string
+                    nullable: true
+                    type: array
+                  inputSettings:
+                    nullable: true
+                    properties:
+                      appliedProperties:
+                        items:
+                          properties:
+                            name:
+                              nullable: true
+                              type: string
+                            value:
+                              nullable: true
+                              type: string
+                          type: object
+                        nullable: true
+                        type: array
+                      filter:
+                        nullable: true
+                        properties:
+                          description:
+                            nullable: true
+                            type: string
+                          descriptionIsExcluded:
+                            nullable: true
+                            type: boolean
+                          filter:
+                            nullable: true
+                            type: string
+                          filterNonStrict:
+                            nullable: true
+                            type: string
+                        type: object
+                      minimumLevel:
+                        enum:
+                        - Verbose
+                        - Debug
+                        - Information
+                        - Warning
+                        - Error
+                        - Fatal
+                        nullable: true
+                        type: string
+                      useServerTimestamps:
+                        nullable: true
+                        type: boolean
+                    type: object
+                type: object
+            required:
+            - instanceRef
+            - conf
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

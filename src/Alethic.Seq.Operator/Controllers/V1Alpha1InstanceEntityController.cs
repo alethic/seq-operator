@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,14 +15,17 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+using Seq.Api;
+
 namespace Alethic.Seq.Operator.Controllers
 {
 
-    public abstract class V1InstanceEntityController<TEntity, TSpec, TStatus, TConf> : V1Controller<TEntity, TSpec, TStatus, TConf>
-        where TEntity : IKubernetesObject<V1ObjectMeta>, V1InstanceEntity<TSpec, TStatus, TConf>
-        where TSpec : V1InstanceEntitySpec<TConf>
-        where TStatus : V1InstanceEntityStatus
+    public abstract class V1Alpha1InstanceEntityController<TEntity, TSpec, TStatus, TConf, TInfo> : V1Alpha1Controller<TEntity, TSpec, TStatus, TConf, TInfo>
+        where TEntity : IKubernetesObject<V1ObjectMeta>, V1Alpha1InstanceEntity<TSpec, TStatus, TConf, TInfo>
+        where TSpec : V1Alpha1InstanceEntitySpec<TConf>
+        where TStatus : V1Alpha1InstanceEntityStatus<TInfo>
         where TConf : class
+        where TInfo : class
     {
 
         readonly IOptions<OperatorOptions> _options;
@@ -36,7 +38,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="cache"></param>
         /// <param name="logger"></param>
         /// <param name="options"></param>
-        public V1InstanceEntityController(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, ILogger logger, IOptions<OperatorOptions> options) :
+        public V1Alpha1InstanceEntityController(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, ILogger logger, IOptions<OperatorOptions> options) :
             base(kube, requeue, cache, logger)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -50,7 +52,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task<Hashtable?> Get(object api, string id, string defaultNamespace, CancellationToken cancellationToken);
+        protected abstract Task<TInfo?> Get(SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken);
 
         /// <summary>
         /// Attempts to locate a matching API element by the given configuration.
@@ -61,7 +63,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task<string?> Find(object api, TEntity entity, TSpec spec, string defaultNamespace, CancellationToken cancellationToken);
+        protected abstract Task<string?> Find(SeqConnection api, TEntity entity, TSpec spec, string defaultNamespace, CancellationToken cancellationToken);
 
         /// <summary>
         /// Performs a validation on the <paramref name="conf"/> parameter for usage in create operations.
@@ -78,7 +80,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task<string> Create(object api, TConf conf, string defaultNamespace, CancellationToken cancellationToken);
+        protected abstract Task<string> Create(SeqConnection api, TConf conf, string defaultNamespace, CancellationToken cancellationToken);
 
         /// <summary>
         /// Attempts to perform an update through the API.
@@ -90,7 +92,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task Update(object api, string id, Hashtable? last, TConf conf, string defaultNamespace, CancellationToken cancellationToken);
+        protected abstract Task Update(SeqConnection api, string id, TInfo? last, TConf conf, string defaultNamespace, CancellationToken cancellationToken);
 
         /// <inheritdoc />
         protected override async Task Reconcile(TEntity entity, CancellationToken cancellationToken)
@@ -105,7 +107,7 @@ namespace Alethic.Seq.Operator.Controllers
             if (instance is null)
                 throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} missing an instance.");
 
-            var api = await GetInstanceClientAsync(instance, cancellationToken);
+            var api = await GetInstanceConnectionAsync(instance, cancellationToken);
             if (api is null)
                 throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} failed to retrieve API client.");
 
@@ -126,7 +128,7 @@ namespace Alethic.Seq.Operator.Controllers
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} could not be located, creating.", EntityTypeName, entity.Namespace(), entity.Name());
 
                     // reject creation if disallowed
-                    if (entity.HasPolicy(V1EntityPolicyType.Create) == false)
+                    if (entity.HasPolicy(V1Alpha1EntityPolicyType.Create) == false)
                     {
                         Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} does not support creation.", EntityTypeName, entity.Namespace(), entity.Name());
                         return;
@@ -161,15 +163,14 @@ namespace Alethic.Seq.Operator.Controllers
             {
                 // no matching remote entity that correlates directly with ID, reset and retry to go back to Find/Create
                 Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} not found in Seq, clearing status and scheduling recreation", EntityTypeName, entity.Namespace(), entity.Name());
-                //entity.Status.LastConf = null;
-                throw new NotImplementedException();
+                entity.Status.Info = null;
                 entity.Status.Id = null;
                 entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
                 throw new RetryException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} has missing API object, invalidating.");
             }
 
             // apply updates if allowed
-            if (entity.HasPolicy(V1EntityPolicyType.Update))
+            if (entity.HasPolicy(V1Alpha1EntityPolicyType.Update))
             {
                 if (entity.Spec.Conf is { } conf)
                     await Update(api, entity.Status.Id, lastConf, conf, entity.Namespace(), cancellationToken);
@@ -194,14 +195,13 @@ namespace Alethic.Seq.Operator.Controllers
         /// </summary>
         /// <param name="api"></param>
         /// <param name="entity"></param>
-        /// <param name="lastConf"></param>
+        /// <param name="info"></param>
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected virtual Task ApplyStatus(object api, TEntity entity, Hashtable lastConf, string defaultNamespace, CancellationToken cancellationToken)
+        protected virtual Task ApplyStatus(SeqConnection api, TEntity entity, TInfo? info, string defaultNamespace, CancellationToken cancellationToken)
         {
-            //entity.Status.LastConf = lastConf;
-            throw new NotImplementedException();
+            entity.Status.Info = info;
             return Task.CompletedTask;
         }
 
@@ -212,7 +212,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="id"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task Delete(object api, string id, CancellationToken cancellationToken);
+        protected abstract Task Delete(SeqConnection api, string id, CancellationToken cancellationToken);
 
         /// <inheritdoc />
         public override sealed async Task DeletedAsync(TEntity entity, CancellationToken cancellationToken)
@@ -226,7 +226,7 @@ namespace Alethic.Seq.Operator.Controllers
                 if (tenant is null)
                     throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is missing an instance.");
 
-                var api = await GetInstanceClientAsync(tenant, cancellationToken);
+                var api = await GetInstanceConnectionAsync(tenant, cancellationToken);
                 if (api is null)
                     throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} failed to retrieve API client.");
 
@@ -244,7 +244,7 @@ namespace Alethic.Seq.Operator.Controllers
                 }
 
                 // reject deletion if disallowed by policy
-                if (entity.HasPolicy(V1EntityPolicyType.Delete) == false)
+                if (entity.HasPolicy(V1Alpha1EntityPolicyType.Delete) == false)
                 {
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} does not support delete (reason: Delete policy not enabled).", EntityTypeName, entity.Namespace(), entity.Name());
                 }

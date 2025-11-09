@@ -20,12 +20,20 @@ spec:
           status:
             nullable: false
             properties:
-              id:
+              deployment:
                 nullable: true
-                type: string
-              lastConf:
+                properties: {}
+                type: object
+              info:
                 nullable: true
-                type: string
+                properties:
+                  enabledFeatures:
+                    items:
+                      nullable: false
+                      type: string
+                    nullable: true
+                    type: array
+                type: object
             type: object
           spec:
             nullable: false
@@ -39,15 +47,50 @@ spec:
                   type: string
                 nullable: true
                 type: array
-              name:
-                nullable: false
-                type: string
-              auth:
+              connection:
                 nullable: true
                 properties:
-                  unknown:
+                  endpoint:
                     nullable: true
                     type: string
+                  login:
+                    nullable: true
+                    properties:
+                      secretRef:
+                        nullable: true
+                        properties:
+                          name:
+                            nullable: false
+                            type: string
+                          namespace:
+                            nullable: false
+                            type: string
+                        type: object
+                    required:
+                    - secretRef
+                    type: object
+                  apiKey:
+                    nullable: true
+                    properties:
+                      secretRef:
+                        nullable: true
+                        properties:
+                          name:
+                            nullable: false
+                            type: string
+                          namespace:
+                            nullable: false
+                            type: string
+                        type: object
+                    required:
+                    - secretRef
+                    type: object
+                required:
+                - endpoint
+                type: object
+              deployment:
+                nullable: true
+                properties:
                   secretRef:
                     nullable: true
                     properties:
@@ -59,26 +102,29 @@ spec:
                         type: string
                     type: object
                 required:
-                - unknown
                 - secretRef
                 type: object
               init:
                 nullable: true
                 properties:
-                  value:
+                  enabledFeatures:
+                    items:
+                      nullable: false
+                      type: string
                     nullable: true
-                    type: string
+                    type: array
                 type: object
               conf:
                 nullable: true
                 properties:
-                  value:
+                  enabledFeatures:
+                    items:
+                      nullable: false
+                      type: string
                     nullable: true
-                    type: string
+                    type: array
                 type: object
             required:
-            - name
-            - auth
             - conf
             type: object
         type: object

@@ -3,7 +3,7 @@
 namespace Alethic.Seq.Operator.Core.Models
 {
 
-    public class V1ObjectReference
+    public class V1Alpha1ObjectReference
     {
 
         [JsonPropertyName("namespace")]

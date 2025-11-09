@@ -1,14 +1,14 @@
 ﻿namespace Alethic.Seq.Operator.Models
 {
 
-    public interface V1EntitySpec<TConf>
+    public interface V1Alpha1EntitySpec<TConf>
         where TConf : class
     {
 
         /// <summary>
         /// Set of operations allowed with the entity.
         /// </summary>
-        V1EntityPolicyType[]? Policy { get; set; }
+        V1Alpha1EntityPolicyType[]? Policy { get; set; }
 
         /// <summary>
         /// Version of configuration used for initial creation.

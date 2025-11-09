@@ -8,10 +8,10 @@ using KubeOps.Abstractions.Finalizer;
 namespace Alethic.Seq.Operator.Finalizers
 {
 
-    public class V1TenantFinalizer : IEntityFinalizer<V1Instance>
+    public class V1Alpha1TenantFinalizer : IEntityFinalizer<V1Alpha1Instance>
     {
 
-        public Task FinalizeAsync(V1Instance entity, CancellationToken cancellationToken)
+        public Task FinalizeAsync(V1Alpha1Instance entity, CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }
