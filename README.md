@@ -6,7 +6,7 @@ This Seq Kubernetes Operator is responsible for managing the lifecycle of Seq re
 
 ### Installation
 
-`helm install -n seq-operator seq-operator oci://ghcr.io/alethic/seq-operator`
+`helm install -n seq-operator seq-operator oci://ghcr.io/alethic/seq-operator/seq-operator`
 
 ## Usage
 
