@@ -64,7 +64,7 @@ namespace Alethic.Seq.Operator.Core.Models.Instance
 
                 [JsonPropertyName("scopes")]
                 [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-                public List<string>? Scopes { get; set; }
+                public string[]? Scopes { get; set; }
 
                 [JsonPropertyName("metadataAddress")]
                 [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
