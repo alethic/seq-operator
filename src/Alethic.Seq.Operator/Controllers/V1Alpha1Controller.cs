@@ -258,7 +258,7 @@ namespace Alethic.Seq.Operator.Controllers
             await _kube.CreateAsync(new Eventsv1Event(
                     DateTime.Now,
                     metadata: new V1ObjectMeta(namespaceProperty: entity.Namespace(), generateName: "seq"),
-                    reportingController: "k8s.seq.datalust.co/operator",
+                    reportingController: "seq.k8s.datalust.co/operator",
                     reportingInstance: Dns.GetHostName(),
                     regarding: entity.MakeObjectReference(),
                     action: "Reconcile",
@@ -280,7 +280,7 @@ namespace Alethic.Seq.Operator.Controllers
             await _kube.CreateAsync(new Eventsv1Event(
                     DateTime.Now,
                     metadata: new V1ObjectMeta(namespaceProperty: entity.Namespace(), generateName: "seq"),
-                    reportingController: "k8s.seq.datalust.co/operator",
+                    reportingController: "seq.k8s.datalust.co/operator",
                     reportingInstance: Dns.GetHostName(),
                     regarding: entity.MakeObjectReference(),
                     action: "Reconcile",
@@ -303,7 +303,7 @@ namespace Alethic.Seq.Operator.Controllers
             await _kube.CreateAsync(new Eventsv1Event(
                     DateTime.Now,
                     metadata: new V1ObjectMeta(namespaceProperty: entity.Namespace(), generateName: "seq"),
-                    reportingController: "k8s.seq.datalust.co/operator",
+                    reportingController: "seq.k8s.datalust.co/operator",
                     reportingInstance: Dns.GetHostName(),
                     regarding: entity.MakeObjectReference(),
                     action: "Deleting",

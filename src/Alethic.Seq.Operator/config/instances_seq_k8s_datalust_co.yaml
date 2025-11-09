@@ -1,9 +1,9 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: instances.k8s.seq.datalust.co
+  name: instances.seq.k8s.datalust.co
 spec:
-  group: k8s.seq.datalust.co
+  group: seq.k8s.datalust.co
   names:
     kind: Instance
     listKind: InstanceList
@@ -27,12 +27,140 @@ spec:
               info:
                 nullable: true
                 properties:
-                  enabledFeatures:
-                    items:
-                      nullable: false
-                      type: string
+                  settings:
                     nullable: true
-                    type: array
+                    properties:
+                      auth:
+                        nullable: true
+                        properties:
+                          local:
+                            nullable: true
+                            properties: {}
+                            type: object
+                          activeDirectory:
+                            nullable: true
+                            properties:
+                              automaticAccessADGroup:
+                                nullable: true
+                                type: string
+                            type: object
+                          entra:
+                            nullable: true
+                            properties:
+                              authority:
+                                nullable: true
+                                type: string
+                              clientId:
+                                nullable: true
+                                type: string
+                              clientKey:
+                                nullable: true
+                                type: string
+                              tenantId:
+                                nullable: true
+                                type: string
+                            type: object
+                          oidc:
+                            nullable: true
+                            properties:
+                              authority:
+                                nullable: true
+                                type: string
+                              clientId:
+                                nullable: true
+                                type: string
+                              clientSecret:
+                                nullable: true
+                                type: string
+                              scopes:
+                                items:
+                                  nullable: false
+                                  type: string
+                                nullable: true
+                                type: array
+                              metadataAddress:
+                                nullable: true
+                                type: string
+                            type: object
+                          automaticallyProvisionAuthenticatedUsers:
+                            nullable: true
+                            type: boolean
+                        type: object
+                      dataAgeWarningThresholdMilliseconds:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      backupLocation:
+                        nullable: true
+                        type: string
+                      backupsToKeep:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      backupUtcTimeOfDay:
+                        nullable: true
+                        type: string
+                      checkForPackageUpdates:
+                        nullable: true
+                        type: boolean
+                      checkForUpdates:
+                        nullable: true
+                        type: boolean
+                      instanceTitle:
+                        nullable: true
+                        type: string
+                      minimumFreeStorageSpace:
+                        nullable: true
+                        type: boolean
+                      newUserPreferences:
+                        additionalProperties:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: object
+                      newUserRoleIds:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
+                      newUserShowSignalIds:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
+                      newUserShowQueryIds:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
+                      newUserShowDashboardIds:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
+                      requireApiKeyForWritingEvents:
+                        nullable: true
+                        type: boolean
+                      rawEventMaximumContentLength:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      rawPayloadMaximumContentLength:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      targetReplicaCount:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      themeStyles:
+                        nullable: true
+                        type: string
+                    type: object
                 type: object
             type: object
           spec:
@@ -240,12 +368,6 @@ spec:
                       themeStyles:
                         nullable: true
                         type: string
-                      enabledFeatures:
-                        items:
-                          nullable: false
-                          type: string
-                        nullable: true
-                        type: array
                     type: object
                 type: object
               conf:
@@ -384,12 +506,6 @@ spec:
                       themeStyles:
                         nullable: true
                         type: string
-                      enabledFeatures:
-                        items:
-                          nullable: false
-                          type: string
-                        nullable: true
-                        type: array
                     type: object
                 type: object
             required:

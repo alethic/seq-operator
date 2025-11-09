@@ -11,7 +11,7 @@ namespace Alethic.Seq.Operator.Models
 {
 
     [EntityScope(EntityScope.Namespaced)]
-    [KubernetesEntity(Group = "k8s.seq.datalust.co", ApiVersion = "v1alpha1", Kind = "Instance")]
+    [KubernetesEntity(Group = "seq.k8s.datalust.co", ApiVersion = "v1alpha1", Kind = "Instance")]
     [KubernetesEntityShortNames("seqinstance")]
     public partial class V1Alpha1Instance :
         CustomKubernetesEntity<V1Alpha1Instance.SpecDef, V1Alpha1Instance.StatusDef>,

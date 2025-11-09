@@ -4,13 +4,13 @@ metadata:
   name: operator-role
 rules:
 - apiGroups:
-  - k8s.seq.datalust.co
+  - seq.k8s.datalust.co
   resources:
   - instances
   verbs:
   - '*'
 - apiGroups:
-  - k8s.seq.datalust.co
+  - seq.k8s.datalust.co
   resources:
   - apikeys
   verbs:
@@ -43,7 +43,7 @@ rules:
   verbs:
   - '*'
 - apiGroups:
-  - k8s.seq.datalust.co
+  - seq.k8s.datalust.co
   resources:
   - instances/status
   verbs:
@@ -51,7 +51,7 @@ rules:
   - update
   - patch
 - apiGroups:
-  - k8s.seq.datalust.co
+  - seq.k8s.datalust.co
   resources:
   - apikeys/status
   verbs:

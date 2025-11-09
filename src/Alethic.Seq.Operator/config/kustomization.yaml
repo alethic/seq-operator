@@ -6,8 +6,8 @@ resources:
 - operator-role.yaml
 - operator-role-binding.yaml
 - deployment.yaml
-- apikeys_k8s_seq_datalust_co.yaml
-- instances_k8s_seq_datalust_co.yaml
+- apikeys_seq_k8s_datalust_co.yaml
+- instances_seq_k8s_datalust_co.yaml
 - namespace.yaml
 images:
 - name: operator

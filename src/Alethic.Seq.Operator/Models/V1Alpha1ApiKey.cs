@@ -12,7 +12,7 @@ namespace Alethic.Seq.Operator.Models
 {
 
     [EntityScope(EntityScope.Namespaced)]
-    [KubernetesEntity(Group = "k8s.seq.datalust.co", ApiVersion = "v1alpha1", Kind = "ApiKey")]
+    [KubernetesEntity(Group = "seq.k8s.datalust.co", ApiVersion = "v1alpha1", Kind = "ApiKey")]
     [KubernetesEntityShortNames("seqapikey")]
     public partial class V1Alpha1ApiKey :
         CustomKubernetesEntity<V1Alpha1ApiKey.SpecDef, V1Alpha1ApiKey.StatusDef>,

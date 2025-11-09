@@ -114,7 +114,7 @@ namespace Alethic.Seq.Operator.Controllers
             // ensure we hold a reference to the tenant
             var md = entity.EnsureMetadata();
             var an = md.EnsureAnnotations();
-            an["k8s.seq.datalust.co/instance-uid"] = instance.Uid();
+            an["seq.k8s.datalust.co/instance-uid"] = instance.Uid();
 
             // we have not resolved a remote entity
             if (string.IsNullOrWhiteSpace(entity.Status.Id))
