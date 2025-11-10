@@ -58,7 +58,7 @@ namespace Alethic.Seq.Operator.ApiKey
         protected override string EntityTypeName => "ApiKey";
 
         /// <inheritdoc />
-        protected override async Task<string?> Find(V1alpha1ApiKey entity, SeqConnection api, V1alpha1ApiKeySpec spec, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string?> FindAsync(V1alpha1ApiKey entity, SeqConnection api, V1alpha1ApiKeySpec spec, string defaultNamespace, CancellationToken cancellationToken)
         {
             if (spec.Find is not null)
             {
@@ -97,7 +97,7 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <inheritdoc />
-        protected override async Task<ApiKeyInfo?> Get(V1alpha1ApiKey entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<ApiKeyInfo?> GetAsync(V1alpha1ApiKey entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
         {
             try
             {
@@ -119,7 +119,7 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <inheritdoc />
-        protected override async Task<string> Create(V1alpha1ApiKey entity, SeqConnection api, ApiKeyConf conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string> CreateAsync(V1alpha1ApiKey entity, SeqConnection api, ApiKeyConf conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} creating ApiKey in Seq with title: {Title}", EntityTypeName, conf.Title);
 
@@ -148,7 +148,7 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <inheritdoc />
-        protected override async Task Update(V1alpha1ApiKey entity, SeqConnection api, string id, ApiKeyInfo? info, ApiKeyConf conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task UpdateAsync(V1alpha1ApiKey entity, SeqConnection api, string id, ApiKeyInfo? info, ApiKeyConf conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} updating ApiKey in Seq with id: {Id} and title: {Title}", EntityTypeName, id, conf.Title);
             await api.ApiKeys.UpdateAsync(ApplyToApi(await api.ApiKeys.FindAsync(id, cancellationToken), conf, info), cancellationToken);
@@ -156,7 +156,7 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <inheritdoc />
-        protected override async Task Delete(SeqConnection api, string id, CancellationToken cancellationToken)
+        protected override async Task DeleteAsync(SeqConnection api, string id, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} deleting client from Seq with ID: {ClientId} (reason: Kubernetes entity deleted)", EntityTypeName, id);
             await api.ApiKeys.RemoveAsync(await api.ApiKeys.FindAsync(id, cancellationToken), cancellationToken);

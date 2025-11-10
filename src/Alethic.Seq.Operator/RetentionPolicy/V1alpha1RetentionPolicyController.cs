@@ -51,7 +51,7 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         protected override string EntityTypeName => "RetentionPolicy";
 
         /// <inheritdoc />
-        protected override async Task<RetentionPolicyInfo?> Get(V1alpha1RetentionPolicy entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<RetentionPolicyInfo?> GetAsync(V1alpha1RetentionPolicy entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
         {
             try
             {
@@ -70,7 +70,7 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         }
 
         /// <inheritdoc />
-        protected override async Task<string> Create(V1alpha1RetentionPolicy entity, SeqConnection api, RetentionPolicyConf conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string> CreateAsync(V1alpha1RetentionPolicy entity, SeqConnection api, RetentionPolicyConf conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} creating RetentionPolicy in Seq.", EntityTypeName);
             var self = await api.RetentionPolicies.AddAsync(ApplyToApi(new RetentionPolicyEntity(), conf, null), cancellationToken);
@@ -79,7 +79,7 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         }
 
         /// <inheritdoc />
-        protected override async Task Update(V1alpha1RetentionPolicy entity, SeqConnection api, string id, RetentionPolicyInfo? info, RetentionPolicyConf conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task UpdateAsync(V1alpha1RetentionPolicy entity, SeqConnection api, string id, RetentionPolicyInfo? info, RetentionPolicyConf conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} updating RetentionPolicy in Seq with id: {Id}", EntityTypeName, id);
             await api.RetentionPolicies.UpdateAsync(ApplyToApi(await api.RetentionPolicies.FindAsync(id, cancellationToken), conf, info), cancellationToken);
@@ -87,7 +87,7 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         }
 
         /// <inheritdoc />
-        protected override async Task Delete(SeqConnection api, string id, CancellationToken cancellationToken)
+        protected override async Task DeleteAsync(SeqConnection api, string id, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} deleting RetentionPolicy from Seq with ID: {Id} (reason: Kubernetes entity deleted)", EntityTypeName, id);
             await api.RetentionPolicies.RemoveAsync(await api.RetentionPolicies.FindAsync(id, cancellationToken), cancellationToken);

@@ -50,7 +50,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task<TInfo?> Get(TEntity entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken);
+        protected abstract Task<TInfo?> GetAsync(TEntity entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken);
 
         /// <summary>
         /// Attempts to locate an existing matching entity, or returns <c>null</c>.
@@ -61,7 +61,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected virtual Task<string?> Find(TEntity entity, SeqConnection api, TSpec spec, string defaultNamespace, CancellationToken cancellationToken)
+        protected virtual Task<string?> FindAsync(TEntity entity, SeqConnection api, TSpec spec, string defaultNamespace, CancellationToken cancellationToken)
         {
             return Task.FromResult<string?>(null);
         }
@@ -82,7 +82,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task<string> Create(TEntity entity, SeqConnection api, TConf conf, string defaultNamespace, CancellationToken cancellationToken);
+        protected abstract Task<string> CreateAsync(TEntity entity, SeqConnection api, TConf conf, string defaultNamespace, CancellationToken cancellationToken);
 
         /// <summary>
         /// Attempts to perform an update through the API.
@@ -95,7 +95,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task Update(TEntity entity, SeqConnection api, string id, TInfo? info, TConf conf, string defaultNamespace, CancellationToken cancellationToken);
+        protected abstract Task UpdateAsync(TEntity entity, SeqConnection api, string id, TInfo? info, TConf conf, string defaultNamespace, CancellationToken cancellationToken);
 
         /// <inheritdoc />
         protected override async Task<TEntity> Reconcile(TEntity entity, CancellationToken cancellationToken)
@@ -125,7 +125,7 @@ namespace Alethic.Seq.Operator
                 Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} has not yet been reconciled, checking if entity exists in Seq.", EntityTypeName, entity.Namespace(), entity.Name());
 
                 // find existing remote entity
-                var entityId = await Find(entity, api, entity.Spec, entity.Namespace(), cancellationToken);
+                var entityId = await FindAsync(entity, api, entity.Spec, entity.Namespace(), cancellationToken);
                 if (entityId is null)
                 {
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} could not be located, creating.", EntityTypeName, entity.Namespace(), entity.Name());
@@ -143,7 +143,7 @@ namespace Alethic.Seq.Operator
                         throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: {msg}");
 
                     // create new entity and associate
-                    entity.Status.Id = await Create(entity, api, init, entity.Namespace(), cancellationToken);
+                    entity.Status.Id = await CreateAsync(entity, api, init, entity.Namespace(), cancellationToken);
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} created with {Id}", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
                 }
                 else
@@ -162,7 +162,7 @@ namespace Alethic.Seq.Operator
 
             // attempt to retrieve existing entity
             Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} checking if entity exists in Seq with ID {Id}", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
-            var info = await Get(entity, api, entity.Status.Id, entity.Namespace(), cancellationToken);
+            var info = await GetAsync(entity, api, entity.Status.Id, entity.Namespace(), cancellationToken);
             if (info is null)
             {
                 // no matching remote entity that correlates directly with ID, reset and retry to go back to Find/Create
@@ -177,7 +177,7 @@ namespace Alethic.Seq.Operator
             if (entity.HasPolicy(V1alpha1EntityPolicyType.Update))
             {
                 if (entity.Spec.Conf is { } conf)
-                    await Update(entity, api, entity.Status.Id, info, conf, entity.Namespace(), cancellationToken);
+                    await UpdateAsync(entity, api, entity.Status.Id, info, conf, entity.Namespace(), cancellationToken);
             }
             else
             {
@@ -185,7 +185,7 @@ namespace Alethic.Seq.Operator
             }
 
             // apply new configuration
-            await ApplyStatus(entity, api, info, entity.Namespace(), cancellationToken);
+            await ApplyStatusAsync(entity, api, info, entity.Namespace(), cancellationToken);
             entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
             return entity;
         }
@@ -199,7 +199,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected virtual Task ApplyStatus(TEntity entity, SeqConnection api, TInfo? info, string defaultNamespace, CancellationToken cancellationToken)
+        protected virtual Task ApplyStatusAsync(TEntity entity, SeqConnection api, TInfo? info, string defaultNamespace, CancellationToken cancellationToken)
         {
             entity.Status.Info = info;
             return Task.CompletedTask;
@@ -212,7 +212,7 @@ namespace Alethic.Seq.Operator
         /// <param name="id"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task Delete(SeqConnection api, string id, CancellationToken cancellationToken);
+        protected abstract Task DeleteAsync(SeqConnection api, string id, CancellationToken cancellationToken);
 
         /// <inheritdoc />
         public override sealed async Task DeletedAsync(TEntity entity, CancellationToken cancellationToken)
@@ -236,7 +236,7 @@ namespace Alethic.Seq.Operator
                     return;
                 }
 
-                var self = await Get(entity, api, entity.Status.Id, entity.Namespace(), cancellationToken);
+                var self = await GetAsync(entity, api, entity.Status.Id, entity.Namespace(), cancellationToken);
                 if (self is null)
                 {
                     Logger.LogWarning("{EntityTypeName} {EntityNamespace}/{EntityName} with ID {Id} not found in Seq, skipping delete (reason: already deleted externally).", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
@@ -251,7 +251,7 @@ namespace Alethic.Seq.Operator
                 else
                 {
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} initiating deletion from Seq with ID: {Id} (reason: Kubernetes entity was deleted)", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
-                    await Delete(api, entity.Status.Id, cancellationToken);
+                    await DeleteAsync(api, entity.Status.Id, cancellationToken);
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} deletion completed successfully", EntityTypeName, entity.Namespace(), entity.Name());
                 }
             }
