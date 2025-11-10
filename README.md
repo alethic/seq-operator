@@ -10,7 +10,7 @@ This Seq Kubernetes Operator is responsible for managing the lifecycle of Seq re
 
 ## Usage
 
-This is an example for connecting to and bootstrapping a Seq instance deployed with a SEQ_FIRSTRUN_ADMINPASSWORDHASH setting.
+This is an example for connecting to and bootstrapping an existing Seq instance deployed with a SEQ_FIRSTRUN_ADMINPASSWORDHASH setting.
 
 ```
 
