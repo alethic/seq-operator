@@ -8,20 +8,10 @@ namespace Alethic.Seq.Operator.Instance
     {
 
         /// <summary>
-        /// Describes the managed deployment.
-        /// </summary>
-        public class DeploymentStatus
-        {
-
-
-
-        }
-
-        /// <summary>
         /// Information about the associated deployment.
         /// </summary>
         [JsonPropertyName("deployment")]
-        public DeploymentStatus? Deployment { get; set; }
+        public InstanceDeploymentStatus? Deployment { get; set; }
 
         [JsonPropertyName("info")]
         public InstanceInfo? Info { get; set; }

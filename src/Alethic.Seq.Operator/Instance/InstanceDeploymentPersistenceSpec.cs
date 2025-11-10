@@ -4,7 +4,7 @@
     /// <summary>
     /// Describes how to deploy a new instance of Seq.
     /// </summary>
-    public class InstanceDeploymentPersistence
+    public class InstanceDeploymentPersistenceSpec
     {
 
 

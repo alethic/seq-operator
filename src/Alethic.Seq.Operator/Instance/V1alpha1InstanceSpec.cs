@@ -25,7 +25,7 @@ namespace Alethic.Seq.Operator.Instance
         /// Connection information for the instance.
         /// </summary>
         [JsonPropertyName("deployment")]
-        public InstanceDeployment? Deployment { get; set; }
+        public InstanceDeploymentSpec? Deployment { get; set; }
 
         /// <summary>
         /// Configuration to apply when initializing the entity for the first time.

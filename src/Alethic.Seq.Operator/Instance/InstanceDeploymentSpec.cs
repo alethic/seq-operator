@@ -3,14 +3,30 @@ using System.Text.Json.Serialization;
 
 using k8s.Models;
 
+using KubeOps.Abstractions.Entities.Attributes;
+
 namespace Alethic.Seq.Operator.Instance
 {
 
     /// <summary>
     /// Describes how to deploy a new instance of Seq.
     /// </summary>
-    public class InstanceDeploymentPods
+    public class InstanceDeploymentSpec
     {
+
+        /// <summary>
+        /// Secret to use for the 'admin' login.
+        /// </summary>
+        [JsonPropertyName("adminSecretRef")]
+        [Required]
+        public V1SecretReference? AdminSecretRef { get; set; }
+
+        /// <summary>
+        /// Secret to use for the generated management token.
+        /// </summary>
+        [JsonPropertyName("tokenSecretRef")]
+        [Required]
+        public V1SecretReference? TokenSecretRef { get; set; }
 
         [JsonPropertyName("annotations")]
         public IDictionary<string, string>? Annotations { get; set; }
@@ -20,15 +36,6 @@ namespace Alethic.Seq.Operator.Instance
 
         [JsonPropertyName("affinity")]
         public V1Affinity? Affinity { get; set; }
-
-        [JsonPropertyName("dnsConfig")]
-        public V1PodDNSConfig? DnsConfig { get; set; }
-
-        [JsonPropertyName("dnsPolicy")]
-        public string? DnsPolicy { get; set; }
-
-        [JsonPropertyName("hostAliases")]
-        public IList<V1HostAlias>? HostAliases { get; set; }
 
         [JsonPropertyName("nodeSelector")]
         public IDictionary<string, string>? NodeSelector { get; set; }
@@ -57,8 +64,29 @@ namespace Alethic.Seq.Operator.Instance
         [JsonPropertyName("imagePullSecrets")]
         public IList<V1LocalObjectReference>? ImagePullSecrets { get; set; }
 
-        [JsonPropertyName("container")]
-        public InstanceDeploymentPodsContainer? Container { get; set; }
+        [JsonPropertyName("env")]
+        public IList<V1EnvVar>? Env { get; set; }
+
+        [JsonPropertyName("envFrom")]
+        public IList<V1EnvFromSource>? EnvFrom { get; set; }
+
+        [JsonPropertyName("image")]
+        public string? Image { get; set; }
+
+        [JsonPropertyName("imagePullPolicy")]
+        public string? ImagePullPolicy { get; set; }
+
+        /// <summary>
+        /// Options to use on the created service.
+        /// </summary>
+        [JsonPropertyName("service")]
+        public InstanceDeploymentServiceSpec? Service { get; set; }
+
+        /// <summary>
+        /// Options to use on the created storage.
+        /// </summary>
+        [JsonPropertyName("persistence")]
+        public InstanceDeploymentPersistenceSpec? Persistence { get; set; }
 
     }
 

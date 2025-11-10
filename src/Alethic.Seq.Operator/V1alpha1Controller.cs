@@ -130,24 +130,36 @@ namespace Alethic.Seq.Operator
         }
 
         /// <summary>
+        /// Tests that the conncetion is able to retrieve server status.
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        async Task<bool> TestConnectionAsync(SeqConnection connection, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await connection.Diagnostics.GetServerStatusAsync(cancellationToken);
+                return true;
+            }
+            catch (SeqApiException e)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Creates a new instance connection for the Login authentication method.
         /// </summary>
         /// <param name="instance"></param>
         /// <param name="endpoint"></param>
-        /// <param name="loginDef"></param>
+        /// <param name="secretRef"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceLoginAuthentication loginDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqLoginConnectionAsync(V1alpha1Instance instance, string endpoint, V1SecretReference secretRef, CancellationToken cancellationToken)
         {
-            var secretRef = loginDef.SecretRef;
-            if (secretRef == null)
-            {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no login authentication secret.");
-                return null;
-            }
-
             if (string.IsNullOrWhiteSpace(secretRef.Name))
             {
                 Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no login secret name.");
@@ -185,12 +197,19 @@ namespace Alethic.Seq.Operator
                     cancellationToken);
                 if (user is null)
                     throw new InvalidOperationException("No user returned.");
+
+                // test that connection is usable
+                if (await TestConnectionAsync(connection, cancellationToken) == false)
+                {
+                    Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with password.");
+                    return null;
+                }
             }
             catch (SeqApiException e) when (e.StatusCode == HttpStatusCode.BadRequest && e.Message.Contains("Invalid", StringComparison.InvariantCultureIgnoreCase))
             {
                 if (secret.Data.TryGetValue("firstRunPassword", out var firstRunPasswordBuf) == false)
                 {
-                    Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has was unable to authenticate with password, and firstRunPassword was not present.");
+                    Logger.LogError(e, $"Instance {instance.Namespace()}/{instance.Name()} has was unable to authenticate with password, and firstRunPassword was not present.");
                     return null;
                 }
 
@@ -202,6 +221,13 @@ namespace Alethic.Seq.Operator
                 if (user is null)
                     throw new InvalidOperationException("No user returned.");
 
+                // test that connection is usable
+                if (await TestConnectionAsync(connection, cancellationToken) == false)
+                {
+                    Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with firstRunPassword.");
+                    return null;
+                }
+
                 // attempt to update password
                 user.NewPassword = Encoding.UTF8.GetString(passwordBuf);
                 await connection.Users.UpdateAsync(user, cancellationToken);
@@ -211,23 +237,38 @@ namespace Alethic.Seq.Operator
         }
 
         /// <summary>
-        /// Creates a new Seq connection for the ApiKey authentication method.
+        /// Creates a new instance connection for the Login authentication method.
         /// </summary>
         /// <param name="instance"></param>
         /// <param name="endpoint"></param>
-        /// <param name="tokenDef"></param>
+        /// <param name="loginDef"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceTokenAuthentication tokenDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqLoginConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceLoginAuthentication loginDef, CancellationToken cancellationToken)
         {
-            var secretRef = tokenDef.SecretRef;
+            var secretRef = loginDef.SecretRef;
             if (secretRef == null)
             {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no token authentication secret.");
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no login authentication secret.");
                 return null;
             }
 
+            return await CreateSeqLoginConnectionAsync(instance, endpoint, secretRef, cancellationToken);
+        }
+
+        /// <summary>
+        /// Creates a new Seq connection for the token authentication method.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="endpoint"></param>
+        /// <param name="secretRef"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="RetryException"></exception>
+        async Task<SeqConnection?> CreateSeqTokenConnectionAsync(V1alpha1Instance instance, string endpoint, V1SecretReference secretRef, CancellationToken cancellationToken)
+        {
             if (string.IsNullOrWhiteSpace(secretRef.Name))
             {
                 Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no secret name.");
@@ -250,17 +291,35 @@ namespace Alethic.Seq.Operator
             // create connection
             var connection = new SeqConnection(endpoint, Encoding.UTF8.GetString(tokenBuf));
 
-            try
+            // test that connection is usable
+            if (await TestConnectionAsync(connection, cancellationToken) == false)
             {
-                await connection.EnsureConnectedAsync(TimeSpan.FromSeconds(1));
-            }
-            catch (SeqApiException e)
-            {
-                Logger.LogError(e, "Token connection failed.");
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with token.");
                 return null;
             }
 
             return connection;
+        }
+
+        /// <summary>
+        /// Creates a new Seq connection for the ApiKey authentication method.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="endpoint"></param>
+        /// <param name="tokenDef"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="RetryException"></exception>
+        async Task<SeqConnection?> CreateSeqTokenConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceTokenAuthentication tokenDef, CancellationToken cancellationToken)
+        {
+            var secretRef = tokenDef.SecretRef;
+            if (secretRef == null)
+            {
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no token authentication secret.");
+                return null;
+            }
+
+            return await CreateSeqTokenConnectionAsync(instance, endpoint, secretRef, cancellationToken);
         }
 
         /// <summary>
@@ -285,7 +344,7 @@ namespace Alethic.Seq.Operator
                 // this is a token connection
                 if (connectionDef.Token != null)
                 {
-                    var connection = await CreateSeqConnectionAsync(instance, endpoint, connectionDef.Token, cancellationToken);
+                    var connection = await CreateSeqTokenConnectionAsync(instance, endpoint, connectionDef.Token, cancellationToken);
                     if (connection is not null)
                         return connection;
                 }
@@ -293,13 +352,13 @@ namespace Alethic.Seq.Operator
                 // this is a login connection
                 if (connectionDef.Login != null)
                 {
-                    var connection = await CreateSeqConnectionAsync(instance, endpoint, connectionDef.Login, cancellationToken);
+                    var connection = await CreateSeqLoginConnectionAsync(instance, endpoint, connectionDef.Login, cancellationToken);
                     if (connection is not null)
                         return connection;
                 }
             }
 
-            throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has invalid authentication information. Check the logs for more information.");
+            return null;
         }
 
         /// <summary>
@@ -312,20 +371,51 @@ namespace Alethic.Seq.Operator
         {
             var connection = await _cache.GetOrCreateAsync((instance.Namespace(), instance.Name()), async entry =>
             {
-                if (instance.Spec.Connections is null || instance.Spec.Connections.Length == 0)
-                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no remote connection information.");
+                if (instance.Spec.Deployment is { } deployment)
+                {
+                    if (instance.Status.Deployment is { Endpoint: string endpoint } && string.IsNullOrWhiteSpace(endpoint) == false)
+                    {
+                        if (deployment.TokenSecretRef is { } tokenSecretRef)
+                        {
+                            var connection = await CreateSeqTokenConnectionAsync(instance, endpoint, tokenSecretRef, cancellationToken);
+                            if (connection is not null)
+                            {
+                                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
+                                return connection;
+                            }
+                        }
 
-                var connection = await CreateSeqConnectionAsync(instance, instance.Spec.Connections, cancellationToken);
-                if (connection is null)
-                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not retrieve connection.");
+                        if (deployment.AdminSecretRef is { } adminSecretRef)
+                        {
+                            var connection = await CreateSeqLoginConnectionAsync(instance, endpoint, adminSecretRef, cancellationToken);
+                            if (connection is not null)
+                            {
+                                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
+                                return connection;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (instance.Spec.Connections is null || instance.Spec.Connections.Length == 0)
+                        throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no remote connection information.");
 
-                // cache connection for 1 minute
-                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
-                return connection;
+                    // search for connection from available connection options
+                    var connection = await CreateSeqConnectionAsync(instance, instance.Spec.Connections, cancellationToken);
+                    if (connection is not null)
+                    {
+                        // cache connection for 1 minute
+                        entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
+                        return connection;
+                    }
+                }
+
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not retrieve connection.");
             });
 
             if (connection is null)
-                throw new RetryException("Cannot retrieve tenant API client.");
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not retrieve connection.");
 
             return connection;
         }

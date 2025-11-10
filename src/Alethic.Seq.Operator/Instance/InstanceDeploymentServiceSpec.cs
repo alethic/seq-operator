@@ -9,7 +9,7 @@ namespace Alethic.Seq.Operator.Instance
     /// <summary>
     /// Describes how to deploy a new instance of Seq.
     /// </summary>
-    public class InstanceDeploymentService
+    public class InstanceDeploymentServiceSpec
     {
 
         [JsonPropertyName("annotations")]
