@@ -317,9 +317,9 @@ namespace Alethic.Seq.Operator.Controllers
                 if (info == null || info.IsDefault != conf.IsDefault)
                     target.IsDefault = (bool)conf.IsDefault;
 
-            if (conf.OwnerId is not null)
-                if (info == null || info.OwnerId != conf.OwnerId)
-                    target.OwnerId = conf.OwnerId;
+            //if (conf.OwnerId is not null)
+            //    if (info == null || info.OwnerId != conf.OwnerId)
+            //        target.OwnerId = conf.OwnerId;
 
             if (conf.Permissions != null)
                 ApplyToApi(target, conf.Permissions);

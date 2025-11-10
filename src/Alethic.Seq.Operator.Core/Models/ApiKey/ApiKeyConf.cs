@@ -15,9 +15,9 @@ namespace Alethic.Seq.Operator.Core.Models.ApiKey
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? IsDefault { get; set; }
 
-        [JsonPropertyName("ownerId")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? OwnerId { get; set; }
+        //[JsonPropertyName("ownerId")]
+        //[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        //public string? OwnerId { get; set; }
 
         [JsonPropertyName("permissions")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
