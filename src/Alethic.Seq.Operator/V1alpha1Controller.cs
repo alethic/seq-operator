@@ -84,7 +84,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<V1Secret?> ResolveSecretRef(V1SecretReference? secretRef, string defaultNamespace, CancellationToken cancellationToken)
+        protected async Task<V1Secret?> ResolveSecretRef(V1SecretReference? secretRef, string defaultNamespace, CancellationToken cancellationToken)
         {
             if (secretRef is null)
                 return null;
@@ -110,7 +110,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<V1alpha1Instance?> ResolveInstanceRef(V1alpha1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
+        protected async Task<V1alpha1Instance?> ResolveInstanceRef(V1alpha1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
         {
             if (instanceRef is null)
                 return null;
@@ -308,7 +308,7 @@ namespace Alethic.Seq.Operator
         /// <param name="instance"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<SeqConnection> GetInstanceConnectionAsync(V1alpha1Instance instance, CancellationToken cancellationToken)
+        protected async Task<SeqConnection> GetInstanceConnectionAsync(V1alpha1Instance instance, CancellationToken cancellationToken)
         {
             var connection = await _cache.GetOrCreateAsync((instance.Namespace(), instance.Name()), async entry =>
             {
