@@ -14,11 +14,36 @@ namespace Alethic.Seq.Operator.Instance
     {
 
         /// <summary>
-        /// Secret to use for the management API key.
+        /// Secret to use for the 'admin' login.
         /// </summary>
-        [JsonPropertyName("secretRef")]
+        [JsonPropertyName("adminSecretRef")]
         [Required]
-        public V1SecretReference? SecretRef { get; set; }
+        public V1SecretReference? AdminSecretRef { get; set; }
+
+        /// <summary>
+        /// Secret to use for the generated management token.
+        /// </summary>
+        [JsonPropertyName("tokenSecretRef")]
+        [Required]
+        public V1SecretReference? TokenSecretRef { get; set; }
+
+        /// <summary>
+        /// Options to use on created pods.
+        /// </summary>
+        [JsonPropertyName("pods")]
+        public InstanceDeploymentPods? Pods { get; set; }
+
+        /// <summary>
+        /// Options to use on the created service.
+        /// </summary>
+        [JsonPropertyName("service")]
+        public InstanceDeploymentService? Service { get; set; }
+
+        /// <summary>
+        /// Options to use on the created storage.
+        /// </summary>
+        [JsonPropertyName("persistence")]
+        public InstanceDeploymentPersistence? Persistence { get; set; }
 
     }
 

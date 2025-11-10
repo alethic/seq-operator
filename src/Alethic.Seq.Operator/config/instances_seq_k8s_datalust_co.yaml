@@ -240,7 +240,7 @@ spec:
               deployment:
                 nullable: true
                 properties:
-                  secretRef:
+                  adminSecretRef:
                     nullable: true
                     properties:
                       name:
@@ -250,8 +250,996 @@ spec:
                         nullable: false
                         type: string
                     type: object
+                  tokenSecretRef:
+                    nullable: true
+                    properties:
+                      name:
+                        nullable: false
+                        type: string
+                      namespace:
+                        nullable: false
+                        type: string
+                    type: object
+                  pods:
+                    nullable: true
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: object
+                      labels:
+                        additionalProperties:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: object
+                      affinity:
+                        nullable: true
+                        properties:
+                          nodeAffinity:
+                            nullable: false
+                            properties:
+                              preferredDuringSchedulingIgnoredDuringExecution:
+                                items:
+                                  properties:
+                                    preference:
+                                      nullable: false
+                                      properties:
+                                        matchExpressions:
+                                          items:
+                                            properties:
+                                              key:
+                                                nullable: false
+                                                type: string
+                                              operator:
+                                                nullable: false
+                                                type: string
+                                              values:
+                                                items:
+                                                  nullable: false
+                                                  type: string
+                                                nullable: false
+                                                type: array
+                                            type: object
+                                          nullable: false
+                                          type: array
+                                        matchFields:
+                                          items:
+                                            properties:
+                                              key:
+                                                nullable: false
+                                                type: string
+                                              operator:
+                                                nullable: false
+                                                type: string
+                                              values:
+                                                items:
+                                                  nullable: false
+                                                  type: string
+                                                nullable: false
+                                                type: array
+                                            type: object
+                                          nullable: false
+                                          type: array
+                                      type: object
+                                    weight:
+                                      format: int32
+                                      nullable: false
+                                      type: integer
+                                  type: object
+                                nullable: false
+                                type: array
+                              requiredDuringSchedulingIgnoredDuringExecution:
+                                nullable: false
+                                properties:
+                                  nodeSelectorTerms:
+                                    items:
+                                      properties:
+                                        matchExpressions:
+                                          items:
+                                            properties:
+                                              key:
+                                                nullable: false
+                                                type: string
+                                              operator:
+                                                nullable: false
+                                                type: string
+                                              values:
+                                                items:
+                                                  nullable: false
+                                                  type: string
+                                                nullable: false
+                                                type: array
+                                            type: object
+                                          nullable: false
+                                          type: array
+                                        matchFields:
+                                          items:
+                                            properties:
+                                              key:
+                                                nullable: false
+                                                type: string
+                                              operator:
+                                                nullable: false
+                                                type: string
+                                              values:
+                                                items:
+                                                  nullable: false
+                                                  type: string
+                                                nullable: false
+                                                type: array
+                                            type: object
+                                          nullable: false
+                                          type: array
+                                      type: object
+                                    nullable: false
+                                    type: array
+                                type: object
+                            type: object
+                          podAffinity:
+                            nullable: false
+                            properties:
+                              preferredDuringSchedulingIgnoredDuringExecution:
+                                items:
+                                  properties:
+                                    podAffinityTerm:
+                                      nullable: false
+                                      properties:
+                                        labelSelector:
+                                          nullable: false
+                                          properties:
+                                            matchExpressions:
+                                              items:
+                                                properties:
+                                                  key:
+                                                    nullable: false
+                                                    type: string
+                                                  operator:
+                                                    nullable: false
+                                                    type: string
+                                                  values:
+                                                    items:
+                                                      nullable: false
+                                                      type: string
+                                                    nullable: false
+                                                    type: array
+                                                type: object
+                                              nullable: false
+                                              type: array
+                                            matchLabels:
+                                              additionalProperties:
+                                                nullable: false
+                                                type: string
+                                              nullable: false
+                                              type: object
+                                          type: object
+                                        matchLabelKeys:
+                                          items:
+                                            nullable: false
+                                            type: string
+                                          nullable: false
+                                          type: array
+                                        mismatchLabelKeys:
+                                          items:
+                                            nullable: false
+                                            type: string
+                                          nullable: false
+                                          type: array
+                                        namespaceSelector:
+                                          nullable: false
+                                          properties:
+                                            matchExpressions:
+                                              items:
+                                                properties:
+                                                  key:
+                                                    nullable: false
+                                                    type: string
+                                                  operator:
+                                                    nullable: false
+                                                    type: string
+                                                  values:
+                                                    items:
+                                                      nullable: false
+                                                      type: string
+                                                    nullable: false
+                                                    type: array
+                                                type: object
+                                              nullable: false
+                                              type: array
+                                            matchLabels:
+                                              additionalProperties:
+                                                nullable: false
+                                                type: string
+                                              nullable: false
+                                              type: object
+                                          type: object
+                                        namespaces:
+                                          items:
+                                            nullable: false
+                                            type: string
+                                          nullable: false
+                                          type: array
+                                        topologyKey:
+                                          nullable: false
+                                          type: string
+                                      type: object
+                                    weight:
+                                      format: int32
+                                      nullable: false
+                                      type: integer
+                                  type: object
+                                nullable: false
+                                type: array
+                              requiredDuringSchedulingIgnoredDuringExecution:
+                                items:
+                                  properties:
+                                    labelSelector:
+                                      nullable: false
+                                      properties:
+                                        matchExpressions:
+                                          items:
+                                            properties:
+                                              key:
+                                                nullable: false
+                                                type: string
+                                              operator:
+                                                nullable: false
+                                                type: string
+                                              values:
+                                                items:
+                                                  nullable: false
+                                                  type: string
+                                                nullable: false
+                                                type: array
+                                            type: object
+                                          nullable: false
+                                          type: array
+                                        matchLabels:
+                                          additionalProperties:
+                                            nullable: false
+                                            type: string
+                                          nullable: false
+                                          type: object
+                                      type: object
+                                    matchLabelKeys:
+                                      items:
+                                        nullable: false
+                                        type: string
+                                      nullable: false
+                                      type: array
+                                    mismatchLabelKeys:
+                                      items:
+                                        nullable: false
+                                        type: string
+                                      nullable: false
+                                      type: array
+                                    namespaceSelector:
+                                      nullable: false
+                                      properties:
+                                        matchExpressions:
+                                          items:
+                                            properties:
+                                              key:
+                                                nullable: false
+                                                type: string
+                                              operator:
+                                                nullable: false
+                                                type: string
+                                              values:
+                                                items:
+                                                  nullable: false
+                                                  type: string
+                                                nullable: false
+                                                type: array
+                                            type: object
+                                          nullable: false
+                                          type: array
+                                        matchLabels:
+                                          additionalProperties:
+                                            nullable: false
+                                            type: string
+                                          nullable: false
+                                          type: object
+                                      type: object
+                                    namespaces:
+                                      items:
+                                        nullable: false
+                                        type: string
+                                      nullable: false
+                                      type: array
+                                    topologyKey:
+                                      nullable: false
+                                      type: string
+                                  type: object
+                                nullable: false
+                                type: array
+                            type: object
+                          podAntiAffinity:
+                            nullable: false
+                            properties:
+                              preferredDuringSchedulingIgnoredDuringExecution:
+                                items:
+                                  properties:
+                                    podAffinityTerm:
+                                      nullable: false
+                                      properties:
+                                        labelSelector:
+                                          nullable: false
+                                          properties:
+                                            matchExpressions:
+                                              items:
+                                                properties:
+                                                  key:
+                                                    nullable: false
+                                                    type: string
+                                                  operator:
+                                                    nullable: false
+                                                    type: string
+                                                  values:
+                                                    items:
+                                                      nullable: false
+                                                      type: string
+                                                    nullable: false
+                                                    type: array
+                                                type: object
+                                              nullable: false
+                                              type: array
+                                            matchLabels:
+                                              additionalProperties:
+                                                nullable: false
+                                                type: string
+                                              nullable: false
+                                              type: object
+                                          type: object
+                                        matchLabelKeys:
+                                          items:
+                                            nullable: false
+                                            type: string
+                                          nullable: false
+                                          type: array
+                                        mismatchLabelKeys:
+                                          items:
+                                            nullable: false
+                                            type: string
+                                          nullable: false
+                                          type: array
+                                        namespaceSelector:
+                                          nullable: false
+                                          properties:
+                                            matchExpressions:
+                                              items:
+                                                properties:
+                                                  key:
+                                                    nullable: false
+                                                    type: string
+                                                  operator:
+                                                    nullable: false
+                                                    type: string
+                                                  values:
+                                                    items:
+                                                      nullable: false
+                                                      type: string
+                                                    nullable: false
+                                                    type: array
+                                                type: object
+                                              nullable: false
+                                              type: array
+                                            matchLabels:
+                                              additionalProperties:
+                                                nullable: false
+                                                type: string
+                                              nullable: false
+                                              type: object
+                                          type: object
+                                        namespaces:
+                                          items:
+                                            nullable: false
+                                            type: string
+                                          nullable: false
+                                          type: array
+                                        topologyKey:
+                                          nullable: false
+                                          type: string
+                                      type: object
+                                    weight:
+                                      format: int32
+                                      nullable: false
+                                      type: integer
+                                  type: object
+                                nullable: false
+                                type: array
+                              requiredDuringSchedulingIgnoredDuringExecution:
+                                items:
+                                  properties:
+                                    labelSelector:
+                                      nullable: false
+                                      properties:
+                                        matchExpressions:
+                                          items:
+                                            properties:
+                                              key:
+                                                nullable: false
+                                                type: string
+                                              operator:
+                                                nullable: false
+                                                type: string
+                                              values:
+                                                items:
+                                                  nullable: false
+                                                  type: string
+                                                nullable: false
+                                                type: array
+                                            type: object
+                                          nullable: false
+                                          type: array
+                                        matchLabels:
+                                          additionalProperties:
+                                            nullable: false
+                                            type: string
+                                          nullable: false
+                                          type: object
+                                      type: object
+                                    matchLabelKeys:
+                                      items:
+                                        nullable: false
+                                        type: string
+                                      nullable: false
+                                      type: array
+                                    mismatchLabelKeys:
+                                      items:
+                                        nullable: false
+                                        type: string
+                                      nullable: false
+                                      type: array
+                                    namespaceSelector:
+                                      nullable: false
+                                      properties:
+                                        matchExpressions:
+                                          items:
+                                            properties:
+                                              key:
+                                                nullable: false
+                                                type: string
+                                              operator:
+                                                nullable: false
+                                                type: string
+                                              values:
+                                                items:
+                                                  nullable: false
+                                                  type: string
+                                                nullable: false
+                                                type: array
+                                            type: object
+                                          nullable: false
+                                          type: array
+                                        matchLabels:
+                                          additionalProperties:
+                                            nullable: false
+                                            type: string
+                                          nullable: false
+                                          type: object
+                                      type: object
+                                    namespaces:
+                                      items:
+                                        nullable: false
+                                        type: string
+                                      nullable: false
+                                      type: array
+                                    topologyKey:
+                                      nullable: false
+                                      type: string
+                                  type: object
+                                nullable: false
+                                type: array
+                            type: object
+                        type: object
+                      dnsConfig:
+                        nullable: true
+                        properties:
+                          nameservers:
+                            items:
+                              nullable: false
+                              type: string
+                            nullable: false
+                            type: array
+                          options:
+                            items:
+                              properties:
+                                name:
+                                  nullable: false
+                                  type: string
+                                value:
+                                  nullable: false
+                                  type: string
+                              type: object
+                            nullable: false
+                            type: array
+                          searches:
+                            items:
+                              nullable: false
+                              type: string
+                            nullable: false
+                            type: array
+                        type: object
+                      dnsPolicy:
+                        nullable: true
+                        type: string
+                      hostAliases:
+                        items:
+                          properties:
+                            hostnames:
+                              items:
+                                nullable: false
+                                type: string
+                              nullable: false
+                              type: array
+                            ip:
+                              nullable: false
+                              type: string
+                          type: object
+                        nullable: true
+                        type: array
+                      nodeSelector:
+                        additionalProperties:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: object
+                      resources:
+                        nullable: true
+                        properties:
+                          claims:
+                            items:
+                              properties:
+                                name:
+                                  nullable: false
+                                  type: string
+                                request:
+                                  nullable: false
+                                  type: string
+                              type: object
+                            nullable: false
+                            type: array
+                          limits:
+                            additionalProperties:
+                              properties:
+                                format:
+                                  enum:
+                                  - DecimalExponent
+                                  - BinarySI
+                                  - DecimalSI
+                                  nullable: false
+                                  type: string
+                                value:
+                                  nullable: false
+                                  type: string
+                              type: object
+                            nullable: false
+                            type: object
+                          requests:
+                            additionalProperties:
+                              properties:
+                                format:
+                                  enum:
+                                  - DecimalExponent
+                                  - BinarySI
+                                  - DecimalSI
+                                  nullable: false
+                                  type: string
+                                value:
+                                  nullable: false
+                                  type: string
+                              type: object
+                            nullable: false
+                            type: object
+                        type: object
+                      restartPolicy:
+                        nullable: true
+                        type: string
+                      securityContext:
+                        nullable: true
+                        properties:
+                          appArmorProfile:
+                            nullable: false
+                            properties:
+                              localhostProfile:
+                                nullable: false
+                                type: string
+                              type:
+                                nullable: false
+                                type: string
+                            type: object
+                          fsGroup:
+                            format: int64
+                            nullable: true
+                            type: integer
+                          fsGroupChangePolicy:
+                            nullable: false
+                            type: string
+                          runAsGroup:
+                            format: int64
+                            nullable: true
+                            type: integer
+                          runAsNonRoot:
+                            nullable: true
+                            type: boolean
+                          runAsUser:
+                            format: int64
+                            nullable: true
+                            type: integer
+                          seLinuxChangePolicy:
+                            nullable: false
+                            type: string
+                          seLinuxOptions:
+                            nullable: false
+                            properties:
+                              level:
+                                nullable: false
+                                type: string
+                              role:
+                                nullable: false
+                                type: string
+                              type:
+                                nullable: false
+                                type: string
+                              user:
+                                nullable: false
+                                type: string
+                            type: object
+                          seccompProfile:
+                            nullable: false
+                            properties:
+                              localhostProfile:
+                                nullable: false
+                                type: string
+                              type:
+                                nullable: false
+                                type: string
+                            type: object
+                          supplementalGroups:
+                            items:
+                              format: int64
+                              nullable: true
+                              type: integer
+                            nullable: true
+                            type: array
+                          supplementalGroupsPolicy:
+                            nullable: false
+                            type: string
+                          sysctls:
+                            items:
+                              properties:
+                                name:
+                                  nullable: false
+                                  type: string
+                                value:
+                                  nullable: false
+                                  type: string
+                              type: object
+                            nullable: false
+                            type: array
+                          windowsOptions:
+                            nullable: false
+                            properties:
+                              gmsaCredentialSpec:
+                                nullable: false
+                                type: string
+                              gmsaCredentialSpecName:
+                                nullable: false
+                                type: string
+                              hostProcess:
+                                nullable: true
+                                type: boolean
+                              runAsUserName:
+                                nullable: false
+                                type: string
+                            type: object
+                        type: object
+                      serviceAccountName:
+                        nullable: true
+                        type: string
+                      terminationGracePeriodSeconds:
+                        format: int64
+                        nullable: true
+                        type: integer
+                      tolerations:
+                        items:
+                          properties:
+                            effect:
+                              nullable: false
+                              type: string
+                            key:
+                              nullable: false
+                              type: string
+                            operator:
+                              nullable: false
+                              type: string
+                            tolerationSeconds:
+                              format: int64
+                              nullable: true
+                              type: integer
+                            value:
+                              nullable: false
+                              type: string
+                          type: object
+                        nullable: true
+                        type: array
+                      topologySpreadConstraints:
+                        items:
+                          properties:
+                            labelSelector:
+                              nullable: false
+                              properties:
+                                matchExpressions:
+                                  items:
+                                    properties:
+                                      key:
+                                        nullable: false
+                                        type: string
+                                      operator:
+                                        nullable: false
+                                        type: string
+                                      values:
+                                        items:
+                                          nullable: false
+                                          type: string
+                                        nullable: false
+                                        type: array
+                                    type: object
+                                  nullable: false
+                                  type: array
+                                matchLabels:
+                                  additionalProperties:
+                                    nullable: false
+                                    type: string
+                                  nullable: false
+                                  type: object
+                              type: object
+                            matchLabelKeys:
+                              items:
+                                nullable: false
+                                type: string
+                              nullable: false
+                              type: array
+                            maxSkew:
+                              format: int32
+                              nullable: false
+                              type: integer
+                            minDomains:
+                              format: int32
+                              nullable: true
+                              type: integer
+                            nodeAffinityPolicy:
+                              nullable: false
+                              type: string
+                            nodeTaintsPolicy:
+                              nullable: false
+                              type: string
+                            topologyKey:
+                              nullable: false
+                              type: string
+                            whenUnsatisfiable:
+                              nullable: false
+                              type: string
+                          type: object
+                        nullable: true
+                        type: array
+                      imagePullSecrets:
+                        items:
+                          properties:
+                            name:
+                              nullable: false
+                              type: string
+                          type: object
+                        nullable: true
+                        type: array
+                      container:
+                        nullable: true
+                        properties:
+                          env:
+                            items:
+                              properties:
+                                name:
+                                  nullable: false
+                                  type: string
+                                value:
+                                  nullable: false
+                                  type: string
+                                valueFrom:
+                                  nullable: false
+                                  properties:
+                                    configMapKeyRef:
+                                      nullable: false
+                                      properties:
+                                        key:
+                                          nullable: false
+                                          type: string
+                                        name:
+                                          nullable: false
+                                          type: string
+                                        optional:
+                                          nullable: true
+                                          type: boolean
+                                      type: object
+                                    fieldRef:
+                                      nullable: false
+                                      properties:
+                                        apiVersion:
+                                          nullable: false
+                                          type: string
+                                        fieldPath:
+                                          nullable: false
+                                          type: string
+                                      type: object
+                                    resourceFieldRef:
+                                      nullable: false
+                                      properties:
+                                        containerName:
+                                          nullable: false
+                                          type: string
+                                        divisor:
+                                          nullable: false
+                                          properties:
+                                            format:
+                                              enum:
+                                              - DecimalExponent
+                                              - BinarySI
+                                              - DecimalSI
+                                              nullable: false
+                                              type: string
+                                            value:
+                                              nullable: false
+                                              type: string
+                                          type: object
+                                        resource:
+                                          nullable: false
+                                          type: string
+                                      type: object
+                                    secretKeyRef:
+                                      nullable: false
+                                      properties:
+                                        key:
+                                          nullable: false
+                                          type: string
+                                        name:
+                                          nullable: false
+                                          type: string
+                                        optional:
+                                          nullable: true
+                                          type: boolean
+                                      type: object
+                                  type: object
+                              type: object
+                            nullable: true
+                            type: array
+                          envFrom:
+                            items:
+                              properties:
+                                configMapRef:
+                                  nullable: false
+                                  properties:
+                                    name:
+                                      nullable: false
+                                      type: string
+                                    optional:
+                                      nullable: true
+                                      type: boolean
+                                  type: object
+                                prefix:
+                                  nullable: false
+                                  type: string
+                                secretRef:
+                                  nullable: false
+                                  properties:
+                                    name:
+                                      nullable: false
+                                      type: string
+                                    optional:
+                                      nullable: true
+                                      type: boolean
+                                  type: object
+                              type: object
+                            nullable: true
+                            type: array
+                          image:
+                            nullable: true
+                            type: string
+                          imagePullPolicy:
+                            nullable: true
+                            type: string
+                        type: object
+                    type: object
+                  service:
+                    nullable: true
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: object
+                      labels:
+                        additionalProperties:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: object
+                      clusterIPs:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
+                      externalIPs:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
+                      externalName:
+                        nullable: true
+                        type: string
+                      externalTrafficPolicy:
+                        nullable: true
+                        type: string
+                      internalTrafficPolicy:
+                        nullable: true
+                        type: string
+                      ipFamilies:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
+                      ipFamilyPolicy:
+                        nullable: true
+                        type: string
+                      loadBalancerClass:
+                        nullable: true
+                        type: string
+                      loadBalancerIP:
+                        nullable: true
+                        type: string
+                      loadBalancerSourceRanges:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
+                      publishNotReadyAddresses:
+                        nullable: true
+                        type: boolean
+                      sessionAffinity:
+                        nullable: true
+                        type: string
+                      sessionAffinityConfig:
+                        nullable: true
+                        properties:
+                          clientIP:
+                            nullable: false
+                            properties:
+                              timeoutSeconds:
+                                format: int32
+                                nullable: true
+                                type: integer
+                            type: object
+                        type: object
+                      trafficDistribution:
+                        nullable: true
+                        type: string
+                      type:
+                        nullable: true
+                        type: string
+                    type: object
+                  persistence:
+                    nullable: true
+                    properties: {}
+                    type: object
                 required:
-                - secretRef
+                - adminSecretRef
+                - tokenSecretRef
                 type: object
               init:
                 nullable: true
