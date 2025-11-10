@@ -165,9 +165,6 @@ spec:
                   isDefault:
                     nullable: true
                     type: boolean
-                  ownerId:
-                    nullable: true
-                    type: string
                   permissions:
                     items:
                       enum:
@@ -232,9 +229,6 @@ spec:
                   isDefault:
                     nullable: true
                     type: boolean
-                  ownerId:
-                    nullable: true
-                    type: string
                   permissions:
                     items:
                       enum:

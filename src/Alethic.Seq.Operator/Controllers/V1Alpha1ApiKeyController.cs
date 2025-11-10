@@ -184,7 +184,7 @@ namespace Alethic.Seq.Operator.Controllers
                 Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName} which does not exist: creating.", EntityTypeName, entity.Namespace(), entity.Name(), entity.Spec.SecretRef.Name);
                 secret = await Kube.CreateAsync(
                     new V1Secret(
-                        metadata: new V1ObjectMeta(namespaceProperty: entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, name: entity.Spec.SecretRef.Name))
+                            metadata: new V1ObjectMeta(namespaceProperty: entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, name: entity.Spec.SecretRef.Name))
                         .WithOwnerReference(entity),
                     cancellationToken);
             }
@@ -219,28 +219,28 @@ namespace Alethic.Seq.Operator.Controllers
         /// <summary>
         /// Translates a <see cref="ApiKeyEntity"/> to a <see cref="ApiKeyInfo"/>.
         /// </summary>
-        /// <param name="api"></param>
+        /// <param name="source"></param>
         /// <returns></returns>
-        ApiKeyInfo ToInfo(ApiKeyEntity api)
+        ApiKeyInfo ToInfo(ApiKeyEntity source)
         {
             return new ApiKeyInfo()
             {
-                TokenPrefix = api.TokenPrefix,
-                Title = api.Title,
-                IsDefault = api.IsDefault,
-                OwnerId = api.OwnerId,
-                Permissions = api.AssignedPermissions.Select(ToInfo).ToArray(),
-                InputSettings = ToInfo(api.InputSettings),
+                TokenPrefix = source.TokenPrefix,
+                Title = source.Title,
+                IsDefault = source.IsDefault,
+                OwnerId = source.OwnerId,
+                Permissions = source.AssignedPermissions.Select(ToInfo).ToArray(),
+                InputSettings = ToInfo(source.InputSettings),
             };
         }
 
         /// <summary>
         /// Translates a <see cref="Permission"/> to a <see cref="ApiKeyPermission"/>.
         /// </summary>
-        /// <param name="permission"></param>
+        /// <param name="source"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        ApiKeyPermission ToInfo(Permission permission) => permission switch
+        ApiKeyPermission ToInfo(Permission source) => source switch
         {
             Permission.Undefined => ApiKeyPermission.Undefined,
             Permission.Public => ApiKeyPermission.Public,
@@ -257,30 +257,30 @@ namespace Alethic.Seq.Operator.Controllers
         /// <summary>
         /// Translates a <see cref="InputSettingsPart"/> to a <see cref="ApiKeyInputSettings"/>.
         /// </summary>
-        /// <param name="api"></param>
+        /// <param name="source"></param>
         /// <returns></returns>
-        ApiKeyInputSettings ToInfo(InputSettingsPart api)
+        ApiKeyInputSettings ToInfo(InputSettingsPart source)
         {
             return new ApiKeyInputSettings()
             {
-                AppliedProperties = api.AppliedProperties.ToDictionary(i => i.Name, i => (string?)i.Value),
-                Filter = ToInfo(api.Filter),
-                UseServerTimestamps = api.UseServerTimestamps,
-                MinimumLevel = api.MinimumLevel != null ? ToInfo(api.MinimumLevel.Value) : null,
+                AppliedProperties = source.AppliedProperties.ToDictionary(i => i.Name, i => (string?)i.Value),
+                Filter = ToInfo(source.Filter),
+                UseServerTimestamps = source.UseServerTimestamps,
+                MinimumLevel = source.MinimumLevel != null ? ToInfo(source.MinimumLevel.Value) : null,
             };
         }
 
         /// <summary>
         /// Transforms a <see cref="DescriptiveFilterPart"/> to a <see cref="ApiKeyDescriptiveFilter"/>.
         /// </summary>
-        /// <param name="api"></param>
+        /// <param name="source"></param>
         /// <returns></returns>
-        ApiKeyDescriptiveFilter ToInfo(DescriptiveFilterPart api) => new ApiKeyDescriptiveFilter()
+        ApiKeyDescriptiveFilter ToInfo(DescriptiveFilterPart source) => new ApiKeyDescriptiveFilter()
         {
-            DescriptionIsExcluded = api.DescriptionIsExcluded,
-            Description = api.Description,
-            Filter = api.Filter,
-            FilterNonStrict = api.FilterNonStrict,
+            DescriptionIsExcluded = source.DescriptionIsExcluded,
+            Description = source.Description,
+            Filter = source.Filter,
+            FilterNonStrict = source.FilterNonStrict,
         };
 
         /// <summary>
@@ -370,54 +370,55 @@ namespace Alethic.Seq.Operator.Controllers
         /// Applies the <see cref="ApiKeyInputSettings"/> to the API version.
         /// </summary>
         /// <param name="target"></param>
-        /// <param name="inputSettings"></param>
+        /// <param name="source"></param>
         /// <returns></returns>
-        void ApplyToApi(InputSettingsPart target, ApiKeyInputSettings inputSettings)
+        void ApplyToApi(InputSettingsPart target, ApiKeyInputSettings source)
         {
-            if (inputSettings.AppliedProperties is not null)
-                foreach (var kvp in inputSettings.AppliedProperties)
-                    target.AppliedProperties.Add(ToApi(kvp));
+            if (source.AppliedProperties is not null)
+                foreach (var kvp in source.AppliedProperties)
+                    target.AppliedProperties.Add(new EventPropertyPart(kvp.Key, kvp.Value));
 
-            if (inputSettings.Filter is not null)
-                ApplyToApi(target.Filter, inputSettings.Filter);
+            if (source.Filter is not null)
+                ApplyToApi(target.Filter, source.Filter);
 
-            if (inputSettings.UseServerTimestamps is bool b)
+            if (source.UseServerTimestamps is bool b)
                 target.UseServerTimestamps = b;
 
-            if (inputSettings.MinimumLevel is ApiKeyLogEventLevel l)
+            if (source.MinimumLevel is ApiKeyLogEventLevel l)
                 target.MinimumLevel = ToApi(l);
-        }
-
-        EventPropertyPart ToApi(KeyValuePair<string, string?> property)
-        {
-            return new EventPropertyPart(property.Key, property.Value);
         }
 
         /// <summary>
         /// Applies the <see cref="ApiKeyDescriptiveFilter"/> to the API version.
         /// </summary>
         /// <param name="target"></param>
-        /// <param name="filter"></param>
-        void ApplyToApi(DescriptiveFilterPart target, ApiKeyDescriptiveFilter filter)
+        /// <param name="source"></param>
+        void ApplyToApi(DescriptiveFilterPart target, ApiKeyDescriptiveFilter source)
         {
-            if (filter.DescriptionIsExcluded is bool d)
-                target.DescriptionIsExcluded = d;
-            if (filter.Description is string s)
-                target.Description = s;
-            if (filter.Filter is string f)
-                target.Filter = f;
-            if (filter.FilterNonStrict is string z)
-                target.FilterNonStrict = z;
+            if (source.DescriptionIsExcluded is bool descriptionIsExcluded)
+                target.DescriptionIsExcluded = descriptionIsExcluded;
+            if (source.Description is string description)
+                target.Description = description;
+            if (source.Filter is string filter)
+                target.Filter = filter;
+            if (source.FilterNonStrict is string filterNonStrict)
+                target.FilterNonStrict = filterNonStrict;
         }
 
-        global::Seq.Api.Model.LogEvents.LogEventLevel ToApi(ApiKeyLogEventLevel level) => level switch
+        /// <summary>
+        /// Transforms a <see cref="ApiKeyLogEventLevel"/> to a <see cref="LogEventLevel"/>
+        /// </summary>
+        /// <param name="level"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        LogEventLevel ToApi(ApiKeyLogEventLevel level) => level switch
         {
-            ApiKeyLogEventLevel.Verbose => global::Seq.Api.Model.LogEvents.LogEventLevel.Verbose,
-            ApiKeyLogEventLevel.Debug => global::Seq.Api.Model.LogEvents.LogEventLevel.Debug,
-            ApiKeyLogEventLevel.Information => global::Seq.Api.Model.LogEvents.LogEventLevel.Information,
-            ApiKeyLogEventLevel.Warning => global::Seq.Api.Model.LogEvents.LogEventLevel.Warning,
-            ApiKeyLogEventLevel.Error => global::Seq.Api.Model.LogEvents.LogEventLevel.Error,
-            ApiKeyLogEventLevel.Fatal => global::Seq.Api.Model.LogEvents.LogEventLevel.Fatal,
+            ApiKeyLogEventLevel.Verbose => LogEventLevel.Verbose,
+            ApiKeyLogEventLevel.Debug => LogEventLevel.Debug,
+            ApiKeyLogEventLevel.Information => LogEventLevel.Information,
+            ApiKeyLogEventLevel.Warning => LogEventLevel.Warning,
+            ApiKeyLogEventLevel.Error => LogEventLevel.Error,
+            ApiKeyLogEventLevel.Fatal => LogEventLevel.Fatal,
             _ => throw new NotImplementedException(),
         };
 
