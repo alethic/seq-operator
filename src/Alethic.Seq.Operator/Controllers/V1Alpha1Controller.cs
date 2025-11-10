@@ -409,6 +409,22 @@ namespace Alethic.Seq.Operator.Controllers
         {
             try
             {
+                // set initial ready status
+                var ready = entity.Status.Conditions.FirstOrDefault(i => i.Type == "Ready");
+                if (ready is null)
+                {
+                    entity.Status.Conditions.Add(ready = new V1Alpha1Condition() { Type = "Ready", Status = "False" });
+                    entity = await _kube.UpdateStatusAsync(entity, cancellationToken);
+                }
+
+                // set initial healthy status
+                var healthy = entity.Status.Conditions.FirstOrDefault(i => i.Type == "Healthy");
+                if (healthy is null)
+                {
+                    entity.Status.Conditions.Add(healthy = new V1Alpha1Condition() { Type = "Healthy", Status = "False" });
+                    entity = await _kube.UpdateStatusAsync(entity, cancellationToken);
+                }
+
                 if (entity.Spec.Conf == null)
                     throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is missing configuration.");
 

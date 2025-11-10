@@ -60,7 +60,7 @@ spec:
     name: seqtoken
   conf:
     title: ManagementKey
-    assignedPermissions:
+    permissions:
     - System
     - Project
     - Write
