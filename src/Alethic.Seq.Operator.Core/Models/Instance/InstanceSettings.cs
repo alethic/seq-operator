@@ -130,25 +130,25 @@ namespace Alethic.Seq.Operator.Core.Models.Instance
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public long? MinimumFreeStorageSpace { get; set; }
 
-        [JsonPropertyName("newUserPreferences")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public Dictionary<string, string>? NewUserPreferences { get; set; }
+        //[JsonPropertyName("newUserPreferences")]
+        //[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        //public Dictionary<string, string>? NewUserPreferences { get; set; }
 
-        [JsonPropertyName("newUserRoleIds")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string[]? NewUserRoleIds { get; set; }
+        //[JsonPropertyName("newUserRoleIds")]
+        //[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        //public string[]? NewUserRoleIds { get; set; }
 
-        [JsonPropertyName("newUserShowSignalIds")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string[]? NewUserShowSignalIds { get; set; }
+        //[JsonPropertyName("newUserShowSignalIds")]
+        //[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        //public string[]? NewUserShowSignalIds { get; set; }
 
-        [JsonPropertyName("newUserShowQueryIds")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string[]? NewUserShowQueryIds { get; set; }
+        //[JsonPropertyName("newUserShowQueryIds")]
+        //[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        //public string[]? NewUserShowQueryIds { get; set; }
 
-        [JsonPropertyName("newUserShowDashboardIds")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string[]? NewUserShowDashboardIds { get; set; }
+        //[JsonPropertyName("newUserShowDashboardIds")]
+        //[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        //public string[]? NewUserShowDashboardIds { get; set; }
 
         [JsonPropertyName("requireApiKeyForWritingEvents")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

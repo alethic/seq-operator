@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -111,7 +110,7 @@ namespace Alethic.Seq.Operator.Controllers
             var info = new InstanceInfo();
             info.Settings = new InstanceSettings();
             info.Settings.Auth = new InstanceSettings.AuthConf();
-            await ApplyAuthSettingsAsync(api, info.Settings.Auth, cancellationToken);
+            await GetAuthSettingsAsync(api, info.Settings.Auth, cancellationToken);
             info.Settings.DataAgeWarningThresholdMilliseconds = await GetSettingValueAsync<long>(api, SettingName.DataAgeWarningThresholdMilliseconds, cancellationToken);
             info.Settings.BackupLocation = await GetSettingValueAsync<string>(api, SettingName.BackupLocation, cancellationToken);
             info.Settings.BackupsToKeep = await GetSettingValueAsync<long>(api, SettingName.BackupsToKeep, cancellationToken);
@@ -120,11 +119,11 @@ namespace Alethic.Seq.Operator.Controllers
             info.Settings.CheckForUpdates = await GetSettingValueAsync<bool>(api, SettingName.CheckForUpdates, cancellationToken);
             info.Settings.InstanceTitle = await GetSettingValueAsync<string>(api, SettingName.InstanceTitle, cancellationToken);
             info.Settings.MinimumFreeStorageSpace = await GetSettingValueAsync<long>(api, SettingName.MinimumFreeStorageSpace, cancellationToken);
-            info.Settings.NewUserPreferences = await GetSettingValueAsync<Dictionary<string,string>>(api, SettingName.NewUserPreferences, cancellationToken);
-            info.Settings.NewUserRoleIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserRoleIds, cancellationToken))?.Split(",");
-            info.Settings.NewUserShowSignalIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowSignalIds, cancellationToken))?.Split(",");
-            info.Settings.NewUserShowQueryIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowQueryIds, cancellationToken))?.Split(",");
-            info.Settings.NewUserShowDashboardIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowDashboardIds, cancellationToken))?.Split(",");
+            //info.Settings.NewUserPreferences = await GetSettingValueAsync<Dictionary<string,string>>(api, SettingName.NewUserPreferences, cancellationToken);
+            //info.Settings.NewUserRoleIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserRoleIds, cancellationToken))?.Split(",");
+            //info.Settings.NewUserShowSignalIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowSignalIds, cancellationToken))?.Split(",");
+            //info.Settings.NewUserShowQueryIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowQueryIds, cancellationToken))?.Split(",");
+            //info.Settings.NewUserShowDashboardIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowDashboardIds, cancellationToken))?.Split(",");
             info.Settings.RequireApiKeyForWritingEvents = await GetSettingValueAsync<bool>(api, SettingName.RequireApiKeyForWritingEvents, cancellationToken);
             info.Settings.RawEventMaximumContentLength = await GetSettingValueAsync<long>(api, SettingName.RawEventMaximumContentLength, cancellationToken);
             info.Settings.RawPayloadMaximumContentLength = await GetSettingValueAsync<long>(api, SettingName.RawPayloadMaximumContentLength, cancellationToken);
@@ -140,7 +139,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="info"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task ApplyAuthSettingsAsync(SeqConnection api, InstanceSettings.AuthConf info, CancellationToken cancellationToken)
+        async Task GetAuthSettingsAsync(SeqConnection api, InstanceSettings.AuthConf info, CancellationToken cancellationToken)
         {
             if (await GetSettingValueAsync<bool?>(api, SettingName.IsAuthenticationEnabled, cancellationToken) == true)
             {
@@ -200,9 +199,79 @@ namespace Alethic.Seq.Operator.Controllers
             if (conf.Settings is not null)
             {
                 if (conf.Settings.Auth is not null)
-                {
                     await PutAuthSettingsAsync(api, info?.Settings?.Auth, conf.Settings.Auth, cancellationToken);
-                }
+
+                if (conf.Settings.DataAgeWarningThresholdMilliseconds is long dataAgeWarningThresholdMilliseconds)
+                    if (info == null || info.Settings == null || info.Settings.DataAgeWarningThresholdMilliseconds != dataAgeWarningThresholdMilliseconds)
+                        await PutSettingValueAsync(api, SettingName.DataAgeWarningThresholdMilliseconds, dataAgeWarningThresholdMilliseconds, cancellationToken);
+
+                if (conf.Settings.BackupLocation is string backupLocation)
+                    if (info == null || info.Settings == null || info.Settings.BackupLocation != backupLocation)
+                        await PutSettingValueAsync(api, SettingName.BackupLocation, backupLocation, cancellationToken);
+
+                if (conf.Settings.BackupsToKeep is long backupsToKeep)
+                    if (info == null || info.Settings == null || info.Settings.BackupsToKeep != backupsToKeep)
+                        await PutSettingValueAsync(api, SettingName.BackupsToKeep, backupsToKeep, cancellationToken);
+
+                if (conf.Settings.BackupUtcTimeOfDay is string backupUtcTimeOfDay)
+                    if (info == null || info.Settings == null || info.Settings.BackupUtcTimeOfDay != backupUtcTimeOfDay)
+                        await PutSettingValueAsync(api, SettingName.BackupUtcTimeOfDay, backupUtcTimeOfDay, cancellationToken);
+
+                if (conf.Settings.CheckForPackageUpdates is bool checkForPackageUpdates)
+                    if (info == null || info.Settings == null || info.Settings.CheckForPackageUpdates != checkForPackageUpdates)
+                        await PutSettingValueAsync(api, SettingName.CheckForPackageUpdates, checkForPackageUpdates, cancellationToken);
+
+                if (conf.Settings.CheckForUpdates is bool checkForUpdates)
+                    if (info == null || info.Settings == null || info.Settings.CheckForUpdates != checkForUpdates)
+                        await PutSettingValueAsync(api, SettingName.CheckForUpdates, checkForUpdates, cancellationToken);
+
+                if (conf.Settings.InstanceTitle is string instanceTitle)
+                    if (info == null || info.Settings == null || info.Settings.InstanceTitle != instanceTitle)
+                        await PutSettingValueAsync(api, SettingName.InstanceTitle, instanceTitle, cancellationToken);
+
+                if (conf.Settings.MinimumFreeStorageSpace is long minimumFreeStorageSpace)
+                    if (info == null || info.Settings == null || info.Settings.MinimumFreeStorageSpace != minimumFreeStorageSpace)
+                        await PutSettingValueAsync(api, SettingName.MinimumFreeStorageSpace, minimumFreeStorageSpace, cancellationToken);
+
+                //if (conf.Settings.NewUserPreferences is long newUserPreferences)
+                //    if (info == null || info.Settings == null || info.Settings.NewUserPreferences != newUserPreferences)
+                //        await PutSettingValueAsync(api, SettingName.NewUserPreferences, newUserPreferences, cancellationToken);
+
+                //if (conf.Settings.NewUserRoleIds is long newUserRoleIds)
+                //    if (info == null || info.Settings == null || info.Settings.NewUserRoleIds != newUserRoleIds)
+                //        await PutSettingValueAsync(api, SettingName.NewUserRoleIds, newUserRoleIds, cancellationToken);
+
+                //if (conf.Settings.NewUserShowSignalIds is long newUserShowSignalIds)
+                //    if (info == null || info.Settings == null || info.Settings.NewUserShowSignalIds != newUserShowSignalIds)
+                //        await PutSettingValueAsync(api, SettingName.NewUserShowSignalIds, newUserShowSignalIds, cancellationToken);
+
+                //if (conf.Settings.NewUserShowQueryIds is long newUserShowQueryIds)
+                //    if (info == null || info.Settings == null || info.Settings.NewUserShowQueryIds != newUserShowQueryIds)
+                //        await PutSettingValueAsync(api, SettingName.NewUserShowQueryIds, newUserShowQueryIds, cancellationToken);
+
+                //if (conf.Settings.NewUserShowDashboardIds is long newUserShowDashboardIds)
+                //    if (info == null || info.Settings == null || info.Settings.NewUserShowDashboardIds != newUserShowDashboardIds)
+                //        await PutSettingValueAsync(api, SettingName.NewUserShowDashboardIds, newUserShowDashboardIds, cancellationToken);
+
+                if (conf.Settings.RequireApiKeyForWritingEvents is bool requireApiKeyForWritingEvents)
+                    if (info == null || info.Settings == null || info.Settings.RequireApiKeyForWritingEvents != requireApiKeyForWritingEvents)
+                        await PutSettingValueAsync(api, SettingName.RequireApiKeyForWritingEvents, requireApiKeyForWritingEvents, cancellationToken);
+
+                if (conf.Settings.RawEventMaximumContentLength is long rawEventMaximumContentLength)
+                    if (info == null || info.Settings == null || info.Settings.RawEventMaximumContentLength != rawEventMaximumContentLength)
+                        await PutSettingValueAsync(api, SettingName.RawEventMaximumContentLength, rawEventMaximumContentLength, cancellationToken);
+
+                if (conf.Settings.RawPayloadMaximumContentLength is long rawPayloadMaximumContentLength)
+                    if (info == null || info.Settings == null || info.Settings.RawPayloadMaximumContentLength != rawPayloadMaximumContentLength)
+                        await PutSettingValueAsync(api, SettingName.RawPayloadMaximumContentLength, rawPayloadMaximumContentLength, cancellationToken);
+
+                if (conf.Settings.TargetReplicaCount is long targetReplicaCount)
+                    if (info == null || info.Settings == null || info.Settings.TargetReplicaCount != targetReplicaCount)
+                        await PutSettingValueAsync(api, SettingName.TargetReplicaCount, targetReplicaCount, cancellationToken);
+
+                if (conf.Settings.ThemeStyles is string themeStyles)
+                    if (info == null || info.Settings == null || info.Settings.ThemeStyles != themeStyles)
+                        await PutSettingValueAsync(api, SettingName.ThemeStyles, themeStyles, cancellationToken);
             }
         }
 
