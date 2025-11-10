@@ -2,8 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Alethic.Seq.Operator.Models;
-
 using KubeOps.Abstractions.Finalizer;
 
 namespace Alethic.Seq.Operator.ApiKey

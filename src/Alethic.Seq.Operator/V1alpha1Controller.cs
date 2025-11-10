@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Alethic.Seq.Operator.Instance;
-using Alethic.Seq.Operator.Models;
 using Alethic.Seq.Operator.Options;
 
 using k8s;

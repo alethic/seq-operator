@@ -1,11 +1,9 @@
-﻿using Alethic.Seq.Operator.RetentionPolicy;
-
-using k8s.Models;
+﻿using k8s.Models;
 
 using KubeOps.Abstractions.Entities;
 using KubeOps.Abstractions.Entities.Attributes;
 
-namespace Alethic.Seq.Operator.Models
+namespace Alethic.Seq.Operator.RetentionPolicy
 {
 
     [EntityScope(EntityScope.Namespaced)]
