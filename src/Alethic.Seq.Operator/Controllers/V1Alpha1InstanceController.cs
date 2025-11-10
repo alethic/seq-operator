@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -108,8 +109,8 @@ namespace Alethic.Seq.Operator.Controllers
         async Task<InstanceInfo> GetInfoAsync(SeqConnection api, CancellationToken cancellationToken)
         {
             var info = new InstanceInfo();
-            info.Settings = new InstanceSettings();
-            info.Settings.Auth = new InstanceSettings.AuthConf();
+            info.Settings = new InstanceInfoSettings();
+            info.Settings.Auth = new InstanceSettingsAuth();
             await GetAuthSettingsAsync(api, info.Settings.Auth, cancellationToken);
             info.Settings.DataAgeWarningThresholdMilliseconds = await GetSettingValueAsync<long>(api, SettingName.DataAgeWarningThresholdMilliseconds, cancellationToken);
             info.Settings.BackupLocation = await GetSettingValueAsync<string>(api, SettingName.BackupLocation, cancellationToken);
@@ -119,11 +120,11 @@ namespace Alethic.Seq.Operator.Controllers
             info.Settings.CheckForUpdates = await GetSettingValueAsync<bool>(api, SettingName.CheckForUpdates, cancellationToken);
             info.Settings.InstanceTitle = await GetSettingValueAsync<string>(api, SettingName.InstanceTitle, cancellationToken);
             info.Settings.MinimumFreeStorageSpace = await GetSettingValueAsync<long>(api, SettingName.MinimumFreeStorageSpace, cancellationToken);
-            //info.Settings.NewUserPreferences = await GetSettingValueAsync<Dictionary<string,string>>(api, SettingName.NewUserPreferences, cancellationToken);
-            //info.Settings.NewUserRoleIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserRoleIds, cancellationToken))?.Split(",");
-            //info.Settings.NewUserShowSignalIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowSignalIds, cancellationToken))?.Split(",");
-            //info.Settings.NewUserShowQueryIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowQueryIds, cancellationToken))?.Split(",");
-            //info.Settings.NewUserShowDashboardIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowDashboardIds, cancellationToken))?.Split(",");
+            info.Settings.NewUserPreferences = await GetSettingValueAsync<Dictionary<string, string>>(api, SettingName.NewUserPreferences, cancellationToken);
+            info.Settings.NewUserRoleIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserRoleIds, cancellationToken))?.Split(",");
+            info.Settings.NewUserShowSignalIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowSignalIds, cancellationToken))?.Split(",");
+            info.Settings.NewUserShowQueryIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowQueryIds, cancellationToken))?.Split(",");
+            info.Settings.NewUserShowDashboardIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowDashboardIds, cancellationToken))?.Split(",");
             info.Settings.RequireApiKeyForWritingEvents = await GetSettingValueAsync<bool>(api, SettingName.RequireApiKeyForWritingEvents, cancellationToken);
             info.Settings.RawEventMaximumContentLength = await GetSettingValueAsync<long>(api, SettingName.RawEventMaximumContentLength, cancellationToken);
             info.Settings.RawPayloadMaximumContentLength = await GetSettingValueAsync<long>(api, SettingName.RawPayloadMaximumContentLength, cancellationToken);
@@ -133,28 +134,28 @@ namespace Alethic.Seq.Operator.Controllers
         }
 
         /// <summary>
-        /// Gets the authentication settings from the API and outputs them to the <see cref="InstanceSettings.AuthConf"/> object.
+        /// Gets the authentication settings from the API and outputs them to the <see cref="InstanceConfSettings.AuthConf"/> object.
         /// </summary>
         /// <param name="api"></param>
         /// <param name="info"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task GetAuthSettingsAsync(SeqConnection api, InstanceSettings.AuthConf info, CancellationToken cancellationToken)
+        async Task GetAuthSettingsAsync(SeqConnection api, InstanceSettingsAuth info, CancellationToken cancellationToken)
         {
             if (await GetSettingValueAsync<bool?>(api, SettingName.IsAuthenticationEnabled, cancellationToken) == true)
             {
                 switch (await GetSettingValueAsync<string>(api, SettingName.AuthenticationProvider, cancellationToken))
                 {
                     case null:
-                        info.Local = new InstanceSettings.AuthConf.LocalAuthConf();
+                        info.Local = new InstanceSettingsAuth.LocalAuth();
                         break;
                     case "Active Directory":
-                        info.ActiveDirectory = new InstanceSettings.AuthConf.ActiveDirectoryAuthConf();
+                        info.ActiveDirectory = new InstanceSettingsAuth.ActiveDirectoryAuth();
                         info.ActiveDirectory.AutomaticAccessADGroup = await GetSettingValueAsync<string>(api, SettingName.AutomaticAccessADGroup, cancellationToken);
                         info.AutomaticallyProvisionAuthenticatedUsers = await GetSettingValueAsync<bool>(api, SettingName.AutomaticallyProvisionAuthenticatedUsers, cancellationToken);
                         break;
                     case "Microsoft Entra ID":
-                        info.Entra = new InstanceSettings.AuthConf.EntraAuthConf();
+                        info.Entra = new InstanceSettingsAuth.EntraAuth();
                         info.Entra.Authority = await GetSettingValueAsync<string>(api, SettingName.EntraIDAuthority, cancellationToken);
                         info.Entra.TenantId = await GetSettingValueAsync<string>(api, SettingName.EntraIDTenantId, cancellationToken);
                         info.Entra.ClientId = await GetSettingValueAsync<string>(api, SettingName.EntraIDClientId, cancellationToken);
@@ -162,7 +163,7 @@ namespace Alethic.Seq.Operator.Controllers
                         info.AutomaticallyProvisionAuthenticatedUsers = await GetSettingValueAsync<bool>(api, SettingName.AutomaticallyProvisionAuthenticatedUsers, cancellationToken);
                         return;
                     case "OpenID Connect":
-                        info.Oidc = new InstanceSettings.AuthConf.OidcAuthConf();
+                        info.Oidc = new InstanceSettingsAuth.OidcAuth();
                         info.Oidc.Authority = await GetSettingValueAsync<string>(api, SettingName.OpenIdConnectAuthority, cancellationToken);
                         info.Oidc.ClientId = await GetSettingValueAsync<string>(api, SettingName.OpenIdConnectClientId, cancellationToken);
                         info.Oidc.ClientSecret = await GetSettingValueAsync<string>(api, SettingName.OpenIdConnectClientSecret, cancellationToken);
@@ -283,7 +284,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="conf"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task PutAuthSettingsAsync(SeqConnection api, InstanceSettings.AuthConf? info, InstanceSettings.AuthConf conf, CancellationToken cancellationToken)
+        async Task PutAuthSettingsAsync(SeqConnection api, InstanceSettingsAuth? info, InstanceSettingsAuth conf, CancellationToken cancellationToken)
         {
             if (conf.Local is { } local)
             {

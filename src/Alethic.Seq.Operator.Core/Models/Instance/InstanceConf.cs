@@ -8,7 +8,7 @@ namespace Alethic.Seq.Operator.Core.Models.Instance
 
         [JsonPropertyName("settings")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public InstanceSettings? Settings { get; set; }
+        public InstanceConfSettings? Settings { get; set; }
 
     }
 

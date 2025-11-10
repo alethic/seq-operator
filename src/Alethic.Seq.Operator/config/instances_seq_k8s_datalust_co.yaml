@@ -113,6 +113,36 @@ spec:
                         format: int64
                         nullable: true
                         type: integer
+                      newUserPreferences:
+                        additionalProperties:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: object
+                      newUserRoleIds:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
+                      newUserShowSignalIds:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
+                      newUserShowQueryIds:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
+                      newUserShowDashboardIds:
+                        items:
+                          nullable: false
+                          type: string
+                        nullable: true
+                        type: array
                       requireApiKeyForWritingEvents:
                         nullable: true
                         type: boolean
