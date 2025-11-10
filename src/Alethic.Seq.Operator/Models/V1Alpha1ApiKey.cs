@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 using Alethic.Seq.Operator.Core.Models;
 using Alethic.Seq.Operator.Core.Models.ApiKey;
@@ -55,6 +56,9 @@ namespace Alethic.Seq.Operator.Models
 
             [JsonPropertyName("info")]
             public ApiKeyInfo? Info { get; set; }
+
+            [JsonPropertyName("conditions")]
+            public IList<V1Alpha1Condition> Conditions { get; set; } = new List<V1Alpha1Condition>();
 
         }
 

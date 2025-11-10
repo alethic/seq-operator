@@ -11,14 +11,14 @@ namespace Alethic.Seq.Operator.Core.Models.ApiKey
         /// </summary>
         [JsonPropertyName("name")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? Name { get; }
+        public string? Name { get; set; }
 
         /// <summary>
         /// The property value, or <c>null</c>.
         /// </summary>
         [JsonPropertyName("value")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? Value { get; }
+        public string? Value { get; set; }
 
     }
 

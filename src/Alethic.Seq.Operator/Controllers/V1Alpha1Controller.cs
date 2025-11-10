@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -6,6 +7,7 @@ using System.Threading.Tasks;
 
 using Alethic.Seq.Operator.Core.Models;
 using Alethic.Seq.Operator.Models;
+using Alethic.Seq.Operator.Options;
 
 using k8s;
 using k8s.Models;
@@ -17,8 +19,10 @@ using KubeOps.KubernetesClient;
 
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using Seq.Api;
+using Seq.Api.Client;
 
 namespace Alethic.Seq.Operator.Controllers
 {
@@ -34,6 +38,7 @@ namespace Alethic.Seq.Operator.Controllers
         readonly IKubernetesClient _kube;
         readonly EntityRequeue<TEntity> _requeue;
         readonly IMemoryCache _cache;
+        readonly IOptions<OperatorOptions> _options;
         readonly ILogger _logger;
 
         /// <summary>
@@ -42,10 +47,12 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="kube"></param>
         /// <param name="requeue"></param>
         /// <param name="cache"></param>
+        /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1Alpha1Controller(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, ILogger logger)
+        public V1Alpha1Controller(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger logger)
         {
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+            _options = options ?? throw new ArgumentNullException(nameof(options));
             _kube = kube ?? throw new ArgumentNullException(nameof(kube));
             _requeue = requeue ?? throw new ArgumentNullException(nameof(requeue));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -133,32 +140,73 @@ namespace Alethic.Seq.Operator.Controllers
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection> CreateSeqConnectionAsync(V1Alpha1Instance instance, string endpoint, V1Alpha1Instance.SpecDef.LoginAuthentication loginDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqConnectionAsync(V1Alpha1Instance instance, string endpoint, V1Alpha1Instance.SpecDef.LoginAuthentication loginDef, CancellationToken cancellationToken)
         {
             var secretRef = loginDef.SecretRef;
             if (secretRef == null)
-                throw new InvalidOperationException($"Instance {instance.Namespace()}/{instance.Name()} has no login authentication secret.");
+            {
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no login authentication secret.");
+                return null;
+            }
 
             if (string.IsNullOrWhiteSpace(secretRef.Name))
-                throw new InvalidOperationException($"Instance {instance.Namespace()}/{instance.Name()} has no secret name.");
+            {
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no login secret name.");
+                return null;
+            }
 
             var secret = _kube.Get<V1Secret>(secretRef.Name, secretRef.NamespaceProperty ?? instance.Namespace());
             if (secret == null)
-                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has missing secret.");
+            {
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing login secret.");
+                return null;
+            }
 
             if (secret.Data.TryGetValue("username", out var usernameBuf) == false)
-                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has missing username value on secret.");
+            {
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing login username value on secret.");
+                return null;
+            }
 
             if (secret.Data.TryGetValue("password", out var passwordBuf) == false)
-                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has missing password value on secret.");
+            {
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing login password value on secret.");
+                return null;
+            }
 
-            // unpack buffers
-            var username = Encoding.UTF8.GetString(usernameBuf);
-            var password = Encoding.UTF8.GetString(passwordBuf);
-
-            // create connection and login
+            // create connection
             var connection = new SeqConnection(endpoint);
-            await connection.Users.LoginAsync(username, password);
+
+            // initiate login
+            try
+            {
+                var user = await connection.Users.LoginAsync(
+                    Encoding.UTF8.GetString(usernameBuf),
+                    Encoding.UTF8.GetString(passwordBuf),
+                    cancellationToken);
+                if (user is null)
+                    throw new InvalidOperationException("No user returned.");
+            }
+            catch (SeqApiException e) when (e.StatusCode == HttpStatusCode.BadRequest && e.Message.Contains("Invalid", StringComparison.InvariantCultureIgnoreCase))
+            {
+                if (secret.Data.TryGetValue("firstRunPassword", out var firstRunPasswordBuf) == false)
+                {
+                    Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has was unable to authenticate with password, and firstRunPassword was not present.");
+                    return null;
+                }
+
+                // try again with the firstRunPassword
+                var user = await connection.Users.LoginAsync(
+                    Encoding.UTF8.GetString(usernameBuf),
+                    Encoding.UTF8.GetString(firstRunPasswordBuf),
+                    cancellationToken);
+                if (user is null)
+                    throw new InvalidOperationException("No user returned.");
+
+                // attempt to update password
+                user.NewPassword = Encoding.UTF8.GetString(passwordBuf);
+                await connection.Users.UpdateAsync(user, cancellationToken);
+            }
 
             return connection;
         }
@@ -168,31 +216,50 @@ namespace Alethic.Seq.Operator.Controllers
         /// </summary>
         /// <param name="instance"></param>
         /// <param name="endpoint"></param>
-        /// <param name="apiKeyDef"></param>
+        /// <param name="tokenDef"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection> CreateSeqConnectionAsync(V1Alpha1Instance instance, string endpoint, V1Alpha1Instance.SpecDef.ApiKeyAuthentication apiKeyDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqConnectionAsync(V1Alpha1Instance instance, string endpoint, V1Alpha1Instance.SpecDef.TokenAuthentication tokenDef, CancellationToken cancellationToken)
         {
-            var secretRef = apiKeyDef.SecretRef;
+            var secretRef = tokenDef.SecretRef;
             if (secretRef == null)
-                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no apikey authentication secret.");
+            {
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no token authentication secret.");
+                return null;
+            }
 
             if (string.IsNullOrWhiteSpace(secretRef.Name))
-                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no secret name.");
+            {
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no secret name.");
+                return null;
+            }
 
             var secret = _kube.Get<V1Secret>(secretRef.Name, secretRef.NamespaceProperty ?? instance.Namespace());
             if (secret == null)
-                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has missing secret.");
+            {
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing secret.");
+                return null;
+            }
 
-            if (secret.Data.TryGetValue("apikey", out var apikeyBuf) == false)
-                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has missing apikey value on secret.");
-
-            // unpack buffers
-            var apikey = Encoding.UTF8.GetString(apikeyBuf);
+            if (secret.Data.TryGetValue("token", out var tokenBuf) == false || tokenBuf.Length == 0)
+            {
+                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing token value on secret.");
+                return null;
+            }
 
             // create connection
-            var connection = new SeqConnection(endpoint, apikey);
+            var connection = new SeqConnection(endpoint, Encoding.UTF8.GetString(tokenBuf));
+
+            try
+            {
+                await connection.EnsureConnectedAsync(TimeSpan.FromSeconds(1));
+            }
+            catch (SeqApiException e)
+            {
+                Logger.LogError(e, "Token connection failed.");
+                return null;
+            }
 
             return connection;
         }
@@ -204,19 +271,36 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        async Task<SeqConnection> CreateSeqConnectionAsync(V1Alpha1Instance instance, V1Alpha1Instance.SpecDef.ConnectionDef remoteDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqConnectionAsync(V1Alpha1Instance instance, V1Alpha1Instance.SpecDef.ConnectionDef[] connectionsDef, CancellationToken cancellationToken)
         {
-            var endpoint = remoteDef.Endpoint;
-            if (string.IsNullOrWhiteSpace(endpoint))
-                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no remote endpoint.");
+            // we try the proposed connection items in order to allow fallbacks
+            foreach (var connectionDef in connectionsDef)
+            {
+                var endpoint = connectionDef.Endpoint;
+                if (string.IsNullOrWhiteSpace(endpoint))
+                {
+                    Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no remote endpoint.");
+                    return null;
+                }
 
-            if (remoteDef.Login != null)
-                return await CreateSeqConnectionAsync(instance, endpoint, remoteDef.Login, cancellationToken);
+                // this is a token connection
+                if (connectionDef.Token != null)
+                {
+                    var connection = await CreateSeqConnectionAsync(instance, endpoint, connectionDef.Token, cancellationToken);
+                    if (connection is not null)
+                        return connection;
+                }
 
-            if (remoteDef.ApiKey != null)
-                return await CreateSeqConnectionAsync(instance, endpoint, remoteDef.ApiKey, cancellationToken);
+                // this is a login connection
+                if (connectionDef.Login != null)
+                {
+                    var connection = await CreateSeqConnectionAsync(instance, endpoint, connectionDef.Login, cancellationToken);
+                    if (connection is not null)
+                        return connection;
+                }
+            }
 
-            throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has valid authentication information.");
+            throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has invalid authentication information. Check the logs for more information.");
         }
 
         /// <summary>
@@ -229,10 +313,10 @@ namespace Alethic.Seq.Operator.Controllers
         {
             var connection = await _cache.GetOrCreateAsync((instance.Namespace(), instance.Name()), async entry =>
             {
-                if (instance.Spec.Connection is null)
+                if (instance.Spec.Connections is null || instance.Spec.Connections.Length == 0)
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no remote connection information.");
 
-                var connection = await CreateSeqConnectionAsync(instance, instance.Spec.Connection, cancellationToken);
+                var connection = await CreateSeqConnectionAsync(instance, instance.Spec.Connections, cancellationToken);
                 if (connection is null)
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not retrieve connection.");
 
@@ -247,7 +331,7 @@ namespace Alethic.Seq.Operator.Controllers
             return connection;
         }
 
-        /// <summary>
+        /// <summary>1
         /// Updates the Reconcile event to a warning.
         /// </summary>
         /// <param name="entity"></param>
@@ -318,7 +402,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// </summary>
         /// <param name="entity"></param>
         /// <param name="cancellationToken"></param>
-        protected abstract Task Reconcile(TEntity entity, CancellationToken cancellationToken);
+        protected abstract Task<TEntity> Reconcile(TEntity entity, CancellationToken cancellationToken);
 
         /// <inheritdoc />
         public async Task ReconcileAsync(TEntity entity, CancellationToken cancellationToken)
@@ -329,29 +413,67 @@ namespace Alethic.Seq.Operator.Controllers
                     throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is missing configuration.");
 
                 // does the actual work of reconciling
-                await Reconcile(entity, cancellationToken);
+                entity = await Reconcile(entity, cancellationToken);
                 await ReconcileSuccessAsync(entity, cancellationToken);
+
+                // update conditions
+                entity = await UpdateStatusAsync(entity, "Ready", "True", null, null, cancellationToken);
+                entity = await UpdateStatusAsync(entity, "Healthy", "True", null, null, cancellationToken);
+
+                // schedule periodic reconciliation to detect external changes (e.g., manual deletion from Seq)
+                var interval = _options.Value.Reconciliation.Interval;
+                Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} scheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
+                Requeue(entity, interval);
             }
-            catch (RetryException e)
+            catch (SeqApiException e)
             {
                 try
                 {
-                    Logger.LogError("Retry hit reconciling {EntityTypeName} {EntityNamespace}/{EntityName}: {Message}", EntityTypeName, entity.Namespace(), entity.Name(), e.Message);
-                    await DeletingWarningAsync(entity, "Retry", e.Message, cancellationToken);
+                    Logger.LogError("Seq error hit reconciling {EntityTypeName} {EntityNamespace}/{EntityName}: {Message}", EntityTypeName, entity.Namespace(), entity.Name(), e.Message);
+                    await ReconcileWarningAsync(entity, "Retry", e.Message, cancellationToken);
+
+                    // update conditions
+                    entity = await UpdateStatusAsync(entity, "Ready", "False", e.Message, null, cancellationToken);
+                    entity = await UpdateStatusAsync(entity, "Healthy", "False", e.Message, null, cancellationToken);
                 }
                 catch (Exception e2)
                 {
                     Logger.LogCritical(e2, "Unexpected exception creating event.");
                 }
 
-                Logger.LogInformation("Rescheduling reconcilation after {TimeSpan}.", TimeSpan.FromMinutes(1));
-                Requeue(entity, TimeSpan.FromMinutes(1));
+                var interval = _options.Value.Reconciliation.RetryInterval;
+                Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} rescheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
+                Requeue(entity, interval);
+            }
+            catch (RetryException e)
+            {
+                try
+                {
+                    Logger.LogError("Retry hit reconciling {EntityTypeName} {EntityNamespace}/{EntityName}: {Message}", EntityTypeName, entity.Namespace(), entity.Name(), e.Message);
+                    await ReconcileWarningAsync(entity, "Retry", e.Message, cancellationToken);
+
+                    // update conditions
+                    entity = await UpdateStatusAsync(entity, "Ready", "False", e.Message, null, cancellationToken);
+                    entity = await UpdateStatusAsync(entity, "Healthy", "False", e.Message, null, cancellationToken);
+                }
+                catch (Exception e2)
+                {
+                    Logger.LogCritical(e2, "Unexpected exception creating event.");
+                }
+
+                var interval = _options.Value.Reconciliation.RetryInterval;
+                Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} rescheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
+                Requeue(entity, interval);
             }
             catch (Exception e)
             {
                 try
                 {
                     await ReconcileWarningAsync(entity, "Unknown", e.Message, cancellationToken);
+
+                    // update conditions
+                    entity = await UpdateStatusAsync(entity, "Ready", "False", e.Message, null, cancellationToken);
+                    entity = await UpdateStatusAsync(entity, "Healthy", "False", e.Message, null, cancellationToken);
                 }
                 catch (Exception e2)
                 {
@@ -364,6 +486,27 @@ namespace Alethic.Seq.Operator.Controllers
 
         /// <inheritdoc />
         public abstract Task DeletedAsync(TEntity entity, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Updates the specified status type.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="status"></param>
+        /// <param name="error"></param>
+        /// <param name="message"></param>
+        /// <param name="cancellationToken"></param>
+        async Task<TEntity> UpdateStatusAsync(TEntity entity, string type, string status, string? error, string? message, CancellationToken cancellationToken)
+        {
+            var condition = entity.Status.Conditions.FirstOrDefault(i => i.Type == type);
+            if (condition is null)
+                entity.Status.Conditions.Add(condition = new V1Alpha1Condition());
+
+            condition.Type = type;
+            condition.Status = status;
+            condition.Error = error;
+            condition.Message = message;
+            return await _kube.UpdateStatusAsync(entity, cancellationToken);
+        }
 
     }
 

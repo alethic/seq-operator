@@ -26,9 +26,6 @@ spec:
               info:
                 nullable: true
                 properties:
-                  token:
-                    nullable: true
-                    type: string
                   tokenPrefix:
                     nullable: true
                     type: string
@@ -41,7 +38,7 @@ spec:
                   ownerId:
                     nullable: true
                     type: string
-                  assignedPermissions:
+                  permissions:
                     items:
                       enum:
                       - Undefined
@@ -102,6 +99,24 @@ spec:
                         type: boolean
                     type: object
                 type: object
+              conditions:
+                items:
+                  properties:
+                    type:
+                      nullable: true
+                      type: string
+                    status:
+                      nullable: true
+                      type: string
+                    error:
+                      nullable: true
+                      type: string
+                    message:
+                      nullable: true
+                      type: string
+                  type: object
+                nullable: false
+                type: array
             type: object
           spec:
             nullable: false
@@ -150,9 +165,6 @@ spec:
               init:
                 nullable: true
                 properties:
-                  token:
-                    nullable: true
-                    type: string
                   title:
                     nullable: true
                     type: string
@@ -162,7 +174,7 @@ spec:
                   ownerId:
                     nullable: true
                     type: string
-                  assignedPermissions:
+                  permissions:
                     items:
                       enum:
                       - Undefined
@@ -226,9 +238,6 @@ spec:
               conf:
                 nullable: true
                 properties:
-                  token:
-                    nullable: true
-                    type: string
                   title:
                     nullable: true
                     type: string
@@ -238,7 +247,7 @@ spec:
                   ownerId:
                     nullable: true
                     type: string
-                  assignedPermissions:
+                  permissions:
                     items:
                       enum:
                       - Undefined

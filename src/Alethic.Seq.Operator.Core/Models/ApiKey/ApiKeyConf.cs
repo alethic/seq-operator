@@ -7,10 +7,6 @@ namespace Alethic.Seq.Operator.Core.Models.ApiKey
     public partial class ApiKeyConf
     {
 
-        [JsonPropertyName("token")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? Token { get; set; }
-
         [JsonPropertyName("title")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Title { get; set; }
@@ -23,9 +19,9 @@ namespace Alethic.Seq.Operator.Core.Models.ApiKey
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? OwnerId { get; set; }
 
-        [JsonPropertyName("assignedPermissions")]
+        [JsonPropertyName("permissions")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public ApiKeyPermission[]? AssignedPermissions { get; set; }
+        public ApiKeyPermission[]? Permissions { get; set; }
 
         [JsonPropertyName("inputSettings")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

@@ -12,7 +12,12 @@ namespace Alethic.Seq.Operator.Options
         /// <summary>
         /// The interval between periodic reconciliation cycles.
         /// </summary>
-        public TimeSpan Interval { get; set; } = TimeSpan.FromSeconds(30);
+        public TimeSpan Interval { get; set; } = TimeSpan.FromMinutes(5);
+
+        /// <summary>
+        /// The interval between retries when reconcillation fails.
+        /// </summary>
+        public TimeSpan RetryInterval { get; set; } = TimeSpan.FromSeconds(30);
 
     }
 

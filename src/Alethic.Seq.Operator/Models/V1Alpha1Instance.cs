@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 using Alethic.Seq.Operator.Core.Models.Instance;
 
@@ -36,7 +37,7 @@ namespace Alethic.Seq.Operator.Models
             /// <summary>
             /// Describes information to authenticate with Seq using an ApiKey.
             /// </summary>
-            public class ApiKeyAuthentication
+            public class TokenAuthentication
             {
 
                 [JsonPropertyName("secretRef")]
@@ -59,16 +60,16 @@ namespace Alethic.Seq.Operator.Models
                 public string? Endpoint { get; set; }
 
                 /// <summary>
+                /// If specified, indicates operations should use token authentication.
+                /// </summary>
+                [JsonPropertyName("token")]
+                public TokenAuthentication? Token { get; set; }
+
+                /// <summary>
                 /// If specified, indicates login by username/password should be attempted.
                 /// </summary>
                 [JsonPropertyName("login")]
                 public LoginAuthentication? Login { get; set; }
-
-                /// <summary>
-                /// If specified, indicates operations should use ApiKey authentication.
-                /// </summary>
-                [JsonPropertyName("apiKey")]
-                public ApiKeyAuthentication? ApiKey { get; set; }
 
             }
 
@@ -96,8 +97,9 @@ namespace Alethic.Seq.Operator.Models
             /// <summary>
             /// Connection information for the instance.
             /// </summary>
-            [JsonPropertyName("connection")]
-            public ConnectionDef? Connection { get; set; }
+            [JsonPropertyName("connections")]
+            [Required]
+            public ConnectionDef[]? Connections { get; set; }
 
             /// <summary>
             /// Connection information for the instance.
@@ -141,6 +143,9 @@ namespace Alethic.Seq.Operator.Models
 
             [JsonPropertyName("info")]
             public InstanceInfo? Info { get; set; }
+
+            [JsonPropertyName("conditions")]
+            public IList<V1Alpha1Condition> Conditions { get; set; } = new List<V1Alpha1Condition>();
 
         }
 

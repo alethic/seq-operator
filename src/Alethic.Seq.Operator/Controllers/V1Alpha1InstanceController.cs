@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Alethic.Seq.Operator.Core.Models.Instance;
 using Alethic.Seq.Operator.Models;
+using Alethic.Seq.Operator.Options;
 
 using k8s.Models;
 
@@ -15,6 +17,7 @@ using KubeOps.KubernetesClient;
 
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using Seq.Api;
 using Seq.Api.Model.Settings;
@@ -36,9 +39,10 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="kube"></param>
         /// <param name="requeue"></param>
         /// <param name="cache"></param>
+        /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1Alpha1InstanceController(IKubernetesClient kube, EntityRequeue<V1Alpha1Instance> requeue, IMemoryCache cache, ILogger<V1Alpha1InstanceController> logger) :
-            base(kube, requeue, cache, logger)
+        public V1Alpha1InstanceController(IKubernetesClient kube, EntityRequeue<V1Alpha1Instance> requeue, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger<V1Alpha1InstanceController> logger) :
+            base(kube, requeue, cache, options, logger)
         {
 
         }
@@ -47,7 +51,7 @@ namespace Alethic.Seq.Operator.Controllers
         protected override string EntityTypeName => "Instance";
 
         /// <inheritdoc />
-        protected override async Task Reconcile(V1Alpha1Instance entity, CancellationToken cancellationToken)
+        protected override async Task<V1Alpha1Instance> Reconcile(V1Alpha1Instance entity, CancellationToken cancellationToken)
         {
             var api = await GetInstanceConnectionAsync(entity, cancellationToken);
             if (api == null)
@@ -68,8 +72,7 @@ namespace Alethic.Seq.Operator.Controllers
             // retrieve and copy applied settings to status
             entity.Status.Info = info;
             entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
-
-            await ReconcileSuccessAsync(entity, cancellationToken);
+            return entity;
         }
 
         /// <inheritdoc />
@@ -89,8 +92,11 @@ namespace Alethic.Seq.Operator.Controllers
         /// <returns></returns>
         async Task<T?> GetSettingValueAsync<T>(SeqConnection api, SettingName name, CancellationToken cancellationToken)
         {
-            var setting = await api.Settings.FindNamedAsync(SettingName.AutomaticAccessADGroup, cancellationToken);
-            return (T)setting.Value;
+            var setting = await api.Settings.FindNamedAsync(name, cancellationToken);
+            if (setting is null)
+                throw new InvalidOperationException($"Unknown setting.");
+
+            return (T?)setting.Value ?? default;
         }
 
         /// <summary>
@@ -106,8 +112,24 @@ namespace Alethic.Seq.Operator.Controllers
             info.Settings = new InstanceSettings();
             info.Settings.Auth = new InstanceSettings.AuthConf();
             await ApplyAuthSettingsAsync(api, info.Settings.Auth, cancellationToken);
-            info.Settings.DataAgeWarningThresholdMilliseconds = await GetSettingValueAsync<int>(api, SettingName.DataAgeWarningThresholdMilliseconds, cancellationToken);
-            // more
+            info.Settings.DataAgeWarningThresholdMilliseconds = await GetSettingValueAsync<long>(api, SettingName.DataAgeWarningThresholdMilliseconds, cancellationToken);
+            info.Settings.BackupLocation = await GetSettingValueAsync<string>(api, SettingName.BackupLocation, cancellationToken);
+            info.Settings.BackupsToKeep = await GetSettingValueAsync<long>(api, SettingName.BackupsToKeep, cancellationToken);
+            info.Settings.BackupUtcTimeOfDay = await GetSettingValueAsync<string>(api, SettingName.BackupUtcTimeOfDay, cancellationToken);
+            info.Settings.CheckForPackageUpdates = await GetSettingValueAsync<bool>(api, SettingName.CheckForPackageUpdates, cancellationToken);
+            info.Settings.CheckForUpdates = await GetSettingValueAsync<bool>(api, SettingName.CheckForUpdates, cancellationToken);
+            info.Settings.InstanceTitle = await GetSettingValueAsync<string>(api, SettingName.InstanceTitle, cancellationToken);
+            info.Settings.MinimumFreeStorageSpace = await GetSettingValueAsync<long>(api, SettingName.MinimumFreeStorageSpace, cancellationToken);
+            info.Settings.NewUserPreferences = await GetSettingValueAsync<Dictionary<string,string>>(api, SettingName.NewUserPreferences, cancellationToken);
+            info.Settings.NewUserRoleIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserRoleIds, cancellationToken))?.Split(",");
+            info.Settings.NewUserShowSignalIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowSignalIds, cancellationToken))?.Split(",");
+            info.Settings.NewUserShowQueryIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowQueryIds, cancellationToken))?.Split(",");
+            info.Settings.NewUserShowDashboardIds = (await GetSettingValueAsync<string>(api, SettingName.NewUserShowDashboardIds, cancellationToken))?.Split(",");
+            info.Settings.RequireApiKeyForWritingEvents = await GetSettingValueAsync<bool>(api, SettingName.RequireApiKeyForWritingEvents, cancellationToken);
+            info.Settings.RawEventMaximumContentLength = await GetSettingValueAsync<long>(api, SettingName.RawEventMaximumContentLength, cancellationToken);
+            info.Settings.RawPayloadMaximumContentLength = await GetSettingValueAsync<long>(api, SettingName.RawPayloadMaximumContentLength, cancellationToken);
+            info.Settings.TargetReplicaCount = await GetSettingValueAsync<long>(api, SettingName.TargetReplicaCount, cancellationToken);
+            info.Settings.ThemeStyles = await GetSettingValueAsync<string>(api, SettingName.ThemeStyles, cancellationToken);
             return info;
         }
 
@@ -120,7 +142,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <returns></returns>
         async Task ApplyAuthSettingsAsync(SeqConnection api, InstanceSettings.AuthConf info, CancellationToken cancellationToken)
         {
-            if (await GetSettingValueAsync<bool>(api, SettingName.IsAuthenticationEnabled, cancellationToken))
+            if (await GetSettingValueAsync<bool?>(api, SettingName.IsAuthenticationEnabled, cancellationToken) == true)
             {
                 switch (await GetSettingValueAsync<string>(api, SettingName.AuthenticationProvider, cancellationToken))
                 {

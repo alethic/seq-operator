@@ -87,14 +87,14 @@ spec:
                             type: boolean
                         type: object
                       dataAgeWarningThresholdMilliseconds:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       backupLocation:
                         nullable: true
                         type: string
                       backupsToKeep:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       backupUtcTimeOfDay:
@@ -110,8 +110,9 @@ spec:
                         nullable: true
                         type: string
                       minimumFreeStorageSpace:
+                        format: int64
                         nullable: true
-                        type: boolean
+                        type: integer
                       newUserPreferences:
                         additionalProperties:
                           nullable: false
@@ -146,15 +147,15 @@ spec:
                         nullable: true
                         type: boolean
                       rawEventMaximumContentLength:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       rawPayloadMaximumContentLength:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       targetReplicaCount:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       themeStyles:
@@ -162,6 +163,24 @@ spec:
                         type: string
                     type: object
                 type: object
+              conditions:
+                items:
+                  properties:
+                    type:
+                      nullable: true
+                      type: string
+                    status:
+                      nullable: true
+                      type: string
+                    error:
+                      nullable: true
+                      type: string
+                    message:
+                      nullable: true
+                      type: string
+                  type: object
+                nullable: false
+                type: array
             type: object
           spec:
             nullable: false
@@ -175,47 +194,49 @@ spec:
                   type: string
                 nullable: true
                 type: array
-              connection:
+              connections:
+                items:
+                  properties:
+                    endpoint:
+                      nullable: true
+                      type: string
+                    token:
+                      nullable: true
+                      properties:
+                        secretRef:
+                          nullable: true
+                          properties:
+                            name:
+                              nullable: false
+                              type: string
+                            namespace:
+                              nullable: false
+                              type: string
+                          type: object
+                      required:
+                      - secretRef
+                      type: object
+                    login:
+                      nullable: true
+                      properties:
+                        secretRef:
+                          nullable: true
+                          properties:
+                            name:
+                              nullable: false
+                              type: string
+                            namespace:
+                              nullable: false
+                              type: string
+                          type: object
+                      required:
+                      - secretRef
+                      type: object
+                  required:
+                  - endpoint
+                  type: object
                 nullable: true
-                properties:
-                  endpoint:
-                    nullable: true
-                    type: string
-                  login:
-                    nullable: true
-                    properties:
-                      secretRef:
-                        nullable: true
-                        properties:
-                          name:
-                            nullable: false
-                            type: string
-                          namespace:
-                            nullable: false
-                            type: string
-                        type: object
-                    required:
-                    - secretRef
-                    type: object
-                  apiKey:
-                    nullable: true
-                    properties:
-                      secretRef:
-                        nullable: true
-                        properties:
-                          name:
-                            nullable: false
-                            type: string
-                          namespace:
-                            nullable: false
-                            type: string
-                        type: object
-                    required:
-                    - secretRef
-                    type: object
-                required:
-                - endpoint
-                type: object
+                type: array
               deployment:
                 nullable: true
                 properties:
@@ -295,14 +316,14 @@ spec:
                             type: boolean
                         type: object
                       dataAgeWarningThresholdMilliseconds:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       backupLocation:
                         nullable: true
                         type: string
                       backupsToKeep:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       backupUtcTimeOfDay:
@@ -318,8 +339,9 @@ spec:
                         nullable: true
                         type: string
                       minimumFreeStorageSpace:
+                        format: int64
                         nullable: true
-                        type: boolean
+                        type: integer
                       newUserPreferences:
                         additionalProperties:
                           nullable: false
@@ -354,15 +376,15 @@ spec:
                         nullable: true
                         type: boolean
                       rawEventMaximumContentLength:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       rawPayloadMaximumContentLength:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       targetReplicaCount:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       themeStyles:
@@ -433,14 +455,14 @@ spec:
                             type: boolean
                         type: object
                       dataAgeWarningThresholdMilliseconds:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       backupLocation:
                         nullable: true
                         type: string
                       backupsToKeep:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       backupUtcTimeOfDay:
@@ -456,8 +478,9 @@ spec:
                         nullable: true
                         type: string
                       minimumFreeStorageSpace:
+                        format: int64
                         nullable: true
-                        type: boolean
+                        type: integer
                       newUserPreferences:
                         additionalProperties:
                           nullable: false
@@ -492,15 +515,15 @@ spec:
                         nullable: true
                         type: boolean
                       rawEventMaximumContentLength:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       rawPayloadMaximumContentLength:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       targetReplicaCount:
-                        format: int32
+                        format: int64
                         nullable: true
                         type: integer
                       themeStyles:
@@ -509,6 +532,7 @@ spec:
                     type: object
                 type: object
             required:
+            - connections
             - conf
             type: object
         type: object

@@ -100,7 +100,7 @@ namespace Alethic.Seq.Operator.Core.Models.Instance
 
         [JsonPropertyName("dataAgeWarningThresholdMilliseconds")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public int? DataAgeWarningThresholdMilliseconds { get; set; }
+        public long? DataAgeWarningThresholdMilliseconds { get; set; }
 
         [JsonPropertyName("backupLocation")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -108,7 +108,7 @@ namespace Alethic.Seq.Operator.Core.Models.Instance
 
         [JsonPropertyName("backupsToKeep")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public int? BackupsToKeep { get; set; }
+        public long? BackupsToKeep { get; set; }
 
         [JsonPropertyName("backupUtcTimeOfDay")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -128,7 +128,7 @@ namespace Alethic.Seq.Operator.Core.Models.Instance
 
         [JsonPropertyName("minimumFreeStorageSpace")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public bool? MinimumFreeStorageSpace { get; set; }
+        public long? MinimumFreeStorageSpace { get; set; }
 
         [JsonPropertyName("newUserPreferences")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -136,19 +136,19 @@ namespace Alethic.Seq.Operator.Core.Models.Instance
 
         [JsonPropertyName("newUserRoleIds")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public List<string>? NewUserRoleIds { get; set; }
+        public string[]? NewUserRoleIds { get; set; }
 
         [JsonPropertyName("newUserShowSignalIds")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public List<string>? NewUserShowSignalIds { get; set; }
+        public string[]? NewUserShowSignalIds { get; set; }
 
         [JsonPropertyName("newUserShowQueryIds")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public List<string>? NewUserShowQueryIds { get; set; }
+        public string[]? NewUserShowQueryIds { get; set; }
 
         [JsonPropertyName("newUserShowDashboardIds")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public List<string>? NewUserShowDashboardIds { get; set; }
+        public string[]? NewUserShowDashboardIds { get; set; }
 
         [JsonPropertyName("requireApiKeyForWritingEvents")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -156,15 +156,15 @@ namespace Alethic.Seq.Operator.Core.Models.Instance
 
         [JsonPropertyName("rawEventMaximumContentLength")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public int? RawEventMaximumContentLength { get; set; }
+        public long? RawEventMaximumContentLength { get; set; }
 
         [JsonPropertyName("rawPayloadMaximumContentLength")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public int? RawPayloadMaximumContentLength { get; set; }
+        public long? RawPayloadMaximumContentLength { get; set; }
 
         [JsonPropertyName("targetReplicaCount")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public int? TargetReplicaCount { get; set; }
+        public long? TargetReplicaCount { get; set; }
 
         [JsonPropertyName("themeStyles")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
