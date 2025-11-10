@@ -25,7 +25,13 @@ spec:
                 type: string
               info:
                 nullable: true
-                properties: {}
+                properties:
+                  title:
+                    nullable: true
+                    type: string
+                  ownerId:
+                    nullable: true
+                    type: string
                 type: object
               conditions:
                 items:
@@ -70,13 +76,29 @@ spec:
                 required:
                 - name
                 type: object
+              find:
+                nullable: true
+                properties:
+                  title:
+                    nullable: true
+                    type: string
+                  ownerId:
+                    nullable: true
+                    type: string
+                type: object
               init:
                 nullable: true
-                properties: {}
+                properties:
+                  title:
+                    nullable: true
+                    type: string
                 type: object
               conf:
                 nullable: true
-                properties: {}
+                properties:
+                  title:
+                    nullable: true
+                    type: string
                 type: object
             required:
             - instanceRef
