@@ -10,3 +10,63 @@ This Seq Kubernetes Operator is responsible for managing the lifecycle of Seq re
 
 ## Usage
 
+This is an example for connecting to and bootstrapping a Seq instance deployed with a SEQ_FIRSTRUN_ADMINPASSWORDHASH setting.
+
+```
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: seqlogin
+  namespace: default
+type: Opaque
+stringData:
+  username: "admin"
+  password: "newpassword"
+  firstRunPassword: "1234"
+
+---
+
+apiVersion: seq.k8s.datalust.co/v1alpha1
+kind: Instance
+metadata:
+  name: seqinstance
+  namespace: default
+spec:
+  connections:
+  - endpoint: http://localhost:5341
+    token:
+      secretRef:
+        name: seqtoken
+  - endpoint: http://localhost:5341
+    login:
+      secretRef:
+        name: seqlogin
+  conf:
+    settings:
+      
+---
+
+
+apiVersion: seq.k8s.datalust.co/v1alpha1
+kind: ApiKey
+metadata:
+  name: seqtoken
+  namespace: default
+spec:
+  instanceRef:
+    name: seqinstance
+  secretRef:
+    name: seqtoken
+  conf:
+    title: ManagementKey
+    assignedPermissions:
+    - System
+    - Project
+    - Write
+    - Organization
+    - Read
+---
+
+
+```
