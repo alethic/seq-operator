@@ -57,17 +57,11 @@ spec:
                     nullable: true
                     properties:
                       appliedProperties:
-                        items:
-                          properties:
-                            name:
-                              nullable: true
-                              type: string
-                            value:
-                              nullable: true
-                              type: string
-                          type: object
+                        additionalProperties:
+                          nullable: false
+                          type: string
                         nullable: true
-                        type: array
+                        type: object
                       filter:
                         nullable: true
                         properties:
@@ -193,17 +187,11 @@ spec:
                     nullable: true
                     properties:
                       appliedProperties:
-                        items:
-                          properties:
-                            name:
-                              nullable: true
-                              type: string
-                            value:
-                              nullable: true
-                              type: string
-                          type: object
+                        additionalProperties:
+                          nullable: false
+                          type: string
                         nullable: true
-                        type: array
+                        type: object
                       filter:
                         nullable: true
                         properties:
@@ -266,17 +254,11 @@ spec:
                     nullable: true
                     properties:
                       appliedProperties:
-                        items:
-                          properties:
-                            name:
-                              nullable: true
-                              type: string
-                            value:
-                              nullable: true
-                              type: string
-                          type: object
+                        additionalProperties:
+                          nullable: false
+                          type: string
                         nullable: true
-                        type: array
+                        type: object
                       filter:
                         nullable: true
                         properties:

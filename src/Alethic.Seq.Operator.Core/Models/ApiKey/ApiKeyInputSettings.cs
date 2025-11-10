@@ -13,7 +13,7 @@ namespace Alethic.Seq.Operator.Core.Models.ApiKey
         /// </summary>
         [JsonPropertyName("appliedProperties")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public ApiKeyEventProperty[]? AppliedProperties { get; set; }
+        public Dictionary<string, string?>? AppliedProperties { get; set; }
 
         /// <summary>
         /// A filter that selects events to ingest. If <c>null</c>, all events received using the key will be ingested.

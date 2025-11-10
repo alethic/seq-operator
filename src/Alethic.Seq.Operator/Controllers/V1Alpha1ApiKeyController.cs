@@ -159,9 +159,9 @@ namespace Alethic.Seq.Operator.Controllers
         /// <inheritdoc />
         protected override async Task Delete(SeqConnection api, string id, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
-            //Logger.LogInformation("{EntityTypeName} deleting client from Seq with ID: {ClientId} (reason: Kubernetes entity deleted)", EntityTypeName, id);
-            //Logger.LogInformation("{EntityTypeName} successfully deleted client from Seq with ID: {ClientId}", EntityTypeName, id);
+            Logger.LogInformation("{EntityTypeName} deleting client from Seq with ID: {ClientId} (reason: Kubernetes entity deleted)", EntityTypeName, id);
+            await api.ApiKeys.RemoveAsync(await api.ApiKeys.FindAsync(id, cancellationToken), cancellationToken);
+            Logger.LogInformation("{EntityTypeName} successfully deleted client from Seq with ID: {ClientId}", EntityTypeName, id);
         }
 
         /// <summary>
@@ -263,23 +263,12 @@ namespace Alethic.Seq.Operator.Controllers
         {
             return new ApiKeyInputSettings()
             {
-                AppliedProperties = api.AppliedProperties.Select(ToInfo).ToArray(),
+                AppliedProperties = api.AppliedProperties.ToDictionary(i => i.Name, i => (string?)i.Value),
                 Filter = ToInfo(api.Filter),
                 UseServerTimestamps = api.UseServerTimestamps,
                 MinimumLevel = api.MinimumLevel != null ? ToInfo(api.MinimumLevel.Value) : null,
             };
         }
-
-        /// <summary>
-        /// Translates a <see cref="EventPropertyPart"/> to a <see cref="ApiKeyEventProperty"/>.
-        /// </summary>
-        /// <param name="api"></param>
-        /// <returns></returns>
-        ApiKeyEventProperty ToInfo(EventPropertyPart api) => new ApiKeyEventProperty()
-        {
-            Name = api.Name,
-            Value = (string?)api.Value,
-        };
 
         /// <summary>
         /// Transforms a <see cref="DescriptiveFilterPart"/> to a <see cref="ApiKeyDescriptiveFilter"/>.
@@ -348,11 +337,11 @@ namespace Alethic.Seq.Operator.Controllers
         /// <summary>
         /// Transforms the entity version of <see cref="ApiKeyPermission"/> into the API version.
         /// </summary>
-        /// <param name="assignedPermissions"></param>
+        /// <param name="permissions"></param>
         /// <returns></returns>
-        void ApplyToApi(ApiKeyEntity target, ApiKeyPermission[] assignedPermissions)
+        void ApplyToApi(ApiKeyEntity target, ApiKeyPermission[] permissions)
         {
-            foreach (var i in assignedPermissions)
+            foreach (var i in permissions)
                 target.AssignedPermissions.Add(ToApi(i));
         }
 
@@ -386,8 +375,8 @@ namespace Alethic.Seq.Operator.Controllers
         void ApplyToApi(InputSettingsPart target, ApiKeyInputSettings inputSettings)
         {
             if (inputSettings.AppliedProperties is not null)
-                foreach (var i in inputSettings.AppliedProperties)
-                    target.AppliedProperties.Add(ToApi(i));
+                foreach (var kvp in inputSettings.AppliedProperties)
+                    target.AppliedProperties.Add(ToApi(kvp));
 
             if (inputSettings.Filter is not null)
                 ApplyToApi(target.Filter, inputSettings.Filter);
@@ -399,9 +388,9 @@ namespace Alethic.Seq.Operator.Controllers
                 target.MinimumLevel = ToApi(l);
         }
 
-        EventPropertyPart ToApi(ApiKeyEventProperty property)
+        EventPropertyPart ToApi(KeyValuePair<string, string?> property)
         {
-            return new EventPropertyPart(property.Name, property.Value);
+            return new EventPropertyPart(property.Key, property.Value);
         }
 
         /// <summary>
