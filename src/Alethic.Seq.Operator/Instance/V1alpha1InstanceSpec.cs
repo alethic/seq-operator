@@ -19,7 +19,7 @@ namespace Alethic.Seq.Operator.Instance
         /// </summary>
         [JsonPropertyName("connections")]
         [Required]
-        public InstanceConnection[]? Connections { get; set; }
+        public InstanceConnectionSpec[]? Connections { get; set; }
 
         /// <summary>
         /// Connection information for the instance.

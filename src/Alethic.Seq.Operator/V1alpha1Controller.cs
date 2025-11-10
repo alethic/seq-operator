@@ -246,7 +246,7 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqLoginConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceLoginAuthentication loginDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqLoginConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceLoginAuthenticationSpec loginDef, CancellationToken cancellationToken)
         {
             var secretRef = loginDef.SecretRef;
             if (secretRef == null)
@@ -310,7 +310,7 @@ namespace Alethic.Seq.Operator
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqTokenConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceTokenAuthentication tokenDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqTokenConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceTokenAuthenticationSpec tokenDef, CancellationToken cancellationToken)
         {
             var secretRef = tokenDef.SecretRef;
             if (secretRef == null)
@@ -329,7 +329,7 @@ namespace Alethic.Seq.Operator
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        async Task<SeqConnection?> CreateSeqConnectionAsync(V1alpha1Instance instance, InstanceConnection[] connectionsDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqConnectionAsync(V1alpha1Instance instance, InstanceConnectionSpec[] connectionsDef, CancellationToken cancellationToken)
         {
             // we try the proposed connection items in order to allow fallbacks
             foreach (var connectionDef in connectionsDef)

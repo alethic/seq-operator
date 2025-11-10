@@ -10,7 +10,7 @@ namespace Alethic.Seq.Operator.Instance
     /// <summary>
     /// Describes information to authenticate with Seq using a username and password.
     /// </summary>
-    public class InstanceLoginAuthentication
+    public class InstanceLoginAuthenticationSpec
     {
 
         [JsonPropertyName("secretRef")]

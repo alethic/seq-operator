@@ -42,8 +42,7 @@ spec:
     login:
       secretRef:
         name: seqlogin
-  conf:
-    settings:
+  conf: {}
       
 ---
 

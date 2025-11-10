@@ -10,7 +10,7 @@ namespace Alethic.Seq.Operator.Instance
     /// <summary>
     /// Describes information to authenticate with Seq using an ApiKey.
     /// </summary>
-    public class InstanceTokenAuthentication
+    public class InstanceTokenAuthenticationSpec
     {
 
         [JsonPropertyName("secretRef")]
