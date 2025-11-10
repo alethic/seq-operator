@@ -82,5 +82,9 @@ options:
     # Limit operation to the single specified namespace. This can be used to install a namespace-specific instance of the operator.
     # NOT YET SUPORTED
     #namespace:
+  # Options related to reconciliation.
   reconciliation:
+    # The time between successful reconciliations.
     interval:
+    # The time between failed reconciliations.
+    retryInterval:

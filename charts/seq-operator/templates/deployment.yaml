@@ -63,6 +63,10 @@ spec:
             - name: seq__Operator__Reconciliation__Interval
               value: {{ .Values.options.reconciliation.interval | quote }}
 {{ end }}
+{{ if .Values.options.reconciliation.retryInterval }}
+            - name: seq__Operator__Reconciliation__RetryInterval
+              value: {{ .Values.options.reconciliation.retryInterval | quote }}
+{{ end }}
 {{ range .Values.operator.env }}
             - name: {{ .name | quote }}
               value: {{ .value | quote }}
