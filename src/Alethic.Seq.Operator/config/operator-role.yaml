@@ -13,6 +13,7 @@ rules:
   - seq.k8s.datalust.co
   resources:
   - apikeys
+  - retentionpolicys
   verbs:
   - '*'
 - apiGroups:
@@ -54,6 +55,14 @@ rules:
   - seq.k8s.datalust.co
   resources:
   - apikeys/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - seq.k8s.datalust.co
+  resources:
+  - retentionpolicys/status
   verbs:
   - get
   - update
