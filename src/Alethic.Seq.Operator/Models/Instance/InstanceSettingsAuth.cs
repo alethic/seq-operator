@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Alethic.Seq.Operator.Core.Models.Instance
+namespace Alethic.Seq.Operator.Models.Instance
 {
 
     public class InstanceSettingsAuth

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Alethic.Seq.Operator.Core.Models.ApiKey
+namespace Alethic.Seq.Operator.Models.ApiKey
 {
 
     public enum ApiKeyPermission

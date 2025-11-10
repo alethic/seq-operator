@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Alethic.Seq.Operator.Core.Models.Instance
+namespace Alethic.Seq.Operator.Models.Instance
 {
 
     public partial class InstanceInfoSettings

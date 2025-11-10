@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Alethic.Seq.Operator.Core.Models.ApiKey
+namespace Alethic.Seq.Operator.Models.ApiKey
 {
 
     public class ApiKeyDescriptiveFilter

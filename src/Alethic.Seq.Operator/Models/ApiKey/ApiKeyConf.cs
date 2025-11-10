@@ -1,15 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
-namespace Alethic.Seq.Operator.Core.Models.ApiKey
+namespace Alethic.Seq.Operator.Models.ApiKey
 {
 
-    public partial class ApiKeyInfo
+    public partial class ApiKeyConf
     {
-
-        [JsonPropertyName("tokenPrefix")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? TokenPrefix { get; set; }
 
         [JsonPropertyName("title")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -19,9 +14,9 @@ namespace Alethic.Seq.Operator.Core.Models.ApiKey
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? IsDefault { get; set; }
 
-        [JsonPropertyName("ownerId")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? OwnerId { get; set; }
+        //[JsonPropertyName("ownerId")]
+        //[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        //public string? OwnerId { get; set; }
 
         [JsonPropertyName("permissions")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

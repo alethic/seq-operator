@@ -9,7 +9,7 @@
         <ContainerRepository>seq-operator-image</ContainerRepository>
         <GenerateOperatorResources>true</GenerateOperatorResources>
     </PropertyGroup>
-    
+
     <ItemGroup>
         <ContainerEnvironmentVariable Include="ASPNETCORE_FORWARDEDHEADERS_ENABLED" Value="true" />
         <ContainerEnvironmentVariable Include="ASPNETCORE_ENVIRONMENT" Value="Production" />
@@ -18,8 +18,8 @@
 
     <ItemGroup>
         <PackageReference Include="KubeOps.Generator" Version="9.11.8">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="KubeOps.Operator" Version="9.11.8" />
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.10" />
@@ -28,11 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Alethic.Seq.Operator.Core\Alethic.Seq.Operator.Core.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="config\" />
+        <Folder Include="config\" />
     </ItemGroup>
 
 </Project>

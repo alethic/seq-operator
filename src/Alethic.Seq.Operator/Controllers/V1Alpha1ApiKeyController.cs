@@ -6,8 +6,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Alethic.Seq.Operator.Core.Models.ApiKey;
 using Alethic.Seq.Operator.Models;
+using Alethic.Seq.Operator.Models.ApiKey;
 using Alethic.Seq.Operator.Options;
 
 using k8s.Models;

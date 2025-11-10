@@ -1,14 +1,14 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Alethic.Seq.Operator.Core.Models.Instance
+namespace Alethic.Seq.Operator.Models.Instance
 {
 
-    public partial class InstanceConf
+    public partial class InstanceInfo
     {
 
         [JsonPropertyName("settings")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public InstanceConfSettings? Settings { get; set; }
+        public InstanceInfoSettings? Settings { get; set; }
 
     }
 

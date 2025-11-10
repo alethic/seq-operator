@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Text.Json.Serialization;
 
-namespace Alethic.Seq.Operator.Core.Models.RetentionPolicy
+namespace Alethic.Seq.Operator.Models.RetentionPolicy
 {
 
-    public class RetentionPolicyConf
+    public class RetentionPolicyInfo
     {
 
         [JsonPropertyName("retentionTime")]

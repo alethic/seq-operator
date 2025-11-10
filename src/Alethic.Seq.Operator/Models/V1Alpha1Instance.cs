@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-using Alethic.Seq.Operator.Core.Models.Instance;
+using Alethic.Seq.Operator.Models.Instance;
 
 using k8s.Models;
 
@@ -19,74 +19,8 @@ namespace Alethic.Seq.Operator.Models
         V1Alpha1Entity<V1Alpha1Instance.SpecDef, V1Alpha1Instance.StatusDef, InstanceConf, InstanceInfo>
     {
 
-        public class SpecDef : V1Alpha1EntitySpec<InstanceConf>
+        public partial class SpecDef : V1Alpha1EntitySpec<InstanceConf>
         {
-
-            /// <summary>
-            /// Describes information to authenticate with Seq using a username and password.
-            /// </summary>
-            public class LoginAuthentication
-            {
-
-                [JsonPropertyName("secretRef")]
-                [Required]
-                public V1SecretReference? SecretRef { get; set; }
-
-            }
-
-            /// <summary>
-            /// Describes information to authenticate with Seq using an ApiKey.
-            /// </summary>
-            public class TokenAuthentication
-            {
-
-                [JsonPropertyName("secretRef")]
-                [Required]
-                public V1SecretReference? SecretRef { get; set; }
-
-            }
-
-            /// <summary>
-            /// Describes connection information to reach a remote Seq instance.
-            /// </summary>
-            public class ConnectionDef
-            {
-
-                /// <summary>
-                /// Endpoint of the Seq instance in URI format.
-                /// </summary>
-                [JsonPropertyName("endpoint")]
-                [Required]
-                public string? Endpoint { get; set; }
-
-                /// <summary>
-                /// If specified, indicates operations should use token authentication.
-                /// </summary>
-                [JsonPropertyName("token")]
-                public TokenAuthentication? Token { get; set; }
-
-                /// <summary>
-                /// If specified, indicates login by username/password should be attempted.
-                /// </summary>
-                [JsonPropertyName("login")]
-                public LoginAuthentication? Login { get; set; }
-
-            }
-
-            /// <summary>
-            /// Describes how to deploy a new instance of Seq.
-            /// </summary>
-            public class DeploymentDef
-            {
-
-                /// <summary>
-                /// Secret to use for the management API key.
-                /// </summary>
-                [JsonPropertyName("secretRef")]
-                [Required]
-                public V1SecretReference? SecretRef { get; set; }
-
-            }
 
             /// <summary>
             /// Describes the permitted operations on the entity.
@@ -99,13 +33,13 @@ namespace Alethic.Seq.Operator.Models
             /// </summary>
             [JsonPropertyName("connections")]
             [Required]
-            public ConnectionDef[]? Connections { get; set; }
+            public InstanceConnection[]? Connections { get; set; }
 
             /// <summary>
             /// Connection information for the instance.
             /// </summary>
             [JsonPropertyName("deployment")]
-            public DeploymentDef? Deployment { get; set; }
+            public InstanceDeployment? Deployment { get; set; }
 
             /// <summary>
             /// Configuration to apply when initializing the entity for the first time.

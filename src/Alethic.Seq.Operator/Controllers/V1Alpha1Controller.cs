@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 using Alethic.Seq.Operator.Core.Models;
 using Alethic.Seq.Operator.Models;
+using Alethic.Seq.Operator.Models.Instance;
 using Alethic.Seq.Operator.Options;
 
 using k8s;
@@ -140,7 +141,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqConnectionAsync(V1Alpha1Instance instance, string endpoint, V1Alpha1Instance.SpecDef.LoginAuthentication loginDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqConnectionAsync(V1Alpha1Instance instance, string endpoint, InstanceLoginAuthentication loginDef, CancellationToken cancellationToken)
         {
             var secretRef = loginDef.SecretRef;
             if (secretRef == null)
@@ -220,7 +221,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqConnectionAsync(V1Alpha1Instance instance, string endpoint, V1Alpha1Instance.SpecDef.TokenAuthentication tokenDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqConnectionAsync(V1Alpha1Instance instance, string endpoint, InstanceTokenAuthentication tokenDef, CancellationToken cancellationToken)
         {
             var secretRef = tokenDef.SecretRef;
             if (secretRef == null)
@@ -271,7 +272,7 @@ namespace Alethic.Seq.Operator.Controllers
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        async Task<SeqConnection?> CreateSeqConnectionAsync(V1Alpha1Instance instance, V1Alpha1Instance.SpecDef.ConnectionDef[] connectionsDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqConnectionAsync(V1Alpha1Instance instance, InstanceConnection[] connectionsDef, CancellationToken cancellationToken)
         {
             // we try the proposed connection items in order to allow fallbacks
             foreach (var connectionDef in connectionsDef)

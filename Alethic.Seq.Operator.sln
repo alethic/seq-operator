@@ -35,8 +35,6 @@ Project("{13B669BE-BB05-4DDF-9536-439F39A36129}") = "seq-operator", "charts\seq-
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alethic.Seq.Operator.Tests", "src\Alethic.Seq.Operator.Tests\Alethic.Seq.Operator.Tests.csproj", "{DBFB6920-CA41-4EE6-B16F-A36AB874F20B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Alethic.Seq.Operator.Core", "src\Alethic.Seq.Operator.Core\Alethic.Seq.Operator.Core.csproj", "{71799DB3-A560-45D9-A9D7-0BEF2A2B8BA9}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "targets", "targets", "{ABA7240B-0392-4EB4-802E-9B9016070123}"
 	ProjectSection(SolutionItems) = preProject
 		targets\PublishContainer.targets = targets\PublishContainer.targets
@@ -73,10 +71,6 @@ Global
 		{DBFB6920-CA41-4EE6-B16F-A36AB874F20B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DBFB6920-CA41-4EE6-B16F-A36AB874F20B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DBFB6920-CA41-4EE6-B16F-A36AB874F20B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{71799DB3-A560-45D9-A9D7-0BEF2A2B8BA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{71799DB3-A560-45D9-A9D7-0BEF2A2B8BA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{71799DB3-A560-45D9-A9D7-0BEF2A2B8BA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{71799DB3-A560-45D9-A9D7-0BEF2A2B8BA9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

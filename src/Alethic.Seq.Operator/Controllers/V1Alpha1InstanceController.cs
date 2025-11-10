@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Alethic.Seq.Operator.Core.Models.Instance;
 using Alethic.Seq.Operator.Models;
+using Alethic.Seq.Operator.Models.Instance;
 using Alethic.Seq.Operator.Options;
 
 using k8s.Models;

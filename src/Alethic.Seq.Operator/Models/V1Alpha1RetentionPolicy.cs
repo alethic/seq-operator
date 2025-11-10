@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 
 using Alethic.Seq.Operator.Core.Models;
-using Alethic.Seq.Operator.Core.Models.RetentionPolicy;
+using Alethic.Seq.Operator.Models.RetentionPolicy;
 
 using k8s.Models;
 
