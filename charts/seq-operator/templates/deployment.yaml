@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: seq-operator
-  namespace: {{ .Release.Namespace }}
-  labels: {{- include "seq-operator.labels" . | nindent 4 }}
+  name: {{ include "seq-operator.fullname" . }}
+  labels:
+    {{- include "seq-operator.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.operator.replicaCount }}
   selector:
@@ -20,7 +20,7 @@ spec:
       {{- with .Values.operator.runtimeClassName }}
       runtimeClassName: {{ . }}
       {{- end }}
-      serviceAccountName: seq-operator
+      serviceAccountName: {{ include "seq-operator.fullname" . }}
       {{- with .Values.operator.securityContext }}
       securityContext: {{- toYaml . | nindent 8 }}
       {{- end }}
