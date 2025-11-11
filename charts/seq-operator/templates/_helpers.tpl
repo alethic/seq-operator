@@ -1,37 +1,38 @@
-{{/* vim: set filetype=mustache: */}}
-{{/*
-Expand the name of the chart.
-*/}}
-{{- define "seq-operator.name" -}}
-  {{- default .Chart.Name | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
+{{- define "name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
 
+{{- define "fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
 
-{{/*
-Create chart name and version as used by the chart label.
-*/}}
-{{- define "seq-operator.chart" -}}
-  {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
+{{- define "chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
 
-{{/*
-Common labels for operator
-*/}}
-{{- define "seq-operator.labels" -}}
-helm.sh/chart: {{ include "seq-operator.chart" . }}
+{{- define "selectorLabels" -}}
+app.kubernetes.io/name: {{ include "name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- define "labels" -}}
+helm.sh/chart: {{ include "chart" . }}
+{{ include "selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- range $key, $val :=  .Values.operator.additionalLabels }}
-{{ $key }}: {{ $val | quote }}
 {{- end }}
-{{- end -}}
 
-{{/*
-Selector labels Operator
-*/}}
-{{- define "seq-operator.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "seq-operator.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
+{{- define "matchLabels" -}}
+{{ include "selectorLabels" . }}
+{{- end }}

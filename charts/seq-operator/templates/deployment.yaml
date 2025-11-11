@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "seq-operator.fullname" . }}
+  name: {{ include "fullname" . }}
   labels:
-    {{- include "seq-operator.labels" . | nindent 4 }}
+    {{- include "labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.operator.replicaCount }}
   selector:
-    matchLabels: {{- include "seq-operator.selectorLabels" . | nindent 6 }}
+    matchLabels: {{- include "selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "seq-operator.labels" . | nindent 8 }}
-        {{- include "seq-operator.selectorLabels" . | nindent 8 }}
+        {{- include "labels" . | nindent 8 }}
+        {{- include "selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.operator.imagePullSecrets }}
       imagePullSecrets: {{- toYaml . | nindent 8 }}
@@ -20,7 +20,7 @@ spec:
       {{- with .Values.operator.runtimeClassName }}
       runtimeClassName: {{ . }}
       {{- end }}
-      serviceAccountName: {{ include "seq-operator.fullname" . }}
+      serviceAccountName: {{ include "fullname" . }}
       {{- with .Values.operator.securityContext }}
       securityContext: {{- toYaml . | nindent 8 }}
       {{- end }}

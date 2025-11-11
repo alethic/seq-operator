@@ -1,3 +1,6 @@
+fullnameOverride:
+nameOverride:
+
 operator:
   env: []
 

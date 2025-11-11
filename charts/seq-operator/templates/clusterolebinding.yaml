@@ -2,15 +2,15 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "seq-operator.fullname" . }}
+  name: {{ include "fullname" . }}
   labels:
-    {{- include "seq-operator.labels" . | nindent 4 }}
+    {{- include "labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: seq-operator-role
 subjects:
   - kind: ServiceAccount
-    name: {{ include "seq-operator.fullname" . }}
+    name: {{ include "fullname" . }}
     namespace: {{ .Release.Namespace }}
 {{- end }}
