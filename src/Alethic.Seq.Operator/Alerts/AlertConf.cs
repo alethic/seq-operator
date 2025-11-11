@@ -9,6 +9,9 @@ namespace Alethic.Seq.Operator.Alerts
         [JsonPropertyName("title")]
         public string? Title { get; set; }
 
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
+
     }
 
 }

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 using Alethic.Seq.Operator.Instance;
 using Alethic.Seq.Operator.Options;
+using Alethic.Seq.Operator.Shared;
 
 using k8s.Models;
 
@@ -283,19 +284,19 @@ namespace Alethic.Seq.Operator.ApiKey
         };
 
         /// <summary>
-        /// Translates a <see cref="LogEventLevel"/> to a <see cref="ApiKeyLogEventLevel"/>
+        /// Translates a <see cref="LogEventLevel"/> to a <see cref="LogEventLevel"/>
         /// </summary>
         /// <param name="level"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        ApiKeyLogEventLevel ToInfo(LogEventLevel level) => level switch
+        Shared.LogEventLevel ToInfo(global::Seq.Api.Model.LogEvents.LogEventLevel level) => level switch
         {
-            LogEventLevel.Verbose => ApiKeyLogEventLevel.Verbose,
-            LogEventLevel.Debug => ApiKeyLogEventLevel.Debug,
-            LogEventLevel.Information => ApiKeyLogEventLevel.Information,
-            LogEventLevel.Warning => ApiKeyLogEventLevel.Warning,
-            LogEventLevel.Error => ApiKeyLogEventLevel.Error,
-            LogEventLevel.Fatal => ApiKeyLogEventLevel.Fatal,
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Verbose => Shared.LogEventLevel.Verbose,
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Debug => Shared.LogEventLevel.Debug,
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Information => Shared.LogEventLevel.Information,
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Warning => Shared.LogEventLevel.Warning,
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Error => Shared.LogEventLevel.Error,
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Fatal => Shared.LogEventLevel.Fatal,
             _ => throw new NotImplementedException(),
         };
 
@@ -383,7 +384,7 @@ namespace Alethic.Seq.Operator.ApiKey
             if (source.UseServerTimestamps is bool b)
                 target.UseServerTimestamps = b;
 
-            if (source.MinimumLevel is ApiKeyLogEventLevel l)
+            if (source.MinimumLevel is Shared.LogEventLevel l)
                 target.MinimumLevel = ToApi(l);
         }
 
@@ -405,19 +406,19 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <summary>
-        /// Transforms a <see cref="ApiKeyLogEventLevel"/> to a <see cref="LogEventLevel"/>
+        /// Transforms a <see cref="LogEventLevel"/> to a <see cref="LogEventLevel"/>
         /// </summary>
         /// <param name="level"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        LogEventLevel ToApi(ApiKeyLogEventLevel level) => level switch
+        global::Seq.Api.Model.LogEvents.LogEventLevel ToApi(Shared.LogEventLevel level) => level switch
         {
-            ApiKeyLogEventLevel.Verbose => LogEventLevel.Verbose,
-            ApiKeyLogEventLevel.Debug => LogEventLevel.Debug,
-            ApiKeyLogEventLevel.Information => LogEventLevel.Information,
-            ApiKeyLogEventLevel.Warning => LogEventLevel.Warning,
-            ApiKeyLogEventLevel.Error => LogEventLevel.Error,
-            ApiKeyLogEventLevel.Fatal => LogEventLevel.Fatal,
+            Shared.LogEventLevel.Verbose => global::Seq.Api.Model.LogEvents.LogEventLevel.Verbose,
+            Shared.LogEventLevel.Debug => global::Seq.Api.Model.LogEvents.LogEventLevel.Debug,
+            Shared.LogEventLevel.Information => global::Seq.Api.Model.LogEvents.LogEventLevel.Information,
+            Shared.LogEventLevel.Warning => global::Seq.Api.Model.LogEvents.LogEventLevel.Warning,
+            Shared.LogEventLevel.Error => global::Seq.Api.Model.LogEvents.LogEventLevel.Error,
+            Shared.LogEventLevel.Fatal => global::Seq.Api.Model.LogEvents.LogEventLevel.Fatal,
             _ => throw new NotImplementedException(),
         };
 

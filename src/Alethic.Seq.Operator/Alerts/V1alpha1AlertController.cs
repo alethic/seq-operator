@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -22,7 +23,6 @@ using Microsoft.Extensions.Options;
 using Seq.Api;
 using Seq.Api.Client;
 using Seq.Api.Model.Alerting;
-using Seq.Api.Model.Inputs;
 
 namespace Alethic.Seq.Operator.Alerts
 {
@@ -147,8 +147,37 @@ namespace Alethic.Seq.Operator.Alerts
             return new AlertInfo()
             {
                 Title = source.Title,
+                Description = source.Description,
+                OwnerId = source.OwnerId,
+                Protected = source.IsProtected,
+                Disabled = source.IsDisabled,
+                Where = source.Where,
+                GroupBy = source.GroupBy.Select(i => new AlertGroupingColumn() { Label = i.Label, Value = i.Value, CaseInsensitive = i.IsCaseInsensitive }).ToList(),
+                TimeGrouping = source.TimeGrouping.ToString(),
+                Select = source.Select.Select(i => new AlertSelectColumn() { Label = i.Label, Value = i.Value, }).ToList(),
+                Having = source.Having,
+                NotificationLevel = ToInfo(source.NotificationLevel),
+                NotificationProperties = source.NotificationProperties.ToDictionary(i => i.Name, i => i.Value?.ToString()),
+                SuppressionTime = source.SuppressionTime.ToString(),
             };
         }
+
+        /// <summary>
+        /// Translates a <see cref="LogEventLevel"/> to a <see cref="LogEventLevel"/>
+        /// </summary>
+        /// <param name="level"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        Shared.LogEventLevel ToInfo(global::Seq.Api.Model.LogEvents.LogEventLevel level) => level switch
+        {
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Verbose => Shared.LogEventLevel.Verbose,
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Debug => Shared.LogEventLevel.Debug,
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Information => Shared.LogEventLevel.Information,
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Warning => Shared.LogEventLevel.Warning,
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Error => Shared.LogEventLevel.Error,
+            global::Seq.Api.Model.LogEvents.LogEventLevel.Fatal => Shared.LogEventLevel.Fatal,
+            _ => throw new NotImplementedException(),
+        };
 
         /// <summary>
         /// Creates an <see cref="AlertEntity"/> for creating or updating.

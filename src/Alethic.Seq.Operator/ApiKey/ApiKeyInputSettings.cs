@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
+using Alethic.Seq.Operator.Shared;
+
 namespace Alethic.Seq.Operator.ApiKey
 {
 
@@ -29,7 +31,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// </summary>
         [JsonPropertyName("minimumLevel")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public ApiKeyLogEventLevel? MinimumLevel { get; set; }
+        public LogEventLevel? MinimumLevel { get; set; }
 
         /// <summary>
         /// If <c>true</c>, timestamps already present on the events will be ignored, and server timestamps used instead. This is not

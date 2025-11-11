@@ -29,7 +29,71 @@ spec:
                   title:
                     nullable: true
                     type: string
+                  description:
+                    nullable: true
+                    type: string
                   ownerId:
+                    nullable: true
+                    type: string
+                  protected:
+                    nullable: true
+                    type: boolean
+                  disabled:
+                    nullable: true
+                    type: boolean
+                  where:
+                    nullable: true
+                    type: string
+                  groupBy:
+                    items:
+                      properties:
+                        label:
+                          nullable: true
+                          type: string
+                        value:
+                          nullable: true
+                          type: string
+                        caseInsensitive:
+                          nullable: true
+                          type: boolean
+                      type: object
+                    nullable: true
+                    type: array
+                  timeGrouping:
+                    nullable: true
+                    type: string
+                  select:
+                    items:
+                      properties:
+                        label:
+                          nullable: true
+                          type: string
+                        value:
+                          nullable: true
+                          type: string
+                      type: object
+                    nullable: true
+                    type: array
+                  having:
+                    nullable: true
+                    type: string
+                  notificationLevel:
+                    enum:
+                    - Verbose
+                    - Debug
+                    - Information
+                    - Warning
+                    - Error
+                    - Fatal
+                    nullable: true
+                    type: string
+                  notificationProperties:
+                    additionalProperties:
+                      nullable: false
+                      type: string
+                    nullable: true
+                    type: object
+                  suppressionTime:
                     nullable: true
                     type: string
                 type: object
@@ -92,11 +156,17 @@ spec:
                   title:
                     nullable: true
                     type: string
+                  description:
+                    nullable: true
+                    type: string
                 type: object
               conf:
                 nullable: true
                 properties:
                   title:
+                    nullable: true
+                    type: string
+                  description:
                     nullable: true
                     type: string
                 type: object

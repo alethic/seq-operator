@@ -1,10 +1,10 @@
-﻿namespace Alethic.Seq.Operator.ApiKey
+﻿namespace Alethic.Seq.Operator.Shared
 {
 
     /// <summary>
     /// Specifies the meaning and relative importance of a log event.
     /// </summary>
-    public enum ApiKeyLogEventLevel
+    public enum LogEventLevel
     {
 
         /// <summary>
