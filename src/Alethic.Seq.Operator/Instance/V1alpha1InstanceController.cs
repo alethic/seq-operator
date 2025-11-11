@@ -53,6 +53,11 @@ namespace Alethic.Seq.Operator.Instance
         /// <inheritdoc />
         protected override async Task<V1alpha1Instance> Reconcile(V1alpha1Instance entity, CancellationToken cancellationToken)
         {
+            // check if the user has specified a deployment option
+            if (entity.Spec.Deployment is { } deployment)
+                entity = await ReconcileDeploymentAsync(entity, deployment, cancellationToken);
+
+            // open connection to Seq
             var api = await GetInstanceConnectionAsync(entity, cancellationToken);
             if (api == null)
                 throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}:{entity.Name()} failed to retrieve API client.");
@@ -72,6 +77,20 @@ namespace Alethic.Seq.Operator.Instance
             // retrieve and copy applied settings to status
             entity.Status.Info = info;
             entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
+            return entity;
+        }
+
+        /// <summary>
+        /// Reconciles the deployment.
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="deployment"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        async Task<V1alpha1Instance> ReconcileDeploymentAsync(V1alpha1Instance entity, InstanceDeploymentSpec deployment, CancellationToken cancellationToken)
+        {
+            Logger.LogWarning("Deployment is not yet supported: {Entity}.", entity);
             return entity;
         }
 
