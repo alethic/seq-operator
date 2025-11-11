@@ -84,7 +84,7 @@ options:
     #namespace:
   # Options related to reconciliation.
   reconciliation:
-    # The time between successful reconciliations.
+    # The time between reconciliations.
     interval:
-    # The time between failed reconciliations.
+    # The time between reconciliation retries.
     retryInterval:
