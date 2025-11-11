@@ -9,7 +9,7 @@ operator:
 
   # Specify the Operator container image to use for the deployment.
   image:
-    repository: ghcr.io/alethic/seq-operator-image
+    repository: ghcr.io/alethic/seq-operator/seq-operator-image
     pullPolicy: IfNotPresent
 
   # An array of Kubernetes secrets to use for pulling images from a private ``image.repository``.
