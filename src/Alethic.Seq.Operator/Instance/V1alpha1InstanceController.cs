@@ -87,7 +87,6 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="deployment"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
         async Task<V1alpha1Instance> ReconcileDeploymentAsync(V1alpha1Instance entity, InstanceDeploymentSpec deployment, CancellationToken cancellationToken)
         {
             Logger.LogWarning("Deployment is not yet supported: {Entity}.", entity);
