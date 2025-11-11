@@ -22,6 +22,18 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - '*'
+- apiGroups:
   - seq.k8s.datalust.co
   resources:
   - apikeys
@@ -48,6 +60,22 @@ rules:
   - seq.k8s.datalust.co
   resources:
   - instances/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - services/status
   verbs:
   - get
   - update

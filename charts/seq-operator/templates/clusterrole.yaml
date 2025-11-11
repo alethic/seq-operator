@@ -23,6 +23,18 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - '*'
+- apiGroups:
   - seq.k8s.datalust.co
   resources:
   - apikeys
@@ -54,6 +66,22 @@ rules:
   - update
   - patch
 - apiGroups:
+  - apps
+  resources:
+  - statefulsets/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - services/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
   - seq.k8s.datalust.co
   resources:
   - apikeys/status
@@ -77,29 +105,4 @@ rules:
   - get
   - update
   - patch
-
-- apiGroups:
-  - apps
-  resources:
-  - statefulsets
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - services
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
 ---
