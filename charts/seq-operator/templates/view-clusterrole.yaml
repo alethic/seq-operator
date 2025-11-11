@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: seq-operator:view
+  labels: {{- include "seq-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - seq.k8s.datalust.co
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+---
