@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: seq-operator:edit
+  name: seq:edit
   labels: {{- include "seq-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:

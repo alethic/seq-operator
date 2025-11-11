@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: seq-operator:view
+  name: seq:view
   labels: {{- include "seq-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:
