@@ -53,7 +53,11 @@ spec:
               value: "yyyy-MM-dd HH:mm:ss "
             - name: Logging__Console__FormatterOptions__SingleLine
               value: 'true'
-
+              
+{{ if .Values.options.defaultImage }}
+            - name: seq__Operator__DefaultImage
+              value: {{ .Values.options.defaultImage | quote }}
+{{ end }}
 {{ if .Values.options.namespace }}
             - name: seq__Operator__Namespace
               value: {{ .Values.options.namespace | quote }}

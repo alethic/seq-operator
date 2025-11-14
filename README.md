@@ -23,8 +23,7 @@ type: Opaque
 stringData:
   username: "admin"
   password: "newpassword"
-  firstRunPassword: "1234"
-
+  fallback: "1234"
 ---
 
 apiVersion: seq.k8s.datalust.co/v1alpha1
@@ -33,19 +32,16 @@ metadata:
   name: seqinstance
   namespace: default
 spec:
-  connections:
-  - endpoint: http://localhost:5341
-    token:
-      secretRef:
-        name: seqtoken
-  - endpoint: http://localhost:5341
-    login:
-      secretRef:
-        name: seqlogin
-  conf: {}
-      
+  remote:
+    endpoint: http://localhost:5341
+    auth:
+    - token:
+        secretRef:
+          name: seqtoken
+    - login:
+        secretRef:
+          name: seqlogin
 ---
-
 
 apiVersion: seq.k8s.datalust.co/v1alpha1
 kind: ApiKey
@@ -66,6 +62,5 @@ spec:
     - Organization
     - Read
 ---
-
 
 ```

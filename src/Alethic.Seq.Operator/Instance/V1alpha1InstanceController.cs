@@ -1,18 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Alethic.Seq.Operator.Options;
 
+using k8s;
 using k8s.Models;
 
 using KubeOps.Abstractions.Controller;
+using KubeOps.Abstractions.Entities;
 using KubeOps.Abstractions.Queue;
 using KubeOps.Abstractions.Rbac;
 using KubeOps.KubernetesClient;
 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -28,10 +35,32 @@ namespace Alethic.Seq.Operator.Instance
     [EntityRbac(typeof(Eventsv1Event), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1StatefulSet), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Service), Verbs = RbacVerb.All)]
-    public class V1alpha1InstanceController :
+    public partial class V1alpha1InstanceController :
         V1alpha1Controller<V1alpha1Instance, V1alpha1InstanceSpec, V1alpha1InstanceStatus, InstanceConf, InstanceInfo>,
         IEntityController<V1alpha1Instance>
     {
+
+        /// <summary>
+        /// Generates a new random password.
+        /// </summary>
+        /// <returns></returns>
+        static string GeneratePassword(int length)
+        {
+            const string allowedChars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ0123456789";
+            const string specialCharacters = @"!#$%&'()*+,-./:;<=>?@[\]_";
+
+            var chars = (Span<char>)stackalloc char[length];
+
+            for (var i = 0; i < length; i++)
+            {
+                if (i % Random.Shared.Next(3, length) == 0)
+                    chars[i] = specialCharacters[Random.Shared.Next(0, specialCharacters.Length)];
+                else
+                    chars[i] = allowedChars[Random.Shared.Next(0, allowedChars.Length)];
+            }
+
+            return new string(chars);
+        }
 
         /// <summary>
         /// Initializes a new instance.
@@ -47,15 +76,36 @@ namespace Alethic.Seq.Operator.Instance
 
         }
 
+        /// <summary>
+        /// Calculates the hash of the password with the given salt.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="password"></param>
+        /// <returns></returns>
+        public string CalculatePasswordHash(V1alpha1Instance instance, string password)
+        {
+            var instanceNamespace = instance.Namespace();
+            var instanceName = instance.Name();
+
+            return Cache.GetOrCreate((typeof(V1alpha1InstanceController), nameof(CalculatePasswordHash), instanceNamespace, instanceName, password), e =>
+            {
+                var salt = SHA256.HashData(Encoding.UTF8.GetBytes(instance.Name()))[0..16];
+                var hash = SeqPasswordHash.Calculate(password, salt);
+                var b64e = SeqPasswordHash.ToBase64(hash, salt);
+                e.SetAbsoluteExpiration(DateTimeOffset.Now.AddHours(1));
+                return b64e;
+            })!;
+        }
+
         /// <inheritdoc />
         protected override string EntityTypeName => "Instance";
 
         /// <inheritdoc />
         protected override async Task<V1alpha1Instance> Reconcile(V1alpha1Instance entity, CancellationToken cancellationToken)
         {
-            // check if the user has specified a deployment option
-            if (entity.Spec.Deployment is { } deployment)
-                entity = await ReconcileDeploymentAsync(entity, deployment, cancellationToken);
+            // deploy locally if no remote specified
+            if (entity.Spec.Remote is null)
+                await ReconcileDeploymentAsync(entity, entity.Spec.Deployment ?? new(), cancellationToken);
 
             // open connection to Seq
             var api = await GetInstanceConnectionAsync(entity, cancellationToken);
@@ -81,15 +131,603 @@ namespace Alethic.Seq.Operator.Instance
         }
 
         /// <summary>
-        /// Reconciles the deployment.
+        /// Reconciles the deployment information, if present.
         /// </summary>
-        /// <param name="entity"></param>
+        /// <param name="instance"></param>
         /// <param name="deployment"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<V1alpha1Instance> ReconcileDeploymentAsync(V1alpha1Instance entity, InstanceDeploymentSpec deployment, CancellationToken cancellationToken)
+        async Task<V1alpha1Instance> ReconcileDeploymentAsync(V1alpha1Instance instance, InstanceDeploymentSpec deployment, CancellationToken cancellationToken)
         {
-            Logger.LogWarning("Deployment is not yet supported: {Entity}.", entity);
+            var adminSecret = await ReconcileDeploymentAdminSecretAsync(instance, deployment, cancellationToken);
+            var serviceAccount = await ReconcileDeploymentServiceAccountAsync(instance, deployment, cancellationToken);
+            var service = await ReconcileDeploymentServiceAsync(instance, deployment, cancellationToken);
+            var statefulSet = await ReconcileDeploymentStatefulSetAsync(instance, deployment, adminSecret, serviceAccount, service, cancellationToken);
+
+            if (service != null)
+            {
+                instance.Status.Deployment = new InstanceDeploymentStatus();
+                instance.Status.Deployment.Endpoint = $"http://{service.Name()}.{service.Namespace()}.svc.cluster.local:80/";
+                instance.Status.Deployment.AdminSecretRef = new V1SecretReference(adminSecret.Name(), adminSecret.Namespace());
+                instance.Status.Deployment.TokenSecretRef = null;
+                instance = await Kube.SaveAsync(instance, cancellationToken);
+            }
+            else
+            {
+                if (instance.Status.Deployment is not null)
+                {
+                    instance.Status.Deployment = null;
+                    instance = await Kube.SaveAsync(instance, cancellationToken);
+                }
+            }
+
+            return instance;
+        }
+
+        /// <summary>
+        /// Queries for the deployment object of the specified type and component name.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="instance"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        async Task<T?> GetDeploymentObject<T>(V1alpha1Instance instance, string component, CancellationToken cancellationToken)
+            where T : k8s.IKubernetesObject<V1ObjectMeta>
+        {
+            var l = await Kube.ListAsync<T>(instance.Namespace(), $"seq.k8s.datalust.co/instance={instance.Name()},seq.k8s.datalust.co/component={component}", cancellationToken);
+            return l.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Reconciles the admin secret with the deployment state.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="deployment"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="RetryException"></exception>
+        async Task<V1Secret?> ReconcileDeploymentAdminSecretAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
+        {
+            var adminSecret = await GetDeploymentObject<V1Secret>(instance, "admin-secret", cancellationToken);
+
+            // no deployment, we have an existing admin secret owned by us, delete
+            if (deployment is null && adminSecret is not null && adminSecret.IsOwnedBy(instance))
+            {
+                await Kube.DeleteAsync(adminSecret, cancellationToken);
+                adminSecret = null;
+            }
+
+            // we have deployment
+            if (deployment is not null)
+            {
+                var adminSecretName = deployment.AdminSecretRef?.Name ?? instance.Name() + "-server";
+                var adminSecretNamespace = deployment.AdminSecretRef?.NamespaceProperty ?? instance.Namespace();
+                if (adminSecretNamespace != instance.Namespace())
+                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: AdminSecret must be in same namespace as Instance.");
+
+                // we have an existing secret, owned by us
+                if (adminSecret is not null && adminSecret.IsOwnedBy(instance))
+                {
+                    // existing secret does not match our specification
+                    if (adminSecret.Name() != adminSecretName || adminSecret.Namespace() != adminSecretNamespace)
+                    {
+                        await Kube.DeleteAsync(adminSecret, cancellationToken);
+                        adminSecret = null;
+                    }
+                }
+
+                // no secret remaining, but we need one
+                if (adminSecret is null)
+                {
+                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required Secret {AdminSecretName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), adminSecretName);
+                    adminSecret = await Kube.CreateAsync(
+                        ApplyDeployment(
+                            instance,
+                            deployment,
+                            "admin-secret",
+                            ApplyDeploymentAdminSecret(
+                                instance,
+                                deployment,
+                                new V1Secret(metadata: new V1ObjectMeta(namespaceProperty: adminSecretNamespace, name: adminSecretName)).WithOwnerReference(instance))),
+                        cancellationToken);
+                }
+
+                // we have a secret at this point, and it is owned by us, we can ensure the login information is set to defaults
+                if (adminSecret.IsOwnedBy(instance))
+                {
+                    ApplyDeploymentAdminSecret(instance, deployment, adminSecret);
+                    ApplyDeployment(instance, deployment, "admin-secret", adminSecret);
+
+                    await Kube.UpdateAsync(adminSecret, cancellationToken);
+                }
+            }
+
+            return adminSecret;
+        }
+
+        /// <summary>
+        /// Applies the deployment information to the admin secret.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="deployment"></param>
+        /// <param name="adminSecret"></param>
+        V1Secret ApplyDeploymentAdminSecret(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1Secret adminSecret)
+        {
+            adminSecret.Data ??= new Dictionary<string, byte[]>();
+            adminSecret.StringData ??= new Dictionary<string, string>();
+
+            // default username
+            if (adminSecret.Data.ContainsKey("username") == false)
+                adminSecret.StringData["username"] = "admin";
+
+            // default password
+            if (adminSecret.Data.ContainsKey("password") == false)
+                adminSecret.StringData["password"] = GeneratePassword(20);
+
+            // default fallback password
+            if (adminSecret.Data.ContainsKey("fallback") == false)
+                adminSecret.StringData["fallback"] = GeneratePassword(20);
+
+            return adminSecret;
+        }
+
+        /// <summary>
+        /// Reconciles the service account with the deployment state.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="deployment"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        async Task<V1ServiceAccount?> ReconcileDeploymentServiceAccountAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
+        {
+            var serviceAccount = await GetDeploymentObject<V1ServiceAccount>(instance, "service-account", cancellationToken);
+
+            // no deployment, we have an existing service account owned by us, delete
+            if (deployment is null && serviceAccount is not null && serviceAccount.IsOwnedBy(instance))
+            {
+                await Kube.DeleteAsync(serviceAccount, cancellationToken);
+                serviceAccount = null;
+            }
+
+            // we have deployment
+            if (deployment is not null)
+            {
+                var serviceAccountName = deployment.ServiceAccountName ?? instance.Name() + "-server";
+                var serviceAccountNamespace = instance.Namespace();
+                if (serviceAccountNamespace != instance.Namespace())
+                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: ServiceAccount must be in same namespace as Instance.");
+
+                // we have an existing service account, owned by us
+                if (serviceAccount is not null && serviceAccount.IsOwnedBy(instance))
+                {
+                    // existing service account does not match our specification
+                    if (serviceAccount.Name() != serviceAccountName || serviceAccount.Namespace() != serviceAccountNamespace)
+                    {
+                        await Kube.DeleteAsync(serviceAccount, cancellationToken);
+                        serviceAccount = null;
+                    }
+                }
+
+                // no secret remaining, but we need one
+                if (serviceAccount is null)
+                {
+                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required ServiceAccount {ServiceAccountName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), serviceAccountName);
+                    serviceAccount = await Kube.CreateAsync(
+                        ApplyDeployment(
+                            instance,
+                            deployment,
+                            "service-account",
+                            new V1ServiceAccount(metadata: new V1ObjectMeta(namespaceProperty: serviceAccountNamespace, name: serviceAccountName)).WithOwnerReference(instance)),
+                        cancellationToken);
+                }
+
+                // we have a secret at this point, and it is owned by us, we can ensure the login information is set to defaults
+                if (serviceAccount.IsOwnedBy(instance))
+                {
+                    ApplyDeployment(instance, deployment, "service-account", serviceAccount);
+                    await Kube.SaveAsync(serviceAccount, cancellationToken);
+                }
+            }
+
+            return serviceAccount;
+        }
+
+        /// <summary>
+        /// Reconciles the stateful set with the deployment state.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="deployment"></param>
+        /// <param name="adminSecret"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        async Task<V1StatefulSet?> ReconcileDeploymentStatefulSetAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, V1Secret? adminSecret, V1ServiceAccount? serviceAccount, V1Service? service, CancellationToken cancellationToken)
+        {
+            var statefulSet = await GetDeploymentObject<V1StatefulSet>(instance, "stateful-set", cancellationToken);
+
+            // no deployment, we have an existing stateful set owned by us, delete
+            if (deployment is null && statefulSet is not null && statefulSet.IsOwnedBy(instance))
+            {
+                await Kube.DeleteAsync(statefulSet, cancellationToken);
+                statefulSet = null;
+            }
+
+            // we have deployment
+            if (deployment is not null)
+            {
+                if (adminSecret is null)
+                    throw new InvalidOperationException("AdminSecret missing.");
+                if (serviceAccount is null)
+                    throw new InvalidOperationException("ServiceAccount missing.");
+                if (service is null)
+                    throw new InvalidOperationException("Service missing.");
+
+                var statefulSetName = instance.Name() + "-server";
+                var statefulSetNamespace = instance.Namespace();
+                if (statefulSetNamespace != instance.Namespace())
+                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: StatefulSet must be in same namespace as Instance.");
+
+                // we have an existing stateful set, owned by us
+                if (statefulSet is not null && statefulSet.IsOwnedBy(instance))
+                {
+                    // existing stateful set does not match our specification
+                    if (statefulSet.Name() != statefulSetName || statefulSet.Namespace() != statefulSetNamespace)
+                    {
+                        await Kube.DeleteAsync(statefulSet, cancellationToken);
+                        statefulSet = null;
+                    }
+                }
+
+                // no stateful set remaining, but we need one
+                if (statefulSet is null)
+                {
+                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required StatefulSet {StatefulSetName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), statefulSetName);
+                    statefulSet = await Kube.CreateAsync(
+                        ApplyDeployment(
+                            instance,
+                            deployment,
+                            "stateful-set",
+                            ApplyDeploymentStatefulSet(
+                                instance,
+                                deployment,
+                                new V1StatefulSet(metadata: new V1ObjectMeta(namespaceProperty: instance.Namespace(), name: statefulSetName)).WithOwnerReference(instance),
+                                adminSecret,
+                                serviceAccount,
+                                service)),
+                        cancellationToken);
+                }
+
+                // we have a stateful set at this point, and it must be owned by us
+                if (statefulSet.IsOwnedBy(instance) == false)
+                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: StatefulSet conflict. Set is not owned by instance.");
+
+                // update object if required
+                ApplyDeploymentStatefulSet(instance, deployment, statefulSet, adminSecret, serviceAccount, service);
+                ApplyDeployment(instance, deployment, "stateful-set", statefulSet);
+                await Kube.SaveAsync(statefulSet, cancellationToken);
+            }
+
+            return statefulSet;
+        }
+
+        /// <summary>
+        /// Applies the given deployment information to the specified StatefulSet.
+        /// </summary>
+        /// <param name="statefulSet"></param>
+        /// <param name="deployment"></param>
+        /// <param name="adminSecret"></param>
+        /// <param name="instance"></param>
+        /// <param name="service"></param>
+        V1StatefulSet ApplyDeploymentStatefulSet(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1StatefulSet statefulSet, V1Secret adminSecret, V1ServiceAccount serviceAccount, V1Service service)
+        {
+            statefulSet.Spec ??= new();
+            statefulSet.Spec.ServiceName = serviceAccount.Name();
+            statefulSet.Spec.PodManagementPolicy = "OrderedReady";
+            statefulSet.Spec.Replicas = 1;
+            statefulSet.Spec.Selector ??= new V1LabelSelector();
+            statefulSet.Spec.UpdateStrategy ??= new V1StatefulSetUpdateStrategy();
+            statefulSet.Spec.UpdateStrategy.Type = "RollingUpdate";
+            statefulSet.Spec.UpdateStrategy.RollingUpdate ??= new V1RollingUpdateStatefulSetStrategy();
+            statefulSet.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable = 1;
+
+            statefulSet.Spec.VolumeClaimTemplates ??= new List<V1PersistentVolumeClaim>();
+            statefulSet.Spec.VolumeClaimTemplates.Clear();
+            statefulSet.Spec.VolumeClaimTemplates.Add(
+                new V1PersistentVolumeClaim(
+                    metadata: new V1ObjectMeta(name: "seq-data"),
+                    spec: new V1PersistentVolumeClaimSpec(
+                        accessModes: ["ReadWriteOnce"],
+                        volumeMode: "Filesystem",
+                        storageClassName: deployment.Persistence?.StorageClassName,
+                        resources: new V1VolumeResourceRequirements(requests: new Dictionary<string, ResourceQuantity>() { ["storage"] = new ResourceQuantity("8Gi") }))));
+
+            // get and update template object
+            var template = statefulSet.Spec.Template ??= new V1PodTemplateSpec();
+            ApplyDeployment(instance, deployment, "pod", template);
+
+            // apply match labels from template
+            statefulSet.Spec.Selector.MatchLabels ??= new Dictionary<string, string>();
+            statefulSet.Spec.Selector.MatchLabels.Clear();
+            foreach (var kvp in template.Labels())
+                statefulSet.Spec.Selector.MatchLabels[kvp.Key] = kvp.Value;
+
+            template.Spec ??= new V1PodSpec();
+            template.Spec.ServiceAccountName = serviceAccount.Name();
+            template.Spec.ImagePullSecrets = deployment.ImagePullSecrets;
+            template.Spec.NodeSelector = deployment.NodeSelector;
+            template.Spec.Affinity = deployment.Affinity;
+            template.Spec.Tolerations = deployment.Tolerations;
+            template.Spec.TopologySpreadConstraints = deployment.TopologySpreadConstraints;
+            template.Spec.RestartPolicy = deployment.RestartPolicy ?? "Always";
+            template.Spec.TerminationGracePeriodSeconds = deployment.TerminationGracePeriodSeconds;
+
+            template.Spec.Containers ??= new List<V1Container>();
+            var container = template.Spec.Containers.FirstOrDefault(i => i.Name == "seq");
+            if (container is null)
+                template.Spec.Containers.Add(container = new V1Container("seq"));
+
+            container.Image = deployment.Image ?? Options.DefaultImage;
+            container.ImagePullPolicy = deployment.ImagePullPolicy ?? "IfNotPresent";
+
+            container.Env ??= new List<V1EnvVar>();
+            container.Env.Clear();
+            container.Env.Add(new V1EnvVar("ACCEPT_EULA", "Y"));
+            container.Env.Add(new V1EnvVar("SEQ_API_CANONICALURI", $"http://{service.Name()}.{service.Namespace()}.svc.cluster.local:80/"));
+            container.Env.Add(new V1EnvVar("SEQ_API_LISTENURIS", "http://localhost:80,http://localhost:5341"));
+            container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINUSERNAME", valueFrom: new V1EnvVarSource(secretKeyRef: new V1SecretKeySelector("username", adminSecret.Name(), false))));
+
+            if (adminSecret.StringData.TryGetValue("fallback", out var fallback))
+                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORDHASH", CalculatePasswordHash(instance, fallback)));
+            else if (adminSecret.Data.TryGetValue("fallback", out var fallbackBuf))
+                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORDHASH", CalculatePasswordHash(instance, Encoding.UTF8.GetString(fallbackBuf))));
+
+            if (deployment.Env is { Count: > 0 } env)
+                foreach (var i in env)
+                    container.Env.Add(i);
+
+            if (deployment.EnvFrom is { Count: > 0 } envFrom)
+                foreach (var i in envFrom)
+                    container.EnvFrom.Add(i);
+
+            container.Ports ??= new List<V1ContainerPort>();
+            container.Ports.Clear();
+            container.Ports.Add(new V1ContainerPort(5341, name: "ingestion", protocol: "TCP"));
+            container.Ports.Add(new V1ContainerPort(80, name: "ui", protocol: "TCP"));
+
+            container.SecurityContext = new V1SecurityContext(runAsUser: 0, capabilities: new V1Capabilities(add: ["NET_BIND_SERVICE"]));
+
+            container.VolumeMounts ??= new List<V1VolumeMount>(0);
+            container.VolumeMounts.Clear();
+            container.VolumeMounts.Add(new V1VolumeMount("/data", "seq-data"));
+
+            container.LivenessProbe = new V1Probe(
+                httpGet: new V1HTTPGetAction("ui", path: "/"),
+                failureThreshold: 3,
+                initialDelaySeconds: 0,
+                periodSeconds: 10,
+                successThreshold: 1,
+                timeoutSeconds: 1);
+
+            container.ReadinessProbe = new V1Probe(
+                httpGet: new V1HTTPGetAction("ui", path: "/"),
+                failureThreshold: 3,
+                initialDelaySeconds: 0,
+                periodSeconds: 10,
+                successThreshold: 1,
+                timeoutSeconds: 1);
+
+            container.StartupProbe = new V1Probe(
+                httpGet: new V1HTTPGetAction("ui", path: "/"),
+                failureThreshold: 30,
+                periodSeconds: 10);
+
+            container.Resources ??= new V1ResourceRequirements();
+
+            if (deployment.Resources is { Claims: { } claims })
+                container.Resources.Claims = claims;
+
+            if (deployment.Resources is { Limits: { } limits })
+                container.Resources.Limits = limits;
+
+            if (deployment.Resources is { Requests: { } requests })
+                container.Resources.Requests = requests;
+
+            return statefulSet;
+        }
+
+        /// <summary>
+        /// Reconciles the stateful set with the deployment state.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="deployment"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        async Task<V1Service?> ReconcileDeploymentServiceAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
+        {
+            var service = await GetDeploymentObject<V1Service>(instance, "service", cancellationToken);
+
+            // no deployment, we have an existing service owned by us, delete
+            if (deployment is null && service is not null && service.IsOwnedBy(instance))
+            {
+                await Kube.DeleteAsync(service, cancellationToken);
+                service = null;
+            }
+
+            // we have deployment
+            if (deployment is not null)
+            {
+                var serviceName = instance.Name() + "-server";
+                var serviceNamespace = instance.Namespace();
+                if (serviceNamespace != instance.Namespace())
+                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: Service must be in same namespace as Instance.");
+
+                // we have an existing service, owned by us
+                if (service is not null && service.IsOwnedBy(instance))
+                {
+                    // existing service does not match our specification
+                    if (service.Name() != serviceName || service.Namespace() != serviceNamespace)
+                    {
+                        await Kube.DeleteAsync(service, cancellationToken);
+                        service = null;
+                    }
+                }
+
+                // no service remaining, but we need one
+                if (service is null)
+                {
+                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required Service {ServiceName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), serviceName);
+                    service = await Kube.CreateAsync(
+                        ApplyDeployment(
+                            instance,
+                            deployment,
+                            "service",
+                            ApplyDeploymentService(
+                                instance,
+                                deployment,
+                                new V1Service(metadata: new V1ObjectMeta(namespaceProperty: instance.Namespace(), name: serviceName)).WithOwnerReference(instance))),
+                        cancellationToken);
+                }
+
+                // we have a service at this point, and it must be owned by us
+                if (service.IsOwnedBy(instance) == false)
+                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: Service conflict. Set is not owned by instance.");
+
+                // update object if required
+                ApplyDeploymentService(instance, deployment, service);
+                ApplyDeployment(instance, deployment, "service", service);
+                await Kube.SaveAsync(service, cancellationToken);
+            }
+
+            return service;
+        }
+
+        /// <summary>
+        /// Applies the given deployment information to the specified StatefulSet.
+        /// </summary>
+        /// <param name="service"></param>
+        /// <param name="deployment"></param>
+        V1Service ApplyDeploymentService(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1Service service)
+        {
+            var m = service.EnsureMetadata();
+            var l = m.EnsureLabels();
+            var a = m.EnsureAnnotations();
+
+            if (deployment.Service is { Labels: { } labels })
+                foreach (var kvp in labels)
+                    l[kvp.Key] = kvp.Value;
+
+            if (deployment.Service is { Annotations: { } annotations })
+                foreach (var kvp in annotations)
+                    a[kvp.Key] = kvp.Value;
+
+            // reset selector
+            service.Spec ??= new V1ServiceSpec();
+            service.Spec.Selector ??= new Dictionary<string, string>();
+            service.Spec.Selector.Clear();
+            service.Spec.Selector["seq.k8s.datalust.co/instance"] = instance.Name();
+            service.Spec.Selector["seq.k8s.datalust.co/component"] = "pod";
+
+            // reset ports
+            service.Spec.Ports ??= new List<V1ServicePort>();
+            service.Spec.Ports.Clear();
+            service.Spec.Ports.Add(new V1ServicePort(deployment.Service?.Port ?? 80, name: "http"));
+
+            // set service type
+            service.Spec.Type = "ClusterIP";
+            service.Spec.ClusterIP = "";
+
+            // apply further user settings, potentially overriding the defaults
+
+            if (deployment.Service is { Type: { } type })
+                service.Spec.Type = type;
+
+            if (deployment.Service is { ClusterIP: { } clusterIP })
+                service.Spec.ClusterIP = clusterIP;
+
+            if (deployment.Service is { ClusterIPs: { } clusterIPs })
+                service.Spec.ClusterIPs = clusterIPs;
+
+            if (deployment.Service is { ExternalIPs: { } externalIPs })
+                service.Spec.ExternalIPs = externalIPs;
+
+            if (deployment.Service is { ExternalName: { } externalName })
+                service.Spec.ExternalName = externalName;
+
+            if (deployment.Service is { ExternalTrafficPolicy: { } externalTrafficPolicy })
+                service.Spec.ExternalTrafficPolicy = externalTrafficPolicy;
+
+            if (deployment.Service is { InternalTrafficPolicy: { } internalTrafficPolicy })
+                service.Spec.InternalTrafficPolicy = internalTrafficPolicy;
+
+            if (deployment.Service is { IpFamilies: { } ipFamilies })
+                service.Spec.IpFamilies = ipFamilies;
+
+            if (deployment.Service is { IpFamilyPolicy: { } ipFamilyPolicy })
+                service.Spec.IpFamilyPolicy = ipFamilyPolicy;
+
+            if (deployment.Service is { LoadBalancerClass: { } loadBalancerClass })
+                service.Spec.LoadBalancerClass = loadBalancerClass;
+
+            if (deployment.Service is { LoadBalancerIP: { } loadBalancerIP })
+                service.Spec.LoadBalancerIP = loadBalancerIP;
+
+            if (deployment.Service is { LoadBalancerSourceRanges: { } loadBalancerSourceRanges })
+                service.Spec.LoadBalancerSourceRanges = loadBalancerSourceRanges;
+
+            if (deployment.Service is { PublishNotReadyAddresses: { } publishNotReadyAddresses })
+                service.Spec.PublishNotReadyAddresses = publishNotReadyAddresses;
+
+            if (deployment.Service is { SessionAffinity: { } sessionAffinity })
+                service.Spec.SessionAffinity = sessionAffinity;
+
+            if (deployment.Service is { SessionAffinityConfig: { } sessionAffinityConfig })
+                service.Spec.SessionAffinityConfig = sessionAffinityConfig;
+
+            if (deployment.Service is { TrafficDistribution: { } trafficDistribution })
+                service.Spec.TrafficDistribution = trafficDistribution;
+
+            return service;
+        }
+
+        /// <summary>
+        /// Applies the standard labels to the given entity.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="instance"></param>
+        /// <param name="component"></param>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        T ApplyDeployment<T>(V1alpha1Instance instance, InstanceDeploymentSpec deployment, string component, T entity)
+            where T : IMetadata<V1ObjectMeta>
+        {
+            var m = entity.EnsureMetadata();
+            var l = m.EnsureLabels();
+            var a = m.EnsureAnnotations();
+
+            // apply instance labels
+            if (instance.Labels() is { } labels)
+                foreach (var kvp in labels)
+                    l[kvp.Key] = kvp.Value;
+
+            // apply instance annotations
+            if (instance.Annotations() is { } annotations)
+                foreach (var kvp in annotations)
+                    a[kvp.Key] = kvp.Value;
+
+            // apply deployment labels
+            if (deployment.Labels is { } deploymentLabels)
+                foreach (var kvp in deploymentLabels)
+                    l[kvp.Key] = kvp.Value;
+
+            // apply deployment annotations
+            if (deployment.Annotations is { } deploymentAnnotations)
+                foreach (var kvp in deploymentAnnotations)
+                    a[kvp.Key] = kvp.Value;
+
+            // apply component labels
+            l["seq.k8s.datalust.co/instance"] = instance.Name();
+            l["seq.k8s.datalust.co/component"] = component;
+            l["app.kubernetes.io/part-of"] = "seq-server";
+
             return entity;
         }
 
@@ -127,7 +765,7 @@ namespace Alethic.Seq.Operator.Instance
         async Task<InstanceInfo> GetInfoAsync(SeqConnection api, CancellationToken cancellationToken)
         {
             var info = new InstanceInfo();
-            await GetAuthSettingsAsync(api, info.Auth = new InstanceAuthenticationSpec(), cancellationToken);
+            await GetAuthSettingsAsync(api, info.Auth = new InstanceConfAuthenticationSpec(), cancellationToken);
             info.DataAgeWarningThresholdMilliseconds = await GetSettingValueAsync<long>(api, SettingName.DataAgeWarningThresholdMilliseconds, cancellationToken);
             info.BackupLocation = await GetSettingValueAsync<string>(api, SettingName.BackupLocation, cancellationToken);
             info.BackupsToKeep = await GetSettingValueAsync<long>(api, SettingName.BackupsToKeep, cancellationToken);
@@ -156,22 +794,22 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="info"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task GetAuthSettingsAsync(SeqConnection api, InstanceAuthenticationSpec info, CancellationToken cancellationToken)
+        async Task GetAuthSettingsAsync(SeqConnection api, InstanceConfAuthenticationSpec info, CancellationToken cancellationToken)
         {
             if (await GetSettingValueAsync<bool?>(api, SettingName.IsAuthenticationEnabled, cancellationToken) == true)
             {
                 switch (await GetSettingValueAsync<string>(api, SettingName.AuthenticationProvider, cancellationToken))
                 {
                     case null:
-                        info.Local = new InstanceAuthenticationSpec.LocalAuth();
+                        info.Local = new InstanceConfAuthenticationSpec.LocalAuth();
                         break;
                     case "Active Directory":
-                        info.ActiveDirectory = new InstanceAuthenticationSpec.ActiveDirectoryAuth();
+                        info.ActiveDirectory = new InstanceConfAuthenticationSpec.ActiveDirectoryAuth();
                         info.ActiveDirectory.AutomaticAccessADGroup = await GetSettingValueAsync<string>(api, SettingName.AutomaticAccessADGroup, cancellationToken);
                         info.AutomaticallyProvisionAuthenticatedUsers = await GetSettingValueAsync<bool>(api, SettingName.AutomaticallyProvisionAuthenticatedUsers, cancellationToken);
                         break;
                     case "Microsoft Entra ID":
-                        info.Entra = new InstanceAuthenticationSpec.EntraAuth();
+                        info.Entra = new InstanceConfAuthenticationSpec.EntraAuth();
                         info.Entra.Authority = await GetSettingValueAsync<string>(api, SettingName.EntraIDAuthority, cancellationToken);
                         info.Entra.TenantId = await GetSettingValueAsync<string>(api, SettingName.EntraIDTenantId, cancellationToken);
                         info.Entra.ClientId = await GetSettingValueAsync<string>(api, SettingName.EntraIDClientId, cancellationToken);
@@ -179,7 +817,7 @@ namespace Alethic.Seq.Operator.Instance
                         info.AutomaticallyProvisionAuthenticatedUsers = await GetSettingValueAsync<bool>(api, SettingName.AutomaticallyProvisionAuthenticatedUsers, cancellationToken);
                         return;
                     case "OpenID Connect":
-                        info.Oidc = new InstanceAuthenticationSpec.OidcAuth();
+                        info.Oidc = new InstanceConfAuthenticationSpec.OidcAuth();
                         info.Oidc.Authority = await GetSettingValueAsync<string>(api, SettingName.OpenIdConnectAuthority, cancellationToken);
                         info.Oidc.ClientId = await GetSettingValueAsync<string>(api, SettingName.OpenIdConnectClientId, cancellationToken);
                         info.Oidc.ClientSecret = await GetSettingValueAsync<string>(api, SettingName.OpenIdConnectClientSecret, cancellationToken);
@@ -300,7 +938,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="conf"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task PutAuthSettingsAsync(SeqConnection api, InstanceAuthenticationSpec? info, InstanceAuthenticationSpec conf, CancellationToken cancellationToken)
+        async Task PutAuthSettingsAsync(SeqConnection api, InstanceConfAuthenticationSpec? info, InstanceConfAuthenticationSpec conf, CancellationToken cancellationToken)
         {
             if (conf.Local is { } local)
             {

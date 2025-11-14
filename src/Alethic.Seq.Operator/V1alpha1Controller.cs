@@ -73,6 +73,16 @@ namespace Alethic.Seq.Operator
         protected EntityRequeue<TEntity> Requeue => _requeue;
 
         /// <summary>
+        /// Gets a memory cache that can be used for simple values.
+        /// </summary>
+        protected IMemoryCache Cache => _cache;
+
+        /// <summary>
+        /// Gets the operator options.
+        /// </summary>
+        protected OperatorOptions Options => _options.Value;
+
+        /// <summary>
         /// Gets the logger.
         /// </summary>
         protected ILogger Logger => _logger;
@@ -207,16 +217,20 @@ namespace Alethic.Seq.Operator
             }
             catch (SeqApiException e) when (e.StatusCode == HttpStatusCode.BadRequest && e.Message.Contains("Invalid", StringComparison.InvariantCultureIgnoreCase))
             {
-                if (secret.Data.TryGetValue("firstRunPassword", out var firstRunPasswordBuf) == false)
+                // if we cannot authenticate with the primary password, we might have 'fallback' password available
+                // if we authenticate with the fallback password, we should be sure to change the password to the normal one as soon as we succeed
+                // fallback generally refers to the 'first run' password of Seq
+
+                if (secret.Data.TryGetValue("fallback", out var fallbackBuf) == false)
                 {
-                    Logger.LogError(e, $"Instance {instance.Namespace()}/{instance.Name()} has was unable to authenticate with password, and firstRunPassword was not present.");
+                    Logger.LogError(e, $"Instance {instance.Namespace()}/{instance.Name()} has was unable to authenticate with password, and fallback was not present.");
                     return null;
                 }
 
-                // try again with the firstRunPassword
+                // try again with the fallback
                 var user = await connection.Users.LoginAsync(
                     Encoding.UTF8.GetString(usernameBuf),
-                    Encoding.UTF8.GetString(firstRunPasswordBuf),
+                    Encoding.UTF8.GetString(fallbackBuf),
                     cancellationToken);
                 if (user is null)
                     throw new InvalidOperationException("No user returned.");
@@ -224,7 +238,7 @@ namespace Alethic.Seq.Operator
                 // test that connection is usable
                 if (await TestConnectionAsync(connection, cancellationToken) == false)
                 {
-                    Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with firstRunPassword.");
+                    Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with fallback password.");
                     return null;
                 }
 
@@ -246,7 +260,7 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqLoginConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceLoginAuthenticationSpec loginDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqLoginConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceLoginRemoteAuthenticationSpec loginDef, CancellationToken cancellationToken)
         {
             var secretRef = loginDef.SecretRef;
             if (secretRef == null)
@@ -310,7 +324,7 @@ namespace Alethic.Seq.Operator
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqTokenConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceTokenAuthenticationSpec tokenDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqTokenConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceTokenRemoteAuthenticationSpec tokenDef, CancellationToken cancellationToken)
         {
             var secretRef = tokenDef.SecretRef;
             if (secretRef == null)
@@ -329,18 +343,18 @@ namespace Alethic.Seq.Operator
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        async Task<SeqConnection?> CreateSeqConnectionAsync(V1alpha1Instance instance, InstanceConnectionSpec[] connectionsDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqConnectionAsync(V1alpha1Instance instance, InstanceRemoteSpec remote, CancellationToken cancellationToken)
         {
-            // we try the proposed connection items in order to allow fallbacks
-            foreach (var connectionDef in connectionsDef)
-            {
-                var endpoint = connectionDef.Endpoint;
-                if (string.IsNullOrWhiteSpace(endpoint))
-                {
-                    Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no remote endpoint.");
-                    return null;
-                }
+            var endpoint = remote.Endpoint;
+            if (string.IsNullOrWhiteSpace(endpoint))
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no remote endpoint.");
 
+            if (remote.Authentication is null || remote.Authentication is null || remote.Authentication.Length == 0)
+                throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no remote authentication information.");
+
+            // we try the proposed connection items in order to allow fallbacks
+            foreach (var connectionDef in remote.Authentication)
+            {
                 // this is a token connection
                 if (connectionDef.Token != null)
                 {
@@ -369,45 +383,42 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         protected async Task<SeqConnection> GetInstanceConnectionAsync(V1alpha1Instance instance, CancellationToken cancellationToken)
         {
-            var connection = await _cache.GetOrCreateAsync((instance.Namespace(), instance.Name()), async entry =>
+            var connection = await _cache.GetOrCreateAsync((typeof(V1alpha1Controller<,,,,>), nameof(GetInstanceConnectionAsync), instance.Namespace(), instance.Name()), async entry =>
             {
-                if (instance.Spec.Deployment is { } deployment)
+                // use specified remote connection(s) if present
+                if (instance.Spec.Remote is not null)
                 {
-                    if (instance.Status.Deployment is { Endpoint: string endpoint } && string.IsNullOrWhiteSpace(endpoint) == false)
-                    {
-                        if (deployment.TokenSecretRef is { } tokenSecretRef)
-                        {
-                            var connection = await CreateSeqTokenConnectionAsync(instance, endpoint, tokenSecretRef, cancellationToken);
-                            if (connection is not null)
-                            {
-                                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
-                                return connection;
-                            }
-                        }
-
-                        if (deployment.AdminSecretRef is { } adminSecretRef)
-                        {
-                            var connection = await CreateSeqLoginConnectionAsync(instance, endpoint, adminSecretRef, cancellationToken);
-                            if (connection is not null)
-                            {
-                                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
-                                return connection;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (instance.Spec.Connections is null || instance.Spec.Connections.Length == 0)
-                        throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no remote connection information.");
-
                     // search for connection from available connection options
-                    var connection = await CreateSeqConnectionAsync(instance, instance.Spec.Connections, cancellationToken);
+                    var connection = await CreateSeqConnectionAsync(instance, instance.Spec.Remote, cancellationToken);
                     if (connection is not null)
                     {
                         // cache connection for 1 minute
                         entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
                         return connection;
+                    }
+                }
+
+                // otherwise, fall back to deployed instance
+                if (instance.Status.Deployment is { Endpoint: string endpoint } && string.IsNullOrWhiteSpace(endpoint) == false)
+                {
+                    if (instance.Status.Deployment.TokenSecretRef is { } tokenSecretRef)
+                    {
+                        var connection = await CreateSeqTokenConnectionAsync(instance, endpoint, tokenSecretRef, cancellationToken);
+                        if (connection is not null)
+                        {
+                            entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
+                            return connection;
+                        }
+                    }
+
+                    if (instance.Status.Deployment.AdminSecretRef is { } adminSecretRef)
+                    {
+                        var connection = await CreateSeqLoginConnectionAsync(instance, endpoint, adminSecretRef, cancellationToken);
+                        if (connection is not null)
+                        {
+                            entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
+                            return connection;
+                        }
                     }
                 }
 
@@ -513,9 +524,6 @@ namespace Alethic.Seq.Operator
                     entity.Status.Conditions.Add(healthy = new V1alpha1Condition() { Type = "Healthy", Status = "False" });
                     entity = await _kube.UpdateStatusAsync(entity, cancellationToken);
                 }
-
-                if (entity.Spec.Conf == null)
-                    throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is missing configuration.");
 
                 // does the actual work of reconciling
                 entity = await Reconcile(entity, cancellationToken);

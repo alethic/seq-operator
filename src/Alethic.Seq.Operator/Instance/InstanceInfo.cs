@@ -9,7 +9,7 @@ namespace Alethic.Seq.Operator.Instance
 
         [JsonPropertyName("auth")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public InstanceAuthenticationSpec? Auth { get; set; }
+        public InstanceConfAuthenticationSpec? Auth { get; set; }
 
         [JsonPropertyName("dataAgeWarningThresholdMilliseconds")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

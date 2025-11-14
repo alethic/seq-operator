@@ -1,7 +1,5 @@
 ﻿using System.Text.Json.Serialization;
 
-using KubeOps.Abstractions.Entities.Attributes;
-
 namespace Alethic.Seq.Operator.Instance
 {
 
@@ -15,11 +13,10 @@ namespace Alethic.Seq.Operator.Instance
         public V1alpha1EntityPolicyType[]? Policy { get; set; }
 
         /// <summary>
-        /// Connection information for the instance.
+        /// Connection information for a remote instance.
         /// </summary>
-        [JsonPropertyName("connections")]
-        [Required]
-        public InstanceConnectionSpec[]? Connections { get; set; }
+        [JsonPropertyName("remote")]
+        public InstanceRemoteSpec? Remote { get; set; }
 
         /// <summary>
         /// Connection information for the instance.
@@ -37,7 +34,6 @@ namespace Alethic.Seq.Operator.Instance
         /// Configuration to apply when reconcilling the entity.
         /// </summary>
         [JsonPropertyName("conf")]
-        [Required]
         public InstanceConf? Conf { get; set; }
 
     }

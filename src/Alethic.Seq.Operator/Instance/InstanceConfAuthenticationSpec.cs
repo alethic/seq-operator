@@ -3,7 +3,7 @@
 namespace Alethic.Seq.Operator.Instance
 {
 
-    public class InstanceAuthenticationSpec
+    public class InstanceConfAuthenticationSpec
     {
 
         public class LocalAuth

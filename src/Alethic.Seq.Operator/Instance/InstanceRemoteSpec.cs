@@ -8,7 +8,7 @@ namespace Alethic.Seq.Operator.Instance
     /// <summary>
     /// Describes connection information to reach a remote Seq instance.
     /// </summary>
-    public class InstanceConnectionSpec
+    public class InstanceRemoteSpec
     {
 
         /// <summary>
@@ -19,16 +19,11 @@ namespace Alethic.Seq.Operator.Instance
         public string? Endpoint { get; set; }
 
         /// <summary>
-        /// If specified, indicates operations should use token authentication.
+        /// If specified, indicates a set of authentication methods that should be attempted in order.
         /// </summary>
-        [JsonPropertyName("token")]
-        public InstanceTokenAuthenticationSpec? Token { get; set; }
-
-        /// <summary>
-        /// If specified, indicates login by username/password should be attempted.
-        /// </summary>
-        [JsonPropertyName("login")]
-        public InstanceLoginAuthenticationSpec? Login { get; set; }
+        [JsonPropertyName("auth")]
+        [Required]
+        public InstanceRemoteAuthenticationSpec[]? Authentication { get; set; }
 
     }
 

@@ -26,6 +26,26 @@ spec:
                   endpoint:
                     nullable: true
                     type: string
+                  adminSecretRef:
+                    nullable: true
+                    properties:
+                      name:
+                        nullable: false
+                        type: string
+                      namespace:
+                        nullable: false
+                        type: string
+                    type: object
+                  tokenSecretRef:
+                    nullable: true
+                    properties:
+                      name:
+                        nullable: false
+                        type: string
+                      namespace:
+                        nullable: false
+                        type: string
+                    type: object
                 type: object
               info:
                 nullable: true
@@ -193,49 +213,54 @@ spec:
                   type: string
                 nullable: true
                 type: array
-              connections:
-                items:
-                  properties:
-                    endpoint:
-                      nullable: true
-                      type: string
-                    token:
-                      nullable: true
-                      properties:
-                        secretRef:
-                          nullable: true
-                          properties:
-                            name:
-                              nullable: false
-                              type: string
-                            namespace:
-                              nullable: false
-                              type: string
-                          type: object
-                      required:
-                      - secretRef
-                      type: object
-                    login:
-                      nullable: true
-                      properties:
-                        secretRef:
-                          nullable: true
-                          properties:
-                            name:
-                              nullable: false
-                              type: string
-                            namespace:
-                              nullable: false
-                              type: string
-                          type: object
-                      required:
-                      - secretRef
-                      type: object
-                  required:
-                  - endpoint
-                  type: object
+              remote:
                 nullable: true
-                type: array
+                properties:
+                  endpoint:
+                    nullable: true
+                    type: string
+                  auth:
+                    items:
+                      properties:
+                        token:
+                          nullable: true
+                          properties:
+                            secretRef:
+                              nullable: true
+                              properties:
+                                name:
+                                  nullable: false
+                                  type: string
+                                namespace:
+                                  nullable: false
+                                  type: string
+                              type: object
+                          required:
+                          - secretRef
+                          type: object
+                        login:
+                          nullable: true
+                          properties:
+                            secretRef:
+                              nullable: true
+                              properties:
+                                name:
+                                  nullable: false
+                                  type: string
+                                namespace:
+                                  nullable: false
+                                  type: string
+                              type: object
+                          required:
+                          - secretRef
+                          type: object
+                      type: object
+                    nullable: true
+                    type: array
+                required:
+                - endpoint
+                - auth
+                type: object
               deployment:
                 nullable: true
                 properties:
@@ -788,105 +813,6 @@ spec:
                   restartPolicy:
                     nullable: true
                     type: string
-                  securityContext:
-                    nullable: true
-                    properties:
-                      appArmorProfile:
-                        nullable: false
-                        properties:
-                          localhostProfile:
-                            nullable: false
-                            type: string
-                          type:
-                            nullable: false
-                            type: string
-                        type: object
-                      fsGroup:
-                        format: int64
-                        nullable: true
-                        type: integer
-                      fsGroupChangePolicy:
-                        nullable: false
-                        type: string
-                      runAsGroup:
-                        format: int64
-                        nullable: true
-                        type: integer
-                      runAsNonRoot:
-                        nullable: true
-                        type: boolean
-                      runAsUser:
-                        format: int64
-                        nullable: true
-                        type: integer
-                      seLinuxChangePolicy:
-                        nullable: false
-                        type: string
-                      seLinuxOptions:
-                        nullable: false
-                        properties:
-                          level:
-                            nullable: false
-                            type: string
-                          role:
-                            nullable: false
-                            type: string
-                          type:
-                            nullable: false
-                            type: string
-                          user:
-                            nullable: false
-                            type: string
-                        type: object
-                      seccompProfile:
-                        nullable: false
-                        properties:
-                          localhostProfile:
-                            nullable: false
-                            type: string
-                          type:
-                            nullable: false
-                            type: string
-                        type: object
-                      supplementalGroups:
-                        items:
-                          format: int64
-                          nullable: true
-                          type: integer
-                        nullable: true
-                        type: array
-                      supplementalGroupsPolicy:
-                        nullable: false
-                        type: string
-                      sysctls:
-                        items:
-                          properties:
-                            name:
-                              nullable: false
-                              type: string
-                            value:
-                              nullable: false
-                              type: string
-                          type: object
-                        nullable: false
-                        type: array
-                      windowsOptions:
-                        nullable: false
-                        properties:
-                          gmsaCredentialSpec:
-                            nullable: false
-                            type: string
-                          gmsaCredentialSpecName:
-                            nullable: false
-                            type: string
-                          hostProcess:
-                            nullable: true
-                            type: boolean
-                          runAsUserName:
-                            nullable: false
-                            type: string
-                        type: object
-                    type: object
                   serviceAccountName:
                     nullable: true
                     type: string
@@ -1111,6 +1037,9 @@ spec:
                           type: string
                         nullable: true
                         type: object
+                      clusterIP:
+                        nullable: true
+                        type: string
                       clusterIPs:
                         items:
                           nullable: false
@@ -1177,14 +1106,21 @@ spec:
                       type:
                         nullable: true
                         type: string
+                      port:
+                        format: int32
+                        nullable: true
+                        type: integer
                     type: object
                   persistence:
                     nullable: true
-                    properties: {}
+                    properties:
+                      storageClassName:
+                        nullable: true
+                        type: string
+                      capacity:
+                        nullable: true
+                        type: string
                     type: object
-                required:
-                - adminSecretRef
-                - tokenSecretRef
                 type: object
               init:
                 nullable: true
@@ -1396,9 +1332,6 @@ spec:
                     nullable: true
                     type: string
                 type: object
-            required:
-            - connections
-            - conf
             type: object
         type: object
     served: true

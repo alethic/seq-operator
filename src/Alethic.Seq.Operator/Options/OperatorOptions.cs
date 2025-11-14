@@ -15,6 +15,11 @@
         /// </summary>
         public ReconciliationOptions Reconciliation { get; set; } = new ReconciliationOptions();
 
+        /// <summary>
+        /// Default image path for Seq.
+        /// </summary>
+        public string DefaultImage { get; set; } = "datalust/seq:latest";
+
     }
 
 }

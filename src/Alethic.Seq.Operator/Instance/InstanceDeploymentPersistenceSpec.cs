@@ -1,4 +1,6 @@
-﻿namespace Alethic.Seq.Operator.Instance
+﻿using System.Text.Json.Serialization;
+
+namespace Alethic.Seq.Operator.Instance
 {
 
     /// <summary>
@@ -7,7 +9,11 @@
     public class InstanceDeploymentPersistenceSpec
     {
 
+        [JsonPropertyName("storageClassName")]
+        public string? StorageClassName { get; set; }
 
+        [JsonPropertyName("capacity")]
+        public string? Capacity { get; set; }
 
     }
 
