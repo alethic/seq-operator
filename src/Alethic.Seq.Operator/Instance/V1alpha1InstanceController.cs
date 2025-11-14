@@ -930,7 +930,9 @@ namespace Alethic.Seq.Operator.Instance
         /// <returns></returns>
         async Task PutSettingValueAsync<T>(SeqConnection api, SettingName name, T? value, CancellationToken cancellationToken)
         {
-            await api.Settings.UpdateAsync(new SettingEntity() { Name = name.ToString(), Value = value }, cancellationToken);
+            var setting = await api.Settings.FindNamedAsync(name, cancellationToken);
+            setting.Value = value;
+            await api.Settings.UpdateAsync(setting, cancellationToken);
         }
 
         /// <summary>
