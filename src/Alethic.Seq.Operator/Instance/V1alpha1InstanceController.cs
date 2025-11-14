@@ -31,8 +31,10 @@ namespace Alethic.Seq.Operator.Instance
     [EntityRbac(typeof(V1alpha1Instance), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.List | RbacVerb.Get)]
     [EntityRbac(typeof(Eventsv1Event), Verbs = RbacVerb.All)]
-    [EntityRbac(typeof(V1StatefulSet), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Service), Verbs = RbacVerb.All)]
+    [EntityRbac(typeof(V1ServiceAccount), Verbs = RbacVerb.All)]
+    [EntityRbac(typeof(V1StatefulSet), Verbs = RbacVerb.All)]
+    [EntityRbac(typeof(V1alpha1ApiKey), Verbs = RbacVerb.All)]
     public partial class V1alpha1InstanceController :
         V1alpha1Controller<V1alpha1Instance, V1alpha1InstanceSpec, V1alpha1InstanceStatus, InstanceConf, InstanceInfo>,
         IEntityController<V1alpha1Instance>

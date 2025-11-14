@@ -23,15 +23,16 @@ rules:
   verbs:
   - '*'
 - apiGroups:
-  - apps
-  resources:
-  - statefulsets
-  verbs:
-  - '*'
-- apiGroups:
   - ""
   resources:
   - services
+  - serviceaccounts
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
   verbs:
   - '*'
 - apiGroups:
@@ -66,17 +67,17 @@ rules:
   - update
   - patch
 - apiGroups:
-  - apps
+  - ""
   resources:
-  - statefulsets/status
+  - services/status
   verbs:
   - get
   - update
   - patch
 - apiGroups:
-  - ""
+  - apps
   resources:
-  - services/status
+  - statefulsets/status
   verbs:
   - get
   - update
