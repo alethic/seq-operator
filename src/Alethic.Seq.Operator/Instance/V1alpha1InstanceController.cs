@@ -567,9 +567,9 @@ namespace Alethic.Seq.Operator.Instance
             adminSecret.StringData ??= new Dictionary<string, string>();
             adminSecret.Data ??= new Dictionary<string, byte[]>();
             if (adminSecret.StringData.TryGetValue("firstRun", out var firstRun))
-                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORDHASH", CalculatePasswordHash(instance, firstRun)));
+                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORD", firstRun));
             else if (adminSecret.Data.TryGetValue("firstRun", out var firstRunBuf))
-                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORDHASH", CalculatePasswordHash(instance, Encoding.UTF8.GetString(firstRunBuf))));
+                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORD", Encoding.UTF8.GetString(firstRunBuf)));
 
             if (deployment.Env is { Count: > 0 } env)
                 foreach (var i in env)
