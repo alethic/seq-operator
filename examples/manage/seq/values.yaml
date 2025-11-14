@@ -1,0 +1,44 @@
+# Deploys Seq using custom init scripts hack:
+# 1. SEQ_FIRSTRUN_ADMINPASSWORD is mounted from Kubernetes Secret
+# 2. Seq init scripts are mounted from Kubernetes ConfigMap
+# 3. Seq init script generates firstRun.adminPasswordHash from SEQ_FIRSTRUN_ADMINPASSWORD,
+#    just like the Seq deployment was given SEQ_FIRSTRUN_ADMINPASSWORDHASH instead.
+#
+# This hack is required in order to:
+# 1. Avoid prompt for password change during initial login to Seq UI
+# 2. Allow re-use of password from Kubernetes Secret by agents external to Seq,
+#    like the seq-apikey-operator or other which need to generate dedicated
+#    Seq API key in order to perform any operations with Seq CLI or API.
+#
+extraVolumes:
+- name: seq-init-scripts
+  configMap:
+    name: seq-init-scripts
+
+extraVolumeMounts:
+- name: seq-init-scripts
+  mountPath: /seqinit
+
+firstRunAdminPasswordSecret:
+  name: seq-admin-password
+  key: password
+
+firstRunRequireAuthenticationForHttpIngestion: true
+
+image:
+  pullPolicy: IfNotPresent
+  repository: datalust/seq
+  tag: "2025"
+
+ingestion:
+  containerPort: 5341
+  service:
+    port: 5341
+
+ui:
+  containerPort: 80
+  service:
+    port: 80
+
+service:
+  type: NodePort

@@ -1,0 +1,12 @@
+apiVersion: seq.k8s.datalust.co/v1alpha1
+kind: Instance
+metadata:
+  name: seq-instance
+  namespace: seq-operator-example-manage
+spec:
+  remote:
+    endpoint: http://localhost:5341
+    auth:
+    - login:
+        secretRef:
+          name: seq-admin-password
