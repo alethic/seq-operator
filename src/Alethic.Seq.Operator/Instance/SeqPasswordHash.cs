@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
-using System.Text;
-
-using k8s.Models;
 
 namespace Alethic.Seq.Operator.Instance
 {
@@ -67,7 +62,10 @@ namespace Alethic.Seq.Operator.Instance
             if (array.Length < 1 + num)
                 throw new ArgumentException("The format of the encoded hash is invalid.");
 
-            return (RuntimeHelpers.GetSubArray(array, new Range((Index)1, (Index)(1 + num))).ToArray(), RuntimeHelpers.GetSubArray(array, Range.StartAt((Index)(1 + num))).ToArray());
+            return (
+                array[1..(1 + num)],
+                array[(1 + num)..]
+            );
         }
 
     }
