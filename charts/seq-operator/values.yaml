@@ -82,6 +82,7 @@ operator:
 
 # Various configuration options.
 options:
+  logLevel: Information
   defaultImage: datalust/seq:latest
     # Limit operation to the single specified namespace. This can be used to install a namespace-specific instance of the operator.
     # NOT YET SUPORTED

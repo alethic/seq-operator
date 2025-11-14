@@ -46,6 +46,9 @@ spec:
           image: {{ .Values.operator.image.repository }}:{{ .Values.operator.image.digest | default .Values.operator.image.tag | default $.Chart.AppVersion }}
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
           env:
+            - name: Logging__LogLevel__Default
+              value: {{ .Values.options.logLevel | default "Information" | quote }}
+
             # By default we want to use a formatter more suited to Kubernetes.
             - name: Logging__Console__FormatterName
               value: "simple"
