@@ -40,8 +40,8 @@ namespace Alethic.Seq.Operator.Instance
 
             var inArray = (Span<byte>)stackalloc byte[1 + hash.Length + salt.Length];
             inArray[0] = (byte)hash.Length;
-            hash.CopyTo(inArray.Slice(1));
-            salt.CopyTo(inArray.Slice(1 + hash.Length));
+            hash.CopyTo(inArray[1..]);
+            salt.CopyTo(inArray[(1 + hash.Length)..]);
             return Convert.ToBase64String(inArray);
         }
 
