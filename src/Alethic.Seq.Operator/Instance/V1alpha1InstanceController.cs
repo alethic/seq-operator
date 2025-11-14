@@ -564,6 +564,7 @@ namespace Alethic.Seq.Operator.Instance
             container.Env.Add(new V1EnvVar("SEQ_API_LISTENURIS", "http://localhost:80,http://localhost:5341"));
             container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINUSERNAME", valueFrom: new V1EnvVarSource(secretKeyRef: new V1SecretKeySelector("username", adminSecret.Name(), false))));
             container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORD", valueFrom: new V1EnvVarSource(secretKeyRef: new V1SecretKeySelector("firstRun", adminSecret.Name(), false))));
+            container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_REQUIREAUTHENTICATIONFORHTTPINGESTION", "true"));
 
             //adminSecret.StringData ??= new Dictionary<string, string>();
             //adminSecret.Data ??= new Dictionary<string, byte[]>();
