@@ -563,13 +563,14 @@ namespace Alethic.Seq.Operator.Instance
             container.Env.Add(new V1EnvVar("SEQ_API_CANONICALURI", $"http://{service.Name()}.{service.Namespace()}.svc.cluster.local:80/"));
             container.Env.Add(new V1EnvVar("SEQ_API_LISTENURIS", "http://localhost:80,http://localhost:5341"));
             container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINUSERNAME", valueFrom: new V1EnvVarSource(secretKeyRef: new V1SecretKeySelector("username", adminSecret.Name(), false))));
+            container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORD", valueFrom: new V1EnvVarSource(secretKeyRef: new V1SecretKeySelector("firstRun", adminSecret.Name(), false))));
 
-            adminSecret.StringData ??= new Dictionary<string, string>();
-            adminSecret.Data ??= new Dictionary<string, byte[]>();
-            if (adminSecret.StringData.TryGetValue("firstRun", out var firstRun))
-                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORD", firstRun));
-            else if (adminSecret.Data.TryGetValue("firstRun", out var firstRunBuf))
-                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORD", Encoding.UTF8.GetString(firstRunBuf)));
+            //adminSecret.StringData ??= new Dictionary<string, string>();
+            //adminSecret.Data ??= new Dictionary<string, byte[]>();
+            //if (adminSecret.StringData.TryGetValue("firstRun", out var firstRun))
+            //    container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORD", firstRun));
+            //else if (adminSecret.Data.TryGetValue("firstRun", out var firstRunBuf))
+            //    container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORD", Encoding.UTF8.GetString(firstRunBuf)));
 
             if (deployment.Env is { Count: > 0 } env)
                 foreach (var i in env)
