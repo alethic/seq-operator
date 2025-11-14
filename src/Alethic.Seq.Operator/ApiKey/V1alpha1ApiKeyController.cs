@@ -142,7 +142,8 @@ namespace Alethic.Seq.Operator.ApiKey
             Logger.LogInformation("{EntityTypeName} successfully created ApiKey in Seq with ID: {Id} and title: {Title}", EntityTypeName, self.Id, conf.Title);
 
             // update the secret with the token, which may be from the server
-            await ApplySecret(entity, self.Token ?? create.Token, defaultNamespace, cancellationToken);
+            // todo we need to find a clean way to not do this here, or to propigate out the changes
+            entity = await ApplySecret(entity, self.Token ?? create.Token, defaultNamespace, cancellationToken);
 
             // newly created ID
             return self.Id;

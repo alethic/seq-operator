@@ -31,7 +31,7 @@
     </PropertyGroup>
 
     <PropertyGroup Label="Build Info">
-        <LangVersion Condition=" '$(LangVersion)' == '' ">12.0</LangVersion>
+        <LangVersion Condition=" '$(LangVersion)' == '' ">13.0</LangVersion>
         <AutoGenerateBindingRedirects Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net461'))">true</AutoGenerateBindingRedirects>
         <GenerateBindingRedirectsOutputType Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net461'))">true</GenerateBindingRedirectsOutputType>
         <AddSyntheticProjectReferencesForSolutionDependencies>false</AddSyntheticProjectReferencesForSolutionDependencies>
