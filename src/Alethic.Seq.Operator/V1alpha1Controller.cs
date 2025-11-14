@@ -217,7 +217,7 @@ namespace Alethic.Seq.Operator
             }
             catch (SeqApiException e) when (e.StatusCode == HttpStatusCode.BadRequest && e.Message.Contains("Invalid", StringComparison.InvariantCultureIgnoreCase))
             {
-                // if we cannot authenticate with the primary password, we might have 'fallback' password available
+                // if we cannot authenticate with the primary password, we might have 'firstRun' password available
                 // if we authenticate with the firstRun password, we should be sure to change the password to the normal one as soon as we succeed
 
                 if (secret.Data.TryGetValue("firstRun", out var firstRunBuf) == false)
