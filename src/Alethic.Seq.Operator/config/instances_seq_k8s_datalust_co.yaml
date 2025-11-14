@@ -26,7 +26,7 @@ spec:
                   endpoint:
                     nullable: true
                     type: string
-                  adminSecretRef:
+                  loginSecretRef:
                     nullable: true
                     properties:
                       name:
@@ -264,7 +264,10 @@ spec:
               deployment:
                 nullable: true
                 properties:
-                  adminSecretRef:
+                  endpoint:
+                    nullable: true
+                    type: string
+                  loginSecretRef:
                     nullable: true
                     properties:
                       name:

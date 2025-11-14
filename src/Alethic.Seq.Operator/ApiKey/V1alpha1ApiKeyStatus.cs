@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
+using k8s.Models;
+
 namespace Alethic.Seq.Operator.ApiKey
 {
 
@@ -9,6 +11,9 @@ namespace Alethic.Seq.Operator.ApiKey
 
         [JsonPropertyName("id")]
         public string? Id { get; set; }
+
+        [JsonPropertyName("secretRef")]
+        public V1SecretReference? SecretRef { get; set; }
 
         [JsonPropertyName("info")]
         public ApiKeyInfo? Info { get; set; }

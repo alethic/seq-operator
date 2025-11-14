@@ -218,33 +218,49 @@ namespace Alethic.Seq.Operator
             catch (SeqApiException e) when (e.StatusCode == HttpStatusCode.BadRequest && e.Message.Contains("Invalid", StringComparison.InvariantCultureIgnoreCase))
             {
                 // if we cannot authenticate with the primary password, we might have 'fallback' password available
-                // if we authenticate with the fallback password, we should be sure to change the password to the normal one as soon as we succeed
-                // fallback generally refers to the 'first run' password of Seq
+                // if we authenticate with the firstRun password, we should be sure to change the password to the normal one as soon as we succeed
 
-                if (secret.Data.TryGetValue("fallback", out var fallbackBuf) == false)
+                if (secret.Data.TryGetValue("firstRun", out var firstRunBuf) == false)
                 {
-                    Logger.LogError(e, $"Instance {instance.Namespace()}/{instance.Name()} has was unable to authenticate with password, and fallback was not present.");
+                    Logger.LogError(e, $"Instance {instance.Namespace()}/{instance.Name()} has was unable to authenticate with password, and firstRun was not present.");
                     return null;
                 }
 
-                // try again with the fallback
-                var user = await connection.Users.LoginAsync(
-                    Encoding.UTF8.GetString(usernameBuf),
-                    Encoding.UTF8.GetString(fallbackBuf),
-                    cancellationToken);
-                if (user is null)
-                    throw new InvalidOperationException("No user returned.");
-
-                // test that connection is usable
-                if (await TestConnectionAsync(connection, cancellationToken) == false)
+                try
                 {
-                    Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with fallback password.");
+                    // try again with the firstRun
+                    var user = await connection.Users.LoginAsync(
+                        Encoding.UTF8.GetString(usernameBuf),
+                        Encoding.UTF8.GetString(firstRunBuf),
+                        cancellationToken);
+                    if (user is null)
+                        throw new InvalidOperationException("No user returned.");
+
+                    // test that connection is usable
+                    if (await TestConnectionAsync(connection, cancellationToken) == false)
+                    {
+                        Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with firstRun password.");
+                        return null;
+                    }
+
+                    try
+                    {
+                        // attempt to update password
+                        user.NewPassword = Encoding.UTF8.GetString(passwordBuf);
+                        await connection.Users.UpdateAsync(user, cancellationToken);
+
+                    }
+                    catch (SeqApiException e2)
+                    {
+                        Logger.LogError(e2, $"Instance {instance.Namespace()}/{instance.Name()} was unable to update password after authenticating with firstRun password.");
+                        return null;
+                    }
+                }
+                catch (SeqApiException e2)
+                {
+                    Logger.LogError(e2, $"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with firstRun password.");
                     return null;
                 }
-
-                // attempt to update password
-                user.NewPassword = Encoding.UTF8.GetString(passwordBuf);
-                await connection.Users.UpdateAsync(user, cancellationToken);
             }
 
             return connection;
@@ -352,7 +368,7 @@ namespace Alethic.Seq.Operator
             if (remote.Authentication is null || remote.Authentication is null || remote.Authentication.Length == 0)
                 throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} has no remote authentication information.");
 
-            // we try the proposed connection items in order to allow fallbacks
+            // we try the proposed connection items in order to allow firstRun
             foreach (var connectionDef in remote.Authentication)
             {
                 // this is a token connection
@@ -401,6 +417,11 @@ namespace Alethic.Seq.Operator
                 // otherwise, fall back to deployed instance
                 if (instance.Status.Deployment is { Endpoint: string endpoint } && string.IsNullOrWhiteSpace(endpoint) == false)
                 {
+                    // override connection to deployed endpoint
+                    if (instance.Spec.Deployment is { Endpoint: string alternateEndpoint } && string.IsNullOrWhiteSpace(alternateEndpoint) == false)
+                        endpoint = alternateEndpoint;
+
+                    // a token is available from the deployment
                     if (instance.Status.Deployment.TokenSecretRef is { } tokenSecretRef)
                     {
                         var connection = await CreateSeqTokenConnectionAsync(instance, endpoint, tokenSecretRef, cancellationToken);
@@ -411,7 +432,8 @@ namespace Alethic.Seq.Operator
                         }
                     }
 
-                    if (instance.Status.Deployment.AdminSecretRef is { } adminSecretRef)
+                    // a login is available from the deployment
+                    if (instance.Status.Deployment.LoginSecretRef is { } adminSecretRef)
                     {
                         var connection = await CreateSeqLoginConnectionAsync(instance, endpoint, adminSecretRef, cancellationToken);
                         if (connection is not null)

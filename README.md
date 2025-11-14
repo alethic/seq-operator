@@ -23,7 +23,7 @@ type: Opaque
 stringData:
   username: "admin"
   password: "newpassword"
-  fallback: "1234"
+  firstRun: "1234"
 ---
 
 apiVersion: seq.k8s.datalust.co/v1alpha1

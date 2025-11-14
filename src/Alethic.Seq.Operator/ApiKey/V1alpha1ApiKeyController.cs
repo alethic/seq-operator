@@ -172,19 +172,34 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task ApplySecret(V1alpha1ApiKey entity, string? token, string defaultNamespace, CancellationToken cancellationToken)
+        async Task<V1alpha1ApiKey> ApplySecret(V1alpha1ApiKey entity, string? token, string defaultNamespace, CancellationToken cancellationToken)
         {
-            if (entity.Spec.SecretRef is null)
-                return;
+            var secretName = entity.Spec.SecretRef?.Name ?? entity.Name();
+            var secretNamespace = entity.Spec.SecretRef?.NamespaceProperty ?? entity.Namespace();
+            if (secretNamespace != entity.Namespace())
+                throw new RetryException($"ApiKey {entity.Namespace()}/{entity.Name()} could not deploy: Secret must be in same namespace as ApiKey.");
 
             // find existing secret or create
-            var secret = await ResolveSecretRef(entity.Spec.SecretRef, entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, cancellationToken);
+            var secret = await Kube.GetAsync<V1Secret>(secretName, secretNamespace, cancellationToken);
+
+            // we have an existing secret, owned by us
+            if (secret is not null && secret.IsOwnedBy(entity))
+            {
+                // existing secret does not match our specification
+                if (secret.Name() != secretName || secret.Namespace() != secretNamespace)
+                {
+                    await Kube.DeleteAsync(secret, cancellationToken);
+                    secret = null;
+                }
+            }
+
+            // no secret remaining, but we need one
             if (secret is null)
             {
-                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName} which does not exist: creating.", EntityTypeName, entity.Namespace(), entity.Name(), entity.Spec.SecretRef.Name);
+                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName} which does not exist: creating.", EntityTypeName, entity.Namespace(), entity.Name(), secretName);
                 secret = await Kube.CreateAsync(
                     new V1Secret(
-                            metadata: new V1ObjectMeta(namespaceProperty: entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, name: entity.Spec.SecretRef.Name))
+                            metadata: new V1ObjectMeta(namespaceProperty: secretNamespace ?? defaultNamespace, name: secretName))
                         .WithOwnerReference(entity),
                     cancellationToken);
             }
@@ -192,28 +207,33 @@ namespace Alethic.Seq.Operator.ApiKey
             // only apply actual values if we are the owner
             if (secret.IsOwnedBy(entity))
             {
-                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName}: updating.", EntityTypeName, entity.Namespace(), entity.Name(), entity.Spec.SecretRef.Name);
+                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName}: updating.", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
                 secret.StringData ??= new Dictionary<string, string>();
 
                 // ensure the key exists, possible empty, if we're retrieving an existing ApiKey
                 if (token is not null)
                 {
                     secret.StringData["token"] = token;
-                    Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} updated secret {SecretName} with token", EntityTypeName, entity.Namespace(), entity.Name(), entity.Spec.SecretRef.Name);
+                    Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} updated secret {SecretName} with token", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
                 }
                 else if (!secret.StringData.ContainsKey("apikey"))
                 {
                     secret.StringData["token"] = "";
-                    Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} initialized empty token in secret {SecretName}", EntityTypeName, entity.Namespace(), entity.Name(), entity.Spec.SecretRef.Name);
+                    Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} initialized empty token in secret {SecretName}", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
                 }
 
                 secret = await Kube.UpdateAsync(secret, cancellationToken);
-                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} successfully updated secret {SecretName}", EntityTypeName, entity.Namespace(), entity.Name(), entity.Spec.SecretRef.Name);
+                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} successfully updated secret {SecretName}", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
             }
             else
             {
-                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} secret {SecretName} exists but is not owned by this ApiKey, skipping update", EntityTypeName, entity.Namespace(), entity.Name(), entity.Spec.SecretRef.Name);
+                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} secret {SecretName} exists but is not owned by this ApiKey, skipping update", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
             }
+
+            // apply the reference to the secret to the apikey
+            entity.Status.SecretRef = new V1SecretReference(secret.Name(), secret.Namespace());
+            entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
+            return entity;
         }
 
         /// <summary>

@@ -23,6 +23,16 @@ spec:
               id:
                 nullable: true
                 type: string
+              secretRef:
+                nullable: true
+                properties:
+                  name:
+                    nullable: false
+                    type: string
+                  namespace:
+                    nullable: false
+                    type: string
+                type: object
               info:
                 nullable: true
                 properties:

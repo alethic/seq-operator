@@ -3,8 +3,6 @@ using System.Text.Json.Serialization;
 
 using k8s.Models;
 
-using KubeOps.Abstractions.Entities.Attributes;
-
 namespace Alethic.Seq.Operator.Instance
 {
 
@@ -15,11 +13,18 @@ namespace Alethic.Seq.Operator.Instance
     {
 
         /// <summary>
+        /// Alternate endpoint to connect to deployment instance.
+        /// </summary>
+        [JsonPropertyName("endpoint")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Endpoint { get; set; }
+
+        /// <summary>
         /// Secret to use for the 'admin' login.
         /// </summary>
-        [JsonPropertyName("adminSecretRef")]
+        [JsonPropertyName("loginSecretRef")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public V1SecretReference? AdminSecretRef { get; set; }
+        public V1SecretReference? LoginSecretRef { get; set; }
 
         /// <summary>
         /// Secret to use for the generated management token.

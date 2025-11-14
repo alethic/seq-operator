@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Alethic.Seq.Operator.ApiKey;
 using Alethic.Seq.Operator.Options;
 
 using k8s;
@@ -19,7 +18,6 @@ using KubeOps.Abstractions.Queue;
 using KubeOps.Abstractions.Rbac;
 using KubeOps.KubernetesClient;
 
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -89,7 +87,7 @@ namespace Alethic.Seq.Operator.Instance
 
             return Cache.GetOrCreate((typeof(V1alpha1InstanceController), nameof(CalculatePasswordHash), instanceNamespace, instanceName, password), e =>
             {
-                var salt = SHA256.HashData(Encoding.UTF8.GetBytes(instance.Name()))[0..16];
+                var salt = SHA256.HashData(Encoding.UTF8.GetBytes($"{instanceNamespace}/{instanceName}"))[0..16];
                 var hash = SeqPasswordHash.Calculate(password, salt);
                 var b64e = SeqPasswordHash.ToBase64(hash, salt);
                 e.SetAbsoluteExpiration(DateTimeOffset.Now.AddHours(1));
@@ -139,17 +137,18 @@ namespace Alethic.Seq.Operator.Instance
         /// <returns></returns>
         async Task<V1alpha1Instance> ReconcileDeploymentAsync(V1alpha1Instance instance, InstanceDeploymentSpec deployment, CancellationToken cancellationToken)
         {
-            var adminSecret = await ReconcileDeploymentAdminSecretAsync(instance, deployment, cancellationToken);
+            var loginSecret = await ReconcileDeploymentLoginSecretAsync(instance, deployment, cancellationToken);
+            var adminApiKey = await ReconcileDeploymentAdminApiKeyAsync(instance, deployment, cancellationToken);
             var serviceAccount = await ReconcileDeploymentServiceAccountAsync(instance, deployment, cancellationToken);
             var service = await ReconcileDeploymentServiceAsync(instance, deployment, cancellationToken);
-            var statefulSet = await ReconcileDeploymentStatefulSetAsync(instance, deployment, adminSecret, serviceAccount, service, cancellationToken);
+            var statefulSet = await ReconcileDeploymentStatefulSetAsync(instance, deployment, loginSecret, serviceAccount, service, cancellationToken);
 
             if (service != null)
             {
                 instance.Status.Deployment = new InstanceDeploymentStatus();
                 instance.Status.Deployment.Endpoint = $"http://{service.Name()}.{service.Namespace()}.svc.cluster.local:80/";
-                instance.Status.Deployment.AdminSecretRef = new V1SecretReference(adminSecret.Name(), adminSecret.Namespace());
-                instance.Status.Deployment.TokenSecretRef = null;
+                instance.Status.Deployment.LoginSecretRef = new V1SecretReference(loginSecret.Name(), loginSecret.Namespace());
+                instance.Status.Deployment.TokenSecretRef = adminApiKey?.Status.SecretRef;
                 instance = await Kube.SaveAsync(instance, cancellationToken);
             }
             else
@@ -179,79 +178,79 @@ namespace Alethic.Seq.Operator.Instance
         }
 
         /// <summary>
-        /// Reconciles the admin secret with the deployment state.
+        /// Reconciles the secret with the deployment state.
         /// </summary>
         /// <param name="instance"></param>
         /// <param name="deployment"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="RetryException"></exception>
-        async Task<V1Secret?> ReconcileDeploymentAdminSecretAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
+        async Task<V1Secret?> ReconcileDeploymentLoginSecretAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
         {
-            var adminSecret = await GetDeploymentObject<V1Secret>(instance, "admin-secret", cancellationToken);
+            var loginSecret = await GetDeploymentObject<V1Secret>(instance, "login-secret", cancellationToken);
 
             // no deployment, we have an existing admin secret owned by us, delete
-            if (deployment is null && adminSecret is not null && adminSecret.IsOwnedBy(instance))
+            if (deployment is null && loginSecret is not null && loginSecret.IsOwnedBy(instance))
             {
-                await Kube.DeleteAsync(adminSecret, cancellationToken);
-                adminSecret = null;
+                await Kube.DeleteAsync(loginSecret, cancellationToken);
+                loginSecret = null;
             }
 
             // we have deployment
             if (deployment is not null)
             {
-                var adminSecretName = deployment.AdminSecretRef?.Name ?? instance.Name() + "-server";
-                var adminSecretNamespace = deployment.AdminSecretRef?.NamespaceProperty ?? instance.Namespace();
-                if (adminSecretNamespace != instance.Namespace())
-                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: AdminSecret must be in same namespace as Instance.");
+                var loginSecretName = deployment.LoginSecretRef?.Name ?? instance.Name() + "-login";
+                var loginSecretNamespace = deployment.LoginSecretRef?.NamespaceProperty ?? instance.Namespace();
+                if (loginSecretNamespace != instance.Namespace())
+                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: LoginSecret must be in same namespace as Instance.");
 
                 // we have an existing secret, owned by us
-                if (adminSecret is not null && adminSecret.IsOwnedBy(instance))
+                if (loginSecret is not null && loginSecret.IsOwnedBy(instance))
                 {
                     // existing secret does not match our specification
-                    if (adminSecret.Name() != adminSecretName || adminSecret.Namespace() != adminSecretNamespace)
+                    if (loginSecret.Name() != loginSecretName || loginSecret.Namespace() != loginSecretNamespace)
                     {
-                        await Kube.DeleteAsync(adminSecret, cancellationToken);
-                        adminSecret = null;
+                        await Kube.DeleteAsync(loginSecret, cancellationToken);
+                        loginSecret = null;
                     }
                 }
 
                 // no secret remaining, but we need one
-                if (adminSecret is null)
+                if (loginSecret is null)
                 {
-                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required Secret {AdminSecretName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), adminSecretName);
-                    adminSecret = await Kube.CreateAsync(
+                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required Secret {LoginSecretName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), loginSecretName);
+                    loginSecret = await Kube.CreateAsync(
                         ApplyDeployment(
                             instance,
                             deployment,
-                            "admin-secret",
-                            ApplyDeploymentAdminSecret(
+                            "login-secret",
+                            ApplyDeploymentLoginSecret(
                                 instance,
                                 deployment,
-                                new V1Secret(metadata: new V1ObjectMeta(namespaceProperty: adminSecretNamespace, name: adminSecretName)).WithOwnerReference(instance))),
+                                new V1Secret(metadata: new V1ObjectMeta(namespaceProperty: loginSecretNamespace, name: loginSecretName)).WithOwnerReference(instance))),
                         cancellationToken);
                 }
 
                 // we have a secret at this point, and it is owned by us, we can ensure the login information is set to defaults
-                if (adminSecret.IsOwnedBy(instance))
+                if (loginSecret.IsOwnedBy(instance))
                 {
-                    ApplyDeploymentAdminSecret(instance, deployment, adminSecret);
-                    ApplyDeployment(instance, deployment, "admin-secret", adminSecret);
+                    ApplyDeploymentLoginSecret(instance, deployment, loginSecret);
+                    ApplyDeployment(instance, deployment, "login-secret", loginSecret);
 
-                    await Kube.UpdateAsync(adminSecret, cancellationToken);
+                    loginSecret = await Kube.UpdateAsync(loginSecret, cancellationToken);
                 }
             }
 
-            return adminSecret;
+            return loginSecret;
         }
 
         /// <summary>
-        /// Applies the deployment information to the admin secret.
+        /// Applies the deployment information to the login secret.
         /// </summary>
         /// <param name="instance"></param>
         /// <param name="deployment"></param>
         /// <param name="adminSecret"></param>
-        V1Secret ApplyDeploymentAdminSecret(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1Secret adminSecret)
+        V1Secret ApplyDeploymentLoginSecret(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1Secret adminSecret)
         {
             adminSecret.Data ??= new Dictionary<string, byte[]>();
             adminSecret.StringData ??= new Dictionary<string, string>();
@@ -264,11 +263,97 @@ namespace Alethic.Seq.Operator.Instance
             if (adminSecret.Data.ContainsKey("password") == false)
                 adminSecret.StringData["password"] = GeneratePassword(20);
 
-            // default fallback password
-            if (adminSecret.Data.ContainsKey("fallback") == false)
-                adminSecret.StringData["fallback"] = GeneratePassword(20);
+            // default firstRun password
+            if (adminSecret.Data.ContainsKey("firstRun") == false)
+                adminSecret.StringData["firstRun"] = GeneratePassword(20);
 
             return adminSecret;
+        }
+
+        /// <summary>
+        /// Reconciles the token with the deployment state.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="deployment"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        async Task<V1alpha1ApiKey?> ReconcileDeploymentAdminApiKeyAsync(V1alpha1Instance instance, InstanceDeploymentSpec deployment, CancellationToken cancellationToken)
+        {
+            var adminApiKey = await GetDeploymentObject<V1alpha1ApiKey>(instance, "admin-apikey", cancellationToken);
+
+            // no deployment, we have an existing admin apikey owned by us, delete
+            if (deployment is null && adminApiKey is not null && adminApiKey.IsOwnedBy(instance))
+            {
+                await Kube.DeleteAsync(adminApiKey, cancellationToken);
+                adminApiKey = null;
+            }
+
+            // we have deployment
+            if (deployment is not null)
+            {
+                var adminApiKeyName = instance.Name();
+                var adminApiKeyspace = deployment.LoginSecretRef?.NamespaceProperty ?? instance.Namespace();
+                if (adminApiKeyspace != instance.Namespace())
+                    throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: ApiKey must be in same namespace as Instance.");
+
+                // we have an existing secret, owned by us
+                if (adminApiKey is not null && adminApiKey.IsOwnedBy(instance))
+                {
+                    // existing apikey does not match our specification
+                    if (adminApiKey.Name() != adminApiKeyName || adminApiKey.Namespace() != adminApiKeyspace)
+                    {
+                        await Kube.DeleteAsync(adminApiKey, cancellationToken);
+                        adminApiKey = null;
+                    }
+                }
+
+                // no apikey remaining, but we need one
+                if (adminApiKey is null)
+                {
+                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required Secret {ApiKeyName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), adminApiKeyName);
+                    adminApiKey = await Kube.CreateAsync(
+                        ApplyDeployment(
+                            instance,
+                            deployment,
+                            "admin-apikey",
+                            ApplyDeploymentAdminApiKey(
+                                instance,
+                                deployment,
+                                new V1alpha1ApiKey() { Metadata = new V1ObjectMeta(namespaceProperty: adminApiKeyspace, name: adminApiKeyName) }.WithOwnerReference(instance))),
+                        cancellationToken);
+                }
+
+                // we have a apikey at this point, and it is owned by us, we can ensure the login information is set to defaults
+                if (adminApiKey.IsOwnedBy(instance))
+                {
+                    ApplyDeploymentAdminApiKey(instance, deployment, adminApiKey);
+                    ApplyDeployment(instance, deployment, "admin-apikey", adminApiKey);
+
+                    adminApiKey = await Kube.UpdateAsync(adminApiKey, cancellationToken);
+                }
+            }
+
+            return adminApiKey;
+        }
+
+        /// <summary>
+        /// Applies the given deployment information to the specified apikey.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="deployment"></param>
+        /// <param name="apikey"></param>
+        /// <returns></returns>
+        V1alpha1ApiKey ApplyDeploymentAdminApiKey(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1alpha1ApiKey apikey)
+        {
+            apikey.Spec ??= new V1alpha1ApiKeySpec();
+            apikey.Spec.Policy = [V1alpha1EntityPolicyType.Create, V1alpha1EntityPolicyType.Update, V1alpha1EntityPolicyType.Delete];
+            apikey.Spec.InstanceRef = new V1alpha1InstanceReference() { Name = instance.Name(), Namespace = instance.Namespace() };
+            apikey.Spec.SecretRef = deployment.TokenSecretRef;
+            apikey.Spec.Find = new ApiKeyFind() { Title = "SeqOperatorApiKey" };
+            apikey.Spec.Conf = new ApiKeyConf();
+            apikey.Spec.Conf.Title = "SeqOperatorApiKey";
+            apikey.Spec.Conf.Permissions = [ApiKeyPermission.Public, ApiKeyPermission.Ingest, ApiKeyPermission.Read, ApiKeyPermission.Write, ApiKeyPermission.Project, ApiKeyPermission.System, ApiKeyPermission.Organization];
+            return apikey;
         }
 
         /// <summary>
@@ -325,7 +410,7 @@ namespace Alethic.Seq.Operator.Instance
                 if (serviceAccount.IsOwnedBy(instance))
                 {
                     ApplyDeployment(instance, deployment, "service-account", serviceAccount);
-                    await Kube.SaveAsync(serviceAccount, cancellationToken);
+                    serviceAccount = await Kube.UpdateAsync(serviceAccount, cancellationToken);
                 }
             }
 
@@ -403,7 +488,7 @@ namespace Alethic.Seq.Operator.Instance
                 // update object if required
                 ApplyDeploymentStatefulSet(instance, deployment, statefulSet, adminSecret, serviceAccount, service);
                 ApplyDeployment(instance, deployment, "stateful-set", statefulSet);
-                await Kube.SaveAsync(statefulSet, cancellationToken);
+                statefulSet = await Kube.UpdateAsync(statefulSet, cancellationToken);
             }
 
             return statefulSet;
@@ -475,10 +560,12 @@ namespace Alethic.Seq.Operator.Instance
             container.Env.Add(new V1EnvVar("SEQ_API_LISTENURIS", "http://localhost:80,http://localhost:5341"));
             container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINUSERNAME", valueFrom: new V1EnvVarSource(secretKeyRef: new V1SecretKeySelector("username", adminSecret.Name(), false))));
 
-            if (adminSecret.StringData.TryGetValue("fallback", out var fallback))
-                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORDHASH", CalculatePasswordHash(instance, fallback)));
-            else if (adminSecret.Data.TryGetValue("fallback", out var fallbackBuf))
-                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORDHASH", CalculatePasswordHash(instance, Encoding.UTF8.GetString(fallbackBuf))));
+            adminSecret.StringData ??= new Dictionary<string, string>();
+            adminSecret.Data ??= new Dictionary<string, byte[]>();
+            if (adminSecret.StringData.TryGetValue("firstRun", out var firstRun))
+                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORDHASH", CalculatePasswordHash(instance, firstRun)));
+            else if (adminSecret.Data.TryGetValue("firstRun", out var firstRunBuf))
+                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORDHASH", CalculatePasswordHash(instance, Encoding.UTF8.GetString(firstRunBuf))));
 
             if (deployment.Env is { Count: > 0 } env)
                 foreach (var i in env)
@@ -594,7 +681,7 @@ namespace Alethic.Seq.Operator.Instance
                 // update object if required
                 ApplyDeploymentService(instance, deployment, service);
                 ApplyDeployment(instance, deployment, "service", service);
-                await Kube.SaveAsync(service, cancellationToken);
+                service = await Kube.UpdateAsync(service, cancellationToken);
             }
 
             return service;

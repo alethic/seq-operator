@@ -14,10 +14,10 @@ namespace Alethic.Seq.Operator.Instance
         [JsonPropertyName("endpoint")]
         public string? Endpoint { get; set; }
 
-        [JsonPropertyName("adminSecretRef")]
-        public V1SecretReference? AdminSecretRef { get; set; }
+        [JsonPropertyName("loginSecretRef")]
+        public V1SecretReference? LoginSecretRef { get; set; }
 
-        [JsonPropertyName("TokenSecretRef")]
+        [JsonPropertyName("tokenSecretRef")]
         public V1SecretReference? TokenSecretRef { get; set; }
 
     }
