@@ -604,7 +604,8 @@ namespace Alethic.Seq.Operator
             {
                 try
                 {
-                    await ReconcileWarningAsync(entity, "Unknown", e.Message, cancellationToken);
+                    Logger.LogError(e, "Unexpected exception reconciling {EntityTypeName} {EntityNamespace}/{EntityName}: {Message}", EntityTypeName, entity.Namespace(), entity.Name(), e.Message);
+                    await ReconcileWarningAsync(entity, "Error", e.Message, cancellationToken);
 
                     // update conditions
                     entity = await UpdateStatusAsync(entity, "Ready", "False", e.Message, null, cancellationToken);
@@ -615,7 +616,9 @@ namespace Alethic.Seq.Operator
                     Logger.LogCritical(e2, "Unexpected exception creating event.");
                 }
 
-                throw;
+                var interval = _options.Value.Reconciliation.RetryInterval;
+                Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} rescheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
+                Requeue(entity, interval);
             }
         }
 
