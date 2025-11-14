@@ -64,3 +64,14 @@ spec:
 ---
 
 ```
+
+This is an example for deploying a new Seq instance. Simply don't specify the `remote` section.
+
+```
+apiVersion: seq.k8s.datalust.co/v1alpha1
+kind: Instance
+metadata:
+  name: seqinstance
+  namespace: default
+spec: {}
+```
