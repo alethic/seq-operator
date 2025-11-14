@@ -55,19 +55,19 @@ spec:
               value: 'true'
               
 {{ if .Values.options.defaultImage }}
-            - name: seq__Operator__DefaultImage
+            - name: Seq__Operator__DefaultImage
               value: {{ .Values.options.defaultImage | quote }}
 {{ end }}
 {{ if .Values.options.namespace }}
-            - name: seq__Operator__Namespace
+            - name: Seq__Operator__Namespace
               value: {{ .Values.options.namespace | quote }}
 {{ end }}
 {{ if .Values.options.reconciliation.interval }}
-            - name: seq__Operator__Reconciliation__Interval
+            - name: Seq__Operator__Reconciliation__Interval
               value: {{ .Values.options.reconciliation.interval | quote }}
 {{ end }}
 {{ if .Values.options.reconciliation.retryInterval }}
-            - name: seq__Operator__Reconciliation__RetryInterval
+            - name: Seq__Operator__Reconciliation__RetryInterval
               value: {{ .Values.options.reconciliation.retryInterval | quote }}
 {{ end }}
 {{ range .Values.operator.env }}
