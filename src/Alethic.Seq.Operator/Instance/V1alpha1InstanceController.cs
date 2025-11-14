@@ -103,7 +103,7 @@ namespace Alethic.Seq.Operator.Instance
         {
             // deploy locally if no remote specified
             if (entity.Spec.Remote is null)
-                await ReconcileDeploymentAsync(entity, entity.Spec.Deployment ?? new(), cancellationToken);
+                await ReconcileDeploymentAsync(entity, entity.Spec.Deployment, cancellationToken);
 
             // open connection to Seq
             var api = await GetInstanceConnectionAsync(entity, cancellationToken);
@@ -135,8 +135,10 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="deployment"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<V1alpha1Instance> ReconcileDeploymentAsync(V1alpha1Instance instance, InstanceDeploymentSpec deployment, CancellationToken cancellationToken)
+        async Task<V1alpha1Instance> ReconcileDeploymentAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
         {
+            deployment ??= new InstanceDeploymentSpec();
+
             var loginSecret = await ReconcileDeploymentLoginSecretAsync(instance, deployment, cancellationToken);
             var adminApiKey = await ReconcileDeploymentAdminApiKeyAsync(instance, deployment, cancellationToken);
             var serviceAccount = await ReconcileDeploymentServiceAccountAsync(instance, deployment, cancellationToken);
