@@ -101,33 +101,33 @@ namespace Alethic.Seq.Operator.Instance
         protected override string EntityTypeName => "Instance";
 
         /// <inheritdoc />
-        protected override async Task<V1alpha1Instance> Reconcile(V1alpha1Instance entity, CancellationToken cancellationToken)
+        protected override async Task<V1alpha1Instance> Reconcile(V1alpha1Instance instance, CancellationToken cancellationToken)
         {
             // deploy locally if no remote specified
-            if (entity.Spec.Remote is null)
-                await ReconcileDeploymentAsync(entity, entity.Spec.Deployment, cancellationToken);
+            if (instance.Spec.Remote is null)
+                await ReconcileDeploymentAsync(instance, instance.Spec.Deployment, cancellationToken);
 
             // open connection to Seq
-            var api = await GetInstanceConnectionAsync(entity, cancellationToken);
+            var api = await GetInstanceConnectionAsync(instance, cancellationToken);
             if (api == null)
-                throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}:{entity.Name()} failed to retrieve API client.");
+                throw new InvalidOperationException($"{EntityTypeName} {instance.Namespace()}:{instance.Name()} failed to retrieve API client.");
 
             // get existing info
             var info = await GetInfoAsync(api, cancellationToken);
             if (info is null)
-                throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} cannot be loaded from API.");
+                throw new InvalidOperationException($"{EntityTypeName} {instance.Namespace()}/{instance.Name()} cannot be loaded from API.");
 
             // configuration was specified
-            if (entity.Spec.Conf is { } conf)
+            if (instance.Spec.Conf is { } conf)
             {
-                await PutConfAsync(api, info, conf, cancellationToken);
+                await PutConfAsync(instance, api, info, conf, cancellationToken);
                 info = await GetInfoAsync(api, cancellationToken);
             }
 
             // retrieve and copy applied settings to status
-            entity.Status.Info = info;
-            entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
-            return entity;
+            instance.Status.Info = info;
+            instance = await Kube.UpdateStatusAsync(instance, cancellationToken);
+            return instance;
         }
 
         /// <summary>
@@ -924,12 +924,15 @@ namespace Alethic.Seq.Operator.Instance
         /// Queries for the specified setting.
         /// </summary>
         /// <typeparam name="T"></typeparam>
+        /// <param name="instance"></param>
         /// <param name="api"></param>
         /// <param name="name"></param>
+        /// <param name="value"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task PutSettingValueAsync<T>(SeqConnection api, SettingName name, T? value, CancellationToken cancellationToken)
+        async Task PutSettingValueAsync<T>(V1alpha1Instance instance, SeqConnection api, SettingName name, T? value, CancellationToken cancellationToken)
         {
+            Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} putting Seq setting {SettingName}.", EntityTypeName, instance.Namespace(), instance.Name(), name);
             var setting = await api.Settings.FindNamedAsync(name, cancellationToken);
             setting.Value = value;
             await api.Settings.UpdateAsync(setting, cancellationToken);
@@ -938,88 +941,90 @@ namespace Alethic.Seq.Operator.Instance
         /// <summary>
         /// Puts the configuration to the API.
         /// </summary>
+        /// <param name="instance"></param>
         /// <param name="api"></param>
+        /// <param name="info"></param>
+        /// <param name="conf"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        async Task PutConfAsync(SeqConnection api, InstanceInfo? info, InstanceConf conf, CancellationToken cancellationToken)
+        async Task PutConfAsync(V1alpha1Instance instance, SeqConnection api, InstanceInfo? info, InstanceConf conf, CancellationToken cancellationToken)
         {
             if (conf is not null)
             {
                 if (conf.Auth is not null)
-                    await PutAuthSettingsAsync(api, info?.Auth, conf.Auth, cancellationToken);
+                    await PutAuthSettingsAsync(instance, api, info?.Auth, conf.Auth, cancellationToken);
 
                 if (conf.DataAgeWarningThresholdMilliseconds is long dataAgeWarningThresholdMilliseconds)
                     if (info == null || info.DataAgeWarningThresholdMilliseconds != dataAgeWarningThresholdMilliseconds)
-                        await PutSettingValueAsync(api, SettingName.DataAgeWarningThresholdMilliseconds, dataAgeWarningThresholdMilliseconds, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.DataAgeWarningThresholdMilliseconds, dataAgeWarningThresholdMilliseconds, cancellationToken);
 
                 if (conf.BackupLocation is string backupLocation)
                     if (info == null || info.BackupLocation != backupLocation)
-                        await PutSettingValueAsync(api, SettingName.BackupLocation, backupLocation, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.BackupLocation, backupLocation, cancellationToken);
 
                 if (conf.BackupsToKeep is long backupsToKeep)
                     if (info == null || info.BackupsToKeep != backupsToKeep)
-                        await PutSettingValueAsync(api, SettingName.BackupsToKeep, backupsToKeep, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.BackupsToKeep, backupsToKeep, cancellationToken);
 
                 if (conf.BackupUtcTimeOfDay is string backupUtcTimeOfDay)
                     if (info == null || info.BackupUtcTimeOfDay != backupUtcTimeOfDay)
-                        await PutSettingValueAsync(api, SettingName.BackupUtcTimeOfDay, backupUtcTimeOfDay, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.BackupUtcTimeOfDay, backupUtcTimeOfDay, cancellationToken);
 
                 if (conf.CheckForPackageUpdates is bool checkForPackageUpdates)
                     if (info == null || info.CheckForPackageUpdates != checkForPackageUpdates)
-                        await PutSettingValueAsync(api, SettingName.CheckForPackageUpdates, checkForPackageUpdates, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.CheckForPackageUpdates, checkForPackageUpdates, cancellationToken);
 
                 if (conf.CheckForUpdates is bool checkForUpdates)
                     if (info == null || info.CheckForUpdates != checkForUpdates)
-                        await PutSettingValueAsync(api, SettingName.CheckForUpdates, checkForUpdates, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.CheckForUpdates, checkForUpdates, cancellationToken);
 
                 if (conf.InstanceTitle is string instanceTitle)
                     if (info == null || info.InstanceTitle != instanceTitle)
-                        await PutSettingValueAsync(api, SettingName.InstanceTitle, instanceTitle, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.InstanceTitle, instanceTitle, cancellationToken);
 
                 if (conf.MinimumFreeStorageSpace is long minimumFreeStorageSpace)
                     if (info == null || info.MinimumFreeStorageSpace != minimumFreeStorageSpace)
-                        await PutSettingValueAsync(api, SettingName.MinimumFreeStorageSpace, minimumFreeStorageSpace, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.MinimumFreeStorageSpace, minimumFreeStorageSpace, cancellationToken);
 
                 //if (conf.NewUserPreferences is long newUserPreferences)
                 //    if (info == null ||  info.NewUserPreferences != newUserPreferences)
-                //        await PutSettingValueAsync(api, SettingName.NewUserPreferences, newUserPreferences, cancellationToken);
+                //        await PutSettingValueAsync(instance, api, SettingName.NewUserPreferences, newUserPreferences, cancellationToken);
 
                 //if (conf.NewUserRoleIds is long newUserRoleIds)
                 //    if (info == null ||  info.NewUserRoleIds != newUserRoleIds)
-                //        await PutSettingValueAsync(api, SettingName.NewUserRoleIds, newUserRoleIds, cancellationToken);
+                //        await PutSettingValueAsync(instance, api, SettingName.NewUserRoleIds, newUserRoleIds, cancellationToken);
 
                 //if (conf.NewUserShowSignalIds is long newUserShowSignalIds)
                 //    if (info == null ||  info.NewUserShowSignalIds != newUserShowSignalIds)
-                //        await PutSettingValueAsync(api, SettingName.NewUserShowSignalIds, newUserShowSignalIds, cancellationToken);
+                //        await PutSettingValueAsync(instance, api, SettingName.NewUserShowSignalIds, newUserShowSignalIds, cancellationToken);
 
                 //if (conf.NewUserShowQueryIds is long newUserShowQueryIds)
                 //    if (info == null ||  info.NewUserShowQueryIds != newUserShowQueryIds)
-                //        await PutSettingValueAsync(api, SettingName.NewUserShowQueryIds, newUserShowQueryIds, cancellationToken);
+                //        await PutSettingValueAsync(instance, api, SettingName.NewUserShowQueryIds, newUserShowQueryIds, cancellationToken);
 
                 //if (conf.NewUserShowDashboardIds is long newUserShowDashboardIds)
                 //    if (info == null ||  info.NewUserShowDashboardIds != newUserShowDashboardIds)
-                //        await PutSettingValueAsync(api, SettingName.NewUserShowDashboardIds, newUserShowDashboardIds, cancellationToken);
+                //        await PutSettingValueAsync(instance, api, SettingName.NewUserShowDashboardIds, newUserShowDashboardIds, cancellationToken);
 
                 if (conf.RequireApiKeyForWritingEvents is bool requireApiKeyForWritingEvents)
                     if (info == null || info.RequireApiKeyForWritingEvents != requireApiKeyForWritingEvents)
-                        await PutSettingValueAsync(api, SettingName.RequireApiKeyForWritingEvents, requireApiKeyForWritingEvents, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.RequireApiKeyForWritingEvents, requireApiKeyForWritingEvents, cancellationToken);
 
                 if (conf.RawEventMaximumContentLength is long rawEventMaximumContentLength)
                     if (info == null || info.RawEventMaximumContentLength != rawEventMaximumContentLength)
-                        await PutSettingValueAsync(api, SettingName.RawEventMaximumContentLength, rawEventMaximumContentLength, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.RawEventMaximumContentLength, rawEventMaximumContentLength, cancellationToken);
 
                 if (conf.RawPayloadMaximumContentLength is long rawPayloadMaximumContentLength)
                     if (info == null || info.RawPayloadMaximumContentLength != rawPayloadMaximumContentLength)
-                        await PutSettingValueAsync(api, SettingName.RawPayloadMaximumContentLength, rawPayloadMaximumContentLength, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.RawPayloadMaximumContentLength, rawPayloadMaximumContentLength, cancellationToken);
 
                 if (conf.TargetReplicaCount is long targetReplicaCount)
                     if (info == null || info.TargetReplicaCount != targetReplicaCount)
-                        await PutSettingValueAsync(api, SettingName.TargetReplicaCount, targetReplicaCount, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.TargetReplicaCount, targetReplicaCount, cancellationToken);
 
                 if (conf.ThemeStyles is string themeStyles)
                     if (info == null || info.ThemeStyles != themeStyles)
-                        await PutSettingValueAsync(api, SettingName.ThemeStyles, themeStyles, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.ThemeStyles, themeStyles, cancellationToken);
             }
         }
 
@@ -1031,15 +1036,15 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="conf"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task PutAuthSettingsAsync(SeqConnection api, InstanceConfAuthenticationSpec? info, InstanceConfAuthenticationSpec conf, CancellationToken cancellationToken)
+        async Task PutAuthSettingsAsync(V1alpha1Instance instance, SeqConnection api, InstanceConfAuthenticationSpec? info, InstanceConfAuthenticationSpec conf, CancellationToken cancellationToken)
         {
             if (conf.Local is { } local)
             {
                 // only apply if existing authentication mode is not local
                 if (info is null or { Local: null })
                 {
-                    await PutSettingValueAsync(api, SettingName.IsAuthenticationEnabled, true, cancellationToken);
-                    await PutSettingValueAsync<string>(api, SettingName.AuthenticationProvider, null, cancellationToken);
+                    await PutSettingValueAsync(instance, api, SettingName.IsAuthenticationEnabled, true, cancellationToken);
+                    await PutSettingValueAsync<string>(instance, api, SettingName.AuthenticationProvider, null, cancellationToken);
                 }
 
                 return;
@@ -1049,17 +1054,17 @@ namespace Alethic.Seq.Operator.Instance
             {
                 if (info is null or { ActiveDirectory: null })
                 {
-                    await PutSettingValueAsync(api, SettingName.IsAuthenticationEnabled, true, cancellationToken);
-                    await PutSettingValueAsync(api, SettingName.AuthenticationProvider, "Active Directory", cancellationToken);
+                    await PutSettingValueAsync(instance, api, SettingName.IsAuthenticationEnabled, true, cancellationToken);
+                    await PutSettingValueAsync(instance, api, SettingName.AuthenticationProvider, "Active Directory", cancellationToken);
                 }
 
                 if (activeDirectory.AutomaticAccessADGroup is not null)
                     if (info?.ActiveDirectory?.AutomaticAccessADGroup != activeDirectory.AutomaticAccessADGroup)
-                        await PutSettingValueAsync(api, SettingName.AutomaticAccessADGroup, activeDirectory.AutomaticAccessADGroup, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.AutomaticAccessADGroup, activeDirectory.AutomaticAccessADGroup, cancellationToken);
 
                 if (conf.AutomaticallyProvisionAuthenticatedUsers is not null)
                     if (info?.AutomaticallyProvisionAuthenticatedUsers != conf.AutomaticallyProvisionAuthenticatedUsers)
-                        await PutSettingValueAsync(api, SettingName.AutomaticallyProvisionAuthenticatedUsers, conf.AutomaticallyProvisionAuthenticatedUsers, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.AutomaticallyProvisionAuthenticatedUsers, conf.AutomaticallyProvisionAuthenticatedUsers, cancellationToken);
 
                 return;
             }
@@ -1068,29 +1073,29 @@ namespace Alethic.Seq.Operator.Instance
             {
                 if (info is null or { Entra: null })
                 {
-                    await PutSettingValueAsync(api, SettingName.IsAuthenticationEnabled, true, cancellationToken);
-                    await PutSettingValueAsync(api, SettingName.AuthenticationProvider, "Microsoft Entra ID", cancellationToken);
+                    await PutSettingValueAsync(instance, api, SettingName.IsAuthenticationEnabled, true, cancellationToken);
+                    await PutSettingValueAsync(instance, api, SettingName.AuthenticationProvider, "Microsoft Entra ID", cancellationToken);
                 }
 
                 if (entra.Authority is not null)
                     if (info?.Entra?.Authority != entra.Authority)
-                        await PutSettingValueAsync(api, SettingName.EntraIDAuthority, entra.Authority, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.EntraIDAuthority, entra.Authority, cancellationToken);
 
                 if (entra.TenantId is not null)
                     if (info?.Entra?.TenantId != entra.TenantId)
-                        await PutSettingValueAsync(api, SettingName.EntraIDTenantId, entra.TenantId, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.EntraIDTenantId, entra.TenantId, cancellationToken);
 
                 if (entra.ClientId is not null)
                     if (info?.Entra?.ClientId != entra.ClientId)
-                        await PutSettingValueAsync(api, SettingName.EntraIDClientId, entra.ClientId, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.EntraIDClientId, entra.ClientId, cancellationToken);
 
                 if (entra.ClientKey is not null)
                     if (info?.Entra?.ClientKey != entra.ClientKey)
-                        await PutSettingValueAsync(api, SettingName.EntraIDClientKey, entra.ClientKey, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.EntraIDClientKey, entra.ClientKey, cancellationToken);
 
                 if (conf.AutomaticallyProvisionAuthenticatedUsers is not null)
                     if (info?.AutomaticallyProvisionAuthenticatedUsers != conf.AutomaticallyProvisionAuthenticatedUsers)
-                        await PutSettingValueAsync(api, SettingName.AutomaticallyProvisionAuthenticatedUsers, conf.AutomaticallyProvisionAuthenticatedUsers, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.AutomaticallyProvisionAuthenticatedUsers, conf.AutomaticallyProvisionAuthenticatedUsers, cancellationToken);
 
                 return;
             }
@@ -1099,40 +1104,40 @@ namespace Alethic.Seq.Operator.Instance
             {
                 if (info is null or { Oidc: null })
                 {
-                    await PutSettingValueAsync(api, SettingName.IsAuthenticationEnabled, true, cancellationToken);
-                    await PutSettingValueAsync(api, SettingName.AuthenticationProvider, "OpenID Connect", cancellationToken);
+                    await PutSettingValueAsync(instance, api, SettingName.IsAuthenticationEnabled, true, cancellationToken);
+                    await PutSettingValueAsync(instance, api, SettingName.AuthenticationProvider, "OpenID Connect", cancellationToken);
                 }
 
                 if (oidc.Authority is not null)
                     if (info?.Oidc?.Authority != oidc.Authority)
-                        await PutSettingValueAsync(api, SettingName.OpenIdConnectAuthority, oidc.Authority, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.OpenIdConnectAuthority, oidc.Authority, cancellationToken);
 
                 if (oidc.ClientId is not null)
                     if (info?.Oidc?.ClientId != oidc.ClientId)
-                        await PutSettingValueAsync(api, SettingName.OpenIdConnectClientId, oidc.ClientId, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.OpenIdConnectClientId, oidc.ClientId, cancellationToken);
 
                 if (oidc.ClientSecret is not null)
                     if (info?.Oidc?.ClientSecret != oidc.ClientSecret)
-                        await PutSettingValueAsync(api, SettingName.OpenIdConnectClientSecret, oidc.ClientSecret, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.OpenIdConnectClientSecret, oidc.ClientSecret, cancellationToken);
 
                 if (oidc.MetadataAddress is not null)
                     if (info?.Oidc?.MetadataAddress != oidc.MetadataAddress)
-                        await PutSettingValueAsync(api, SettingName.OpenIdConnectMetadataAddress, oidc.MetadataAddress, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.OpenIdConnectMetadataAddress, oidc.MetadataAddress, cancellationToken);
 
                 if (oidc.Scopes is not null)
                     if (SetEqual(info?.Oidc?.Scopes, oidc.Scopes) == false)
-                        await PutSettingValueAsync(api, SettingName.OpenIdConnectScopes, oidc.Scopes, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.OpenIdConnectScopes, oidc.Scopes, cancellationToken);
 
                 if (conf.AutomaticallyProvisionAuthenticatedUsers is not null)
                     if (info?.AutomaticallyProvisionAuthenticatedUsers != conf.AutomaticallyProvisionAuthenticatedUsers)
-                        await PutSettingValueAsync(api, SettingName.AutomaticallyProvisionAuthenticatedUsers, conf.AutomaticallyProvisionAuthenticatedUsers, cancellationToken);
+                        await PutSettingValueAsync(instance, api, SettingName.AutomaticallyProvisionAuthenticatedUsers, conf.AutomaticallyProvisionAuthenticatedUsers, cancellationToken);
 
                 return;
             }
 
             // disable authentication if previously enabled
             if (info is null or { Local: not null } or { ActiveDirectory: not null } or { Entra: not null } or { Oidc: not null })
-                await PutSettingValueAsync(api, SettingName.IsAuthenticationEnabled, false, cancellationToken);
+                await PutSettingValueAsync(instance, api, SettingName.IsAuthenticationEnabled, false, cancellationToken);
         }
 
         /// <summary>
