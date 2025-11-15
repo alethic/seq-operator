@@ -54,10 +54,10 @@ namespace Alethic.Seq.Operator.Alerts
         protected override string EntityTypeName => "Alert";
 
         /// <inheritdoc />
-        protected override bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanAttachAlert(ns);
+        protected override bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CheckPermission(ns, false, p => p.Alerts?.Attach);
 
         /// <inheritdoc />
-        protected override bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanCreateAlert(ns);
+        protected override bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CheckPermission(ns, false, p => p.Alerts?.Create);
 
         /// <inheritdoc />
         protected override async Task<string?> FindAsync(V1alpha1Alert entity, SeqConnection api, V1alpha1AlertSpec spec, string defaultNamespace, CancellationToken cancellationToken)

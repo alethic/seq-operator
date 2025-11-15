@@ -51,10 +51,10 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         protected override string EntityTypeName => "RetentionPolicy";
 
         /// <inheritdoc />
-        protected override bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanAttachRetentionPolicy(ns);
+        protected override bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CheckPermission(ns, false, p => p.RetentionPolicies?.Attach);
 
         /// <inheritdoc />
-        protected override bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanCreateRetentionPolicy(ns);
+        protected override bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CheckPermission(ns, false, p => p.RetentionPolicies?.Create);
 
         /// <inheritdoc />
         protected override async Task<RetentionPolicyInfo?> GetAsync(V1alpha1RetentionPolicy entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)

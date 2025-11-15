@@ -1031,6 +1031,9 @@ spec:
                           type: string
                         nullable: true
                         type: object
+                      type:
+                        nullable: true
+                        type: string
                       clusterIP:
                         nullable: true
                         type: string
@@ -1097,10 +1100,11 @@ spec:
                       trafficDistribution:
                         nullable: true
                         type: string
-                      type:
-                        nullable: true
-                        type: string
                       port:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      nodePort:
                         format: int32
                         nullable: true
                         type: integer
@@ -1181,21 +1185,27 @@ spec:
                         setTitle:
                           nullable: true
                           type: boolean
-                        allowedPermissions:
-                          items:
-                            enum:
-                            - Undefined
-                            - Public
-                            - Ingest
-                            - Read
-                            - Write
-                            - Setup
-                            - Project
-                            - System
-                            - Organization
-                            type: string
+                        setPublic:
                           nullable: true
-                          type: array
+                          type: boolean
+                        setIngest:
+                          nullable: true
+                          type: boolean
+                        setRead:
+                          nullable: true
+                          type: boolean
+                        setWrite:
+                          nullable: true
+                          type: boolean
+                        setProject:
+                          nullable: true
+                          type: boolean
+                        setSystem:
+                          nullable: true
+                          type: boolean
+                        setOrganization:
+                          nullable: true
+                          type: boolean
                       type: object
                     retentionPolicies:
                       nullable: true

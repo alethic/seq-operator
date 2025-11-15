@@ -19,7 +19,7 @@ namespace Alethic.Seq.Operator.Instance
         public InstanceDeploymentSpec? Deployment { get; set; }
 
         /// <summary>
-        /// Permissions to apply on access to the instance.
+        /// Permissions to apply on access to the instance. The first permission entry that matches the entity is applied.
         /// </summary>
         [JsonPropertyName("permissions")]
         public InstancePermission[]? Permissions { get; set; }

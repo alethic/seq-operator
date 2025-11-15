@@ -59,10 +59,10 @@ namespace Alethic.Seq.Operator.ApiKey
         protected override string EntityTypeName => "ApiKey";
 
         /// <inheritdoc />
-        protected override bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanAttachApiKey(ns);
+        protected override bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CheckPermission(ns, false, p => p.ApiKeys?.Attach);
 
         /// <inheritdoc />
-        protected override bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanCreateApiKey(ns);
+        protected override bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CheckPermission(ns, false, p => p.ApiKeys?.Create);
 
         /// <inheritdoc />
         protected override async Task<string?> FindAsync(V1alpha1ApiKey entity, SeqConnection api, V1alpha1ApiKeySpec spec, string defaultNamespace, CancellationToken cancellationToken)
@@ -123,7 +123,7 @@ namespace Alethic.Seq.Operator.ApiKey
             if (ns is null)
                 throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: cannot retrieve namespace.");
 
-            var setTitle = instance.CheckPermission(ns, true, p => p.ApiKeys?.SetTitle);
+            var setTitle = instance.CheckPermission(ns, false, p => p.ApiKeys?.SetTitle);
             if (setTitle == false && conf?.Title != null)
                 return "title cannot be set explicitly";
 

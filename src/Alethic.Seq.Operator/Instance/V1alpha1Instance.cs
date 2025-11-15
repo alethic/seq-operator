@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using k8s.Models;
 
@@ -16,6 +15,40 @@ namespace Alethic.Seq.Operator.Instance
         CustomKubernetesEntity<V1alpha1InstanceSpec, V1alpha1InstanceStatus>,
         V1alpha1Entity<V1alpha1InstanceSpec, V1alpha1InstanceStatus, InstanceConf, InstanceInfo>
     {
+
+        /// <summary>
+        /// Default permission set if none specified.
+        /// </summary>
+        readonly static InstancePermission DefaultPermissions = new InstancePermission()
+        {
+            Namespaces = new InstancePermissionNamespaces
+            {
+                From = InstancePermissionNamespaceFrom.Same,
+            },
+            Alerts = new InstanceAlertPermissions()
+            {
+                Attach = true,
+                Create = true,
+            },
+            ApiKeys = new InstanceApiKeyPermissions()
+            {
+                Attach = true,
+                Create = true,
+                SetTitle = true,
+                SetIngest = true,
+                SetOrganization = true,
+                SetProject = true,
+                SetPublic = true,
+                SetRead = true,
+                SetSystem = true,
+                SetWrite = true,
+            },
+            RetentionPolicies = new InstanceRetentionPolicyPermissions()
+            {
+                Attach = true,
+                Create = true,
+            }
+        };
 
         /// <summary>
         /// Evaluates whether the given ns matches the specified label selector.
@@ -61,19 +94,21 @@ namespace Alethic.Seq.Operator.Instance
         }
 
         /// <summary>
-        /// Gets the <see cref="InstancePermission"/> that apply to the specified namespace.
+        /// Gets the first <see cref="InstancePermission"/> that apply to the specified namespace.
         /// </summary>
         /// <param name="ns"></param>
         /// <returns></returns>
-        IEnumerable<InstancePermission> MatchPermissions(V1Namespace ns)
+        InstancePermission? MatchPermissions(V1Namespace ns)
         {
-            foreach (var p in Spec.Permissions ?? [])
+            foreach (var p in Spec.Permissions ?? [DefaultPermissions])
                 if (MatchPermission(ns, p))
-                    yield return p;
+                    return p;
+
+            return null;
         }
 
         /// <summary>
-        /// Checks the 
+        /// Checks the given permission boolean. 
         /// </summary>
         /// <param name="ns"></param>
         /// <param name="defaultValue"></param>
@@ -81,80 +116,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <returns></returns>
         public bool CheckPermission(V1Namespace ns, bool defaultValue, Func<InstancePermission, bool?> func)
         {
-            var value = defaultValue;
-
-            // check each permission for a deny (false)
-            foreach (var p in MatchPermissions(ns))
-                if (func(p) == false)
-                    return false;
-
-            // for at least one allow permission for an allow (true)
-            foreach (var p in MatchPermissions(ns))
-                if (func(p) == true)
-                    return true;
-
-            // fallback to default value
-            return defaultValue;
-        }
-
-        /// <summary>
-        /// Returns <c>true</c> if the specified <see cref="V1Namespace"/> can attach to existing alerts.
-        /// </summary>
-        /// <param name="ns"></param>
-        /// <returns></returns>
-        public bool CanAttachAlert(V1Namespace ns)
-        {
-            return CheckPermission(ns, false, p => p.Alerts?.Attach);
-        }
-
-        /// <summary>
-        /// Returns <c>true</c> if the specified <see cref="V1Namespace"/> can create alerts.
-        /// </summary>
-        /// <param name="ns"></param>
-        /// <returns></returns>
-        public bool CanCreateAlert(V1Namespace ns)
-        {
-            return CheckPermission(ns, false, p => p.Alerts?.Create);
-        }
-
-        /// <summary>
-        /// Returns <c>true</c> if the specified <see cref="V1Namespace"/> can attach to existing API keys.
-        /// </summary>
-        /// <param name="ns"></param>
-        /// <returns></returns>
-        public bool CanAttachApiKey(V1Namespace ns)
-        {
-            return CheckPermission(ns, false, p => p.ApiKeys?.Attach);
-        }
-
-        /// <summary>
-        /// Returns <c>true</c> if the specified <see cref="V1Namespace"/> can create API keys.
-        /// </summary>
-        /// <param name="ns"></param>
-        /// <returns></returns>
-        public bool CanCreateApiKey(V1Namespace ns)
-        {
-            return CheckPermission(ns, false, p => p.ApiKeys?.Create);
-        }
-
-        /// <summary>
-        /// Returns <c>true</c> if the specified <see cref="V1Namespace"/> can attach to existing retention policies.
-        /// </summary>
-        /// <param name="ns"></param>
-        /// <returns></returns>
-        public bool CanAttachRetentionPolicy(V1Namespace ns)
-        {
-            return CheckPermission(ns, false, p => p.RetentionPolicies?.Attach);
-        }
-
-        /// <summary>
-        /// Returns <c>true</c> if the specified <see cref="V1Namespace"/> can create retention policies.
-        /// </summary>
-        /// <param name="ns"></param>
-        /// <returns></returns>
-        public bool CanCreateRetentionPolicy(V1Namespace ns)
-        {
-            return CheckPermission(ns, false, p => p.RetentionPolicies?.Create);
+            return MatchPermissions(ns) is { } p ? func(p) ?? defaultValue : defaultValue;
         }
 
     }

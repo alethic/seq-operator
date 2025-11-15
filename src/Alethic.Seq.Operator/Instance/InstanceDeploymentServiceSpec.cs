@@ -18,6 +18,9 @@ namespace Alethic.Seq.Operator.Instance
         [JsonPropertyName("labels")]
         public IDictionary<string, string>? Labels { get; set; }
 
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+
         [JsonPropertyName("clusterIP")]
         public string? ClusterIP { get; set; }
 
@@ -63,11 +66,11 @@ namespace Alethic.Seq.Operator.Instance
         [JsonPropertyName("trafficDistribution")]
         public string? TrafficDistribution { get; set; }
 
-        [JsonPropertyName("type")]
-        public string? Type { get; set; }
-
         [JsonPropertyName("port")]
         public int? Port { get; set; }
+
+        [JsonPropertyName("nodePort")]
+        public int? NodePort { get; set; }
 
     }
 

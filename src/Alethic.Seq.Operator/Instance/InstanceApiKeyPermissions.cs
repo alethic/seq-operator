@@ -29,12 +29,33 @@ namespace Alethic.Seq.Operator.Instance
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? SetTitle { get; set; }
 
-        /// <summary>
-        /// Allowed permissions of keys.
-        /// </summary>
-        [JsonPropertyName("allowedPermissions")]
+        [JsonPropertyName("setPublic")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public ApiKeyPermission[]? AllowedPermissions { get; set; }
+        public bool? SetPublic { get; set; }
+
+        [JsonPropertyName("setIngest")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? SetIngest { get; set; }
+
+        [JsonPropertyName("setRead")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? SetRead { get; set; }
+
+        [JsonPropertyName("setWrite")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? SetWrite { get; set; }
+
+        [JsonPropertyName("setProject")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? SetProject { get; set; }
+
+        [JsonPropertyName("setSystem")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? SetSystem { get; set; }
+
+        [JsonPropertyName("setOrganization")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? SetOrganization { get; set; }
 
     }
 

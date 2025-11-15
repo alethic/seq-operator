@@ -352,9 +352,7 @@ namespace Alethic.Seq.Operator.Instance
             apikey.Spec ??= new V1alpha1ApiKeySpec();
             apikey.Spec.InstanceRef = new V1alpha1InstanceReference() { Name = instance.Name(), Namespace = instance.Namespace() };
             apikey.Spec.SecretRef = deployment.TokenSecretRef;
-            apikey.Spec.Find = new ApiKeyFind() { Title = "SeqOperatorApiKey" };
             apikey.Spec.Conf = new ApiKeyConf();
-            apikey.Spec.Conf.Title = "SeqOperatorApiKey";
             apikey.Spec.Conf.Permissions = [ApiKeyPermission.Public, ApiKeyPermission.Ingest, ApiKeyPermission.Read, ApiKeyPermission.Write, ApiKeyPermission.Project, ApiKeyPermission.System, ApiKeyPermission.Organization];
             return apikey;
         }
@@ -716,64 +714,32 @@ namespace Alethic.Seq.Operator.Instance
             service.Spec.Selector["seq.k8s.datalust.co/instance"] = instance.Name();
             service.Spec.Selector["seq.k8s.datalust.co/component"] = "pod";
 
+            var port = new V1ServicePort(deployment.Service?.Port ?? 80, name: "http");
+            if (deployment.Service?.NodePort is int nodePort)
+                port.NodePort = nodePort;
+
             // reset ports
             service.Spec.Ports ??= new List<V1ServicePort>();
             service.Spec.Ports.Clear();
-            service.Spec.Ports.Add(new V1ServicePort(deployment.Service?.Port ?? 80, name: "http"));
+            service.Spec.Ports.Add(port);
 
-            // set service type
-            service.Spec.Type = "ClusterIP";
-            service.Spec.ClusterIP = "";
-
-            // apply further user settings, potentially overriding the defaults
-
-            if (deployment.Service is { Type: { } type })
-                service.Spec.Type = type;
-
-            if (deployment.Service is { ClusterIP: { } clusterIP })
-                service.Spec.ClusterIP = clusterIP;
-
-            if (deployment.Service is { ClusterIPs: { } clusterIPs })
-                service.Spec.ClusterIPs = clusterIPs;
-
-            if (deployment.Service is { ExternalIPs: { } externalIPs })
-                service.Spec.ExternalIPs = externalIPs;
-
-            if (deployment.Service is { ExternalName: { } externalName })
-                service.Spec.ExternalName = externalName;
-
-            if (deployment.Service is { ExternalTrafficPolicy: { } externalTrafficPolicy })
-                service.Spec.ExternalTrafficPolicy = externalTrafficPolicy;
-
-            if (deployment.Service is { InternalTrafficPolicy: { } internalTrafficPolicy })
-                service.Spec.InternalTrafficPolicy = internalTrafficPolicy;
-
-            if (deployment.Service is { IpFamilies: { } ipFamilies })
-                service.Spec.IpFamilies = ipFamilies;
-
-            if (deployment.Service is { IpFamilyPolicy: { } ipFamilyPolicy })
-                service.Spec.IpFamilyPolicy = ipFamilyPolicy;
-
-            if (deployment.Service is { LoadBalancerClass: { } loadBalancerClass })
-                service.Spec.LoadBalancerClass = loadBalancerClass;
-
-            if (deployment.Service is { LoadBalancerIP: { } loadBalancerIP })
-                service.Spec.LoadBalancerIP = loadBalancerIP;
-
-            if (deployment.Service is { LoadBalancerSourceRanges: { } loadBalancerSourceRanges })
-                service.Spec.LoadBalancerSourceRanges = loadBalancerSourceRanges;
-
-            if (deployment.Service is { PublishNotReadyAddresses: { } publishNotReadyAddresses })
-                service.Spec.PublishNotReadyAddresses = publishNotReadyAddresses;
-
-            if (deployment.Service is { SessionAffinity: { } sessionAffinity })
-                service.Spec.SessionAffinity = sessionAffinity;
-
-            if (deployment.Service is { SessionAffinityConfig: { } sessionAffinityConfig })
-                service.Spec.SessionAffinityConfig = sessionAffinityConfig;
-
-            if (deployment.Service is { TrafficDistribution: { } trafficDistribution })
-                service.Spec.TrafficDistribution = trafficDistribution;
+            // further settings
+            service.Spec.Type = deployment.Service?.Type ?? "ClusterIP";
+            service.Spec.ClusterIP = deployment.Service?.ClusterIP ?? "";
+            service.Spec.ClusterIPs = deployment.Service?.ClusterIPs;
+            service.Spec.ExternalIPs = deployment.Service?.ExternalIPs;
+            service.Spec.ExternalName = deployment.Service?.ExternalName;
+            service.Spec.ExternalTrafficPolicy = deployment.Service?.ExternalTrafficPolicy;
+            service.Spec.InternalTrafficPolicy = deployment.Service?.InternalTrafficPolicy;
+            service.Spec.IpFamilies = deployment.Service?.IpFamilies;
+            service.Spec.IpFamilyPolicy = deployment.Service?.IpFamilyPolicy;
+            service.Spec.LoadBalancerClass = deployment.Service?.LoadBalancerClass;
+            service.Spec.LoadBalancerIP = deployment.Service?.LoadBalancerIP;
+            service.Spec.LoadBalancerSourceRanges = deployment.Service?.LoadBalancerSourceRanges;
+            service.Spec.PublishNotReadyAddresses = deployment.Service?.PublishNotReadyAddresses;
+            service.Spec.SessionAffinity = deployment.Service?.SessionAffinity;
+            service.Spec.SessionAffinityConfig = deployment.Service?.SessionAffinityConfig;
+            service.Spec.TrafficDistribution = deployment.Service?.TrafficDistribution;
 
             return service;
         }

@@ -43,7 +43,7 @@ namespace Alethic.Seq.Operator
         }
 
         /// <summary>
-        /// Returns <c>true</c> if the managed entity can attach to existing Seq objects in the given instance.
+        /// Returns <c>true</c> if the given namespace can attach to existing Seq objects in the given instance.
         /// </summary>
         /// <param name="instance"></param>
         /// <param name="ns"></param>
@@ -51,7 +51,7 @@ namespace Alethic.Seq.Operator
         protected abstract bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns);
 
         /// <summary>
-        /// Returns <c>true</c> if the managed entity can create new Seq objects in the given instance.
+        /// Returns <c>true</c> if the given namespace can create new Seq objects in the given instance.
         /// </summary>
         /// <param name="instance"></param>
         /// <param name="ns"></param>
