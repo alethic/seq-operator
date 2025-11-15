@@ -10,10 +10,6 @@ namespace Alethic.Seq.Operator.ApiKey
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Title { get; set; }
 
-        [JsonPropertyName("ownerId")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? OwnerId { get; set; }
-
     }
 
 }

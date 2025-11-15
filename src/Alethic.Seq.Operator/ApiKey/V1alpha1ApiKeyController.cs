@@ -97,6 +97,40 @@ namespace Alethic.Seq.Operator.ApiKey
             return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(this, entity, false, p => p.ApiKeys?.SetTitle, cancellationToken);
         }
 
+        /// <summary>
+        /// Searches for an existing entity by title.
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="api"></param>
+        /// <param name="title"></param>
+        /// <param name="defaultNamespace"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        async Task<string?> FindByTitleAsync(V1alpha1ApiKey entity, SeqConnection api, string title, string defaultNamespace,  CancellationToken cancellationToken)
+        {
+            try
+            {
+                var apiKeys = (IEnumerable<ApiKeyEntity>)await api.ApiKeys.ListAsync(null, shared: true, cancellationToken: cancellationToken);
+                if (title is not null)
+                    apiKeys = apiKeys.Where(i => i.Title == title);
+
+                var apiKey = apiKeys.FirstOrDefault();
+                if (apiKey is null)
+                {
+                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} could not find ApiKey with title {Title} or owner {OwnerId}.", EntityTypeName, entity.Namespace(), entity.Name(), title, spec.Find.OwnerId);
+                    return null;
+                }
+
+                Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} found existing ApiKey: {Id}", EntityTypeName, entity.Namespace(), entity.Name(), apiKey.Id);
+                return apiKey.Id;
+            }
+            catch (SeqApiException e)
+            {
+                Logger.LogInformation(e, "{EntityTypeName} {EntityNamespace}/{EntityName} exception finding ApiKey.", EntityTypeName, entity.Namespace(), entity.Name());
+                return null;
+            }
+        }
+
         /// <inheritdoc />
         protected override async Task<string?> FindAsync(V1alpha1ApiKey entity, SeqConnection api, V1alpha1ApiKeySpec spec, string defaultNamespace, CancellationToken cancellationToken)
         {
@@ -104,36 +138,17 @@ namespace Alethic.Seq.Operator.ApiKey
             {
                 var title = spec.Find.Title;
                 if (title is not null)
-                {
-                    try
-                    {
-                        var apiKeys = (IEnumerable<ApiKeyEntity>)await api.ApiKeys.ListAsync(spec.Find.OwnerId, shared: true, cancellationToken: cancellationToken);
-                        if (title is not null)
-                            apiKeys = apiKeys.Where(i => i.Title == title);
-
-                        var apiKey = apiKeys.FirstOrDefault();
-                        if (apiKey is null)
-                        {
-                            Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} could not find ApiKey with title {Title} or owner {OwnerId}.", EntityTypeName, entity.Namespace(), entity.Name(), title, spec.Find.OwnerId);
-                            return null;
-                        }
-
-                        Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} found existing ApiKey: {Id}", EntityTypeName, entity.Namespace(), entity.Name(), apiKey.Id);
-                        return apiKey.Id;
-                    }
-                    catch (SeqApiException e)
-                    {
-                        Logger.LogInformation(e, "{EntityTypeName} {EntityNamespace}/{EntityName} exception finding ApiKey.", EntityTypeName, entity.Namespace(), entity.Name());
-                        return null;
-                    }
-                }
+                    return await FindByTitleAsync(entity, api, title, defaultNamespace, cancellationToken);
 
                 return null;
             }
-            else
-            {
-                return null;
-            }
+
+            // no find and no manually specified title
+            // this would result in an auto generated title, which we can search on safely
+            if (spec.Find is null && spec.Init is { Title: null } && spec.Conf is { Title: null })
+                return await FindByTitleAsync(entity, api, "SeqOperatorApiKey_" + entity.Uid(), defaultNamespace, cancellationToken);
+
+            return null;
         }
 
         /// <inheritdoc />
