@@ -68,7 +68,7 @@ namespace Alethic.Seq.Operator.ApiKey
             if (instance.Spec.Remote is not null)
                 return false;
 
-            // match to entity
+            // match to expected admin entity name/namespace
             var adminApiKeyNamespace = instance.Spec.Deployment?.TokenSecretRef?.NamespaceProperty ?? instance.Namespace();
             var adminApiKeyName = instance.Name();
             return entity.Namespace() == adminApiKeyNamespace && entity.Name() == adminApiKeyName;
