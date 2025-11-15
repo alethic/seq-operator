@@ -20,7 +20,8 @@ using Seq.Api;
 namespace Alethic.Seq.Operator
 {
 
-    public abstract class V1alpha1InstanceEntityController<TEntity, TSpec, TStatus, TConf, TInfo> : V1alpha1Controller<TEntity, TSpec, TStatus, TConf, TInfo>
+    public abstract class V1alpha1InstanceEntityController<TEntity, TSpec, TStatus, TConf, TInfo> :
+        V1alpha1Controller<TEntity, TSpec, TStatus, TConf, TInfo>
         where TEntity : IKubernetesObject<V1ObjectMeta>, V1alpha1InstanceEntity<TSpec, TStatus, TConf, TInfo>
         where TSpec : V1alpha1InstanceEntitySpec<TConf>
         where TStatus : V1alpha1InstanceEntityStatus<TInfo>
@@ -43,20 +44,20 @@ namespace Alethic.Seq.Operator
         }
 
         /// <summary>
-        /// Returns <c>true</c> if the given namespace can attach to existing Seq objects in the given instance.
+        /// Returns <c>true</c> if the given entity can attach to existing Seq objects in the given instance.
         /// </summary>
         /// <param name="instance"></param>
-        /// <param name="ns"></param>
+        /// <param name="entity"></param>
         /// <returns></returns>
-        protected abstract bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns);
+        protected abstract Task<bool> CanAttachFromAsync(V1alpha1Instance instance, TEntity entity, CancellationToken cancellationToken);
 
         /// <summary>
-        /// Returns <c>true</c> if the given namespace can create new Seq objects in the given instance.
+        /// Returns <c>true</c> if the given entity can create new Seq objects in the given instance.
         /// </summary>
         /// <param name="instance"></param>
-        /// <param name="ns"></param>
+        /// <param name="entity"></param>
         /// <returns></returns>
-        protected abstract bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns);
+        protected abstract Task<bool> CanCreateFromAsync(V1alpha1Instance instance, TEntity entity, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the <typeparamref name="TInfo"/> for the entity with the given <paramref name="id"/> or returns <c>null</c>.
@@ -160,17 +161,13 @@ namespace Alethic.Seq.Operator
                 {
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} could not be located, creating.", EntityTypeName, entity.Namespace(), entity.Name());
 
+                    if (await CanCreateFromAsync(instance, entity, cancellationToken) == false)
+                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: referenced Seq instance does not permit creating from this namespace.");
+
                     // validate configuration version used for initialization
                     var init = entity.Spec.Init ?? entity.Spec.Conf;
                     if (await ValidateCreateAsync(instance, entity, init, cancellationToken) is string msg)
                         throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: {msg}");
-
-                    var ns = await ResolveNamespaceAsync(entity.Namespace(), cancellationToken);
-                    if (ns is null)
-                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: cannot retrieve namespace.");
-
-                    if (CanCreateFrom(instance, ns) == false)
-                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: referenced Seq instance does not permit creating from this namespace.");
 
                     // create new entity and associate
                     entity.Status.Id = await CreateAsync(instance, entity, api, init, entity.Namespace(), cancellationToken);
@@ -178,11 +175,7 @@ namespace Alethic.Seq.Operator
                 }
                 else
                 {
-                    var ns = await ResolveNamespaceAsync(entity.Namespace(), cancellationToken);
-                    if (ns is null)
-                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: cannot retrieve namespace.");
-
-                    if (CanAttachFrom(instance, ns) == false)
+                    if (await CanAttachFromAsync(instance, entity, cancellationToken) == false)
                         throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: referenced Seq instance does not permit attaching from this namespace.");
 
                     entity.Status.Id = entityId;

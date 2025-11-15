@@ -58,11 +58,44 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <inheritdoc />
         protected override string EntityTypeName => "ApiKey";
 
-        /// <inheritdoc />
-        protected override bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CheckPermission(ns, false, p => p.ApiKeys?.Attach);
+        /// <summary>
+        /// Returns <c>true</c> if this ApiKey is the deployment token which has automatic permissions. This token has all permissions always.
+        /// </summary>
+        /// <returns></returns>
+        bool IsDeploymentToken(V1alpha1Instance instance, V1alpha1ApiKey entity)
+        {
+            // remote instance can never have an admin token
+            if (instance.Spec.Remote is not null)
+                return false;
+
+            // match to entity
+            var adminApiKeyNamespace = instance.Spec.Deployment?.TokenSecretRef?.NamespaceProperty ?? instance.Namespace();
+            var adminApiKeyName = instance.Name();
+            return entity.Namespace() == adminApiKeyNamespace && entity.Name() == adminApiKeyName;
+        }
 
         /// <inheritdoc />
-        protected override bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CheckPermission(ns, false, p => p.ApiKeys?.Create);
+        protected override async Task<bool> CanAttachFromAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, CancellationToken cancellationToken)
+        {
+            return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(this, entity, false, p => p.ApiKeys?.Attach, cancellationToken);
+        }
+
+        /// <inheritdoc />
+        protected override async Task<bool> CanCreateFromAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, CancellationToken cancellationToken)
+        {
+            return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(this, entity, false, p => p.ApiKeys?.Create, cancellationToken);
+        }
+
+        /// <summary>
+        /// Returns <c>true</c> if this ApiKey can set the title.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="ns"></param>
+        /// <returns></returns>
+        async Task<bool> CanSetTitleAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, CancellationToken cancellationToken)
+        {
+            return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(this, entity, false, p => p.ApiKeys?.SetTitle, cancellationToken);
+        }
 
         /// <inheritdoc />
         protected override async Task<string?> FindAsync(V1alpha1ApiKey entity, SeqConnection api, V1alpha1ApiKeySpec spec, string defaultNamespace, CancellationToken cancellationToken)
@@ -123,7 +156,7 @@ namespace Alethic.Seq.Operator.ApiKey
             if (ns is null)
                 throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: cannot retrieve namespace.");
 
-            var setTitle = instance.CheckPermission(ns, false, p => p.ApiKeys?.SetTitle);
+            var setTitle = await CanSetTitleAsync(instance, entity, cancellationToken);
             if (setTitle == false && conf?.Title != null)
                 return "title cannot be set explicitly";
 

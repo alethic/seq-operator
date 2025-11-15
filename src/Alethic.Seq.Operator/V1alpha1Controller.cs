@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Alethic.Seq.Operator.ApiKey;
 using Alethic.Seq.Operator.Instance;
 using Alethic.Seq.Operator.Options;
 
@@ -28,19 +27,10 @@ using Seq.Api.Client;
 namespace Alethic.Seq.Operator
 {
 
-    [EntityRbac(typeof(V1Namespace), Verbs = RbacVerb.List | RbacVerb.Get | RbacVerb.Watch)]
-    [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.List | RbacVerb.Get | RbacVerb.Watch)]
-    [EntityRbac(typeof(Eventsv1Event), Verbs = RbacVerb.Create)]
-    public abstract class V1alpha1Controller<TEntity, TSpec, TStatus, TConf, TInfo> : IEntityController<TEntity>
-        where TEntity : IKubernetesObject<V1ObjectMeta>, V1alpha1Entity<TSpec, TStatus, TConf, TInfo>
-        where TSpec : V1alpha1EntitySpec<TConf>
-        where TStatus : V1alpha1EntityStatus<TInfo>
-        where TConf : class
-        where TInfo : class
+    public abstract class V1alpha1Controller
     {
 
         readonly IKubernetesClient _kube;
-        readonly EntityRequeue<TEntity> _requeue;
         readonly IMemoryCache _cache;
         readonly IOptions<OperatorOptions> _options;
         readonly ILogger _logger;
@@ -49,33 +39,21 @@ namespace Alethic.Seq.Operator
         /// Initializes a new instance.
         /// </summary>
         /// <param name="kube"></param>
-        /// <param name="requeue"></param>
         /// <param name="cache"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1Controller(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger logger)
+        public V1alpha1Controller(IKubernetesClient kube, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger logger)
         {
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _kube = kube ?? throw new ArgumentNullException(nameof(kube));
-            _requeue = requeue ?? throw new ArgumentNullException(nameof(requeue));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
-
-        /// <summary>
-        /// Gets the type name of the entity used in messages.
-        /// </summary>
-        protected abstract string EntityTypeName { get; }
 
         /// <summary>
         /// Gets the Kubernetes API client.
         /// </summary>
         protected IKubernetesClient Kube => _kube;
-
-        /// <summary>
-        /// Gets the requeue function for the entity controller.
-        /// </summary>
-        protected EntityRequeue<TEntity> Requeue => _requeue;
 
         /// <summary>
         /// Gets a memory cache that can be used for simple values.
@@ -98,11 +76,11 @@ namespace Alethic.Seq.Operator
         /// <param name="namespaceName"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected async Task<V1Namespace?> ResolveNamespaceAsync(string namespaceName, CancellationToken cancellationToken)
+        public async Task<V1Namespace?> ResolveNamespaceAsync(string namespaceName, CancellationToken cancellationToken)
         {
-            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller<,,,,>), nameof(ResolveNamespaceAsync), namespaceName), async entry =>
+            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller), nameof(ResolveNamespaceAsync), namespaceName), async entry =>
             {
-                var ns = await _kube.GetAsync<V1Namespace>(name: namespaceName, cancellationToken: cancellationToken);
+                var ns = await Kube.GetAsync<V1Namespace>(name: namespaceName, cancellationToken: cancellationToken);
                 entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
                 return ns;
             });
@@ -115,11 +93,11 @@ namespace Alethic.Seq.Operator
         /// <param name="namespaceName"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected async Task<V1Secret?> ResolveSecretAsync(string name, string namespaceName, CancellationToken cancellationToken)
+        public async Task<V1Secret?> ResolveSecretAsync(string name, string namespaceName, CancellationToken cancellationToken)
         {
-            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller<,,,,>), nameof(ResolveSecretAsync), name, namespaceName), async entry =>
+            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller), nameof(ResolveSecretAsync), name, namespaceName), async entry =>
             {
-                var ns = await _kube.GetAsync<V1Secret>(name, namespaceName, cancellationToken: cancellationToken);
+                var ns = await Kube.GetAsync<V1Secret>(name, namespaceName, cancellationToken: cancellationToken);
                 entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
                 return ns;
             });
@@ -132,7 +110,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected async Task<V1Secret?> ResolveSecretRefAsync(V1SecretReference? secretRef, string defaultNamespace, CancellationToken cancellationToken)
+        public async Task<V1Secret?> ResolveSecretRefAsync(V1SecretReference? secretRef, string defaultNamespace, CancellationToken cancellationToken)
         {
             if (secretRef is null)
                 return null;
@@ -154,11 +132,11 @@ namespace Alethic.Seq.Operator
         /// <param name="namespaceName"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected async Task<V1alpha1Instance?> ResolveInstanceAsync(string name, string namespaceName, CancellationToken cancellationToken)
+        public async Task<V1alpha1Instance?> ResolveInstanceAsync(string name, string namespaceName, CancellationToken cancellationToken)
         {
-            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller<,,,,>), nameof(ResolveInstanceAsync), name, namespaceName), async entry =>
+            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller), nameof(ResolveInstanceAsync), name, namespaceName), async entry =>
             {
-                var ns = await _kube.GetAsync<V1alpha1Instance>(name, namespaceName, cancellationToken: cancellationToken);
+                var ns = await Kube.GetAsync<V1alpha1Instance>(name, namespaceName, cancellationToken: cancellationToken);
                 entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
                 return ns;
             });
@@ -171,7 +149,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected async Task<V1alpha1Instance?> ResolveInstanceRefAsync(V1alpha1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
+        public async Task<V1alpha1Instance?> ResolveInstanceRefAsync(V1alpha1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
         {
             if (instanceRef is null)
                 return null;
@@ -185,6 +163,45 @@ namespace Alethic.Seq.Operator
 
             return await ResolveInstanceAsync(instanceRef.Name, ns, cancellationToken);
         }
+
+    }
+
+    [EntityRbac(typeof(V1Namespace), Verbs = RbacVerb.List | RbacVerb.Get | RbacVerb.Watch)]
+    [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.List | RbacVerb.Get | RbacVerb.Watch)]
+    [EntityRbac(typeof(Eventsv1Event), Verbs = RbacVerb.Create)]
+    public abstract class V1alpha1Controller<TEntity, TSpec, TStatus, TConf, TInfo> : V1alpha1Controller, IEntityController<TEntity>
+        where TEntity : IKubernetesObject<V1ObjectMeta>, V1alpha1Entity<TSpec, TStatus, TConf, TInfo>
+        where TSpec : V1alpha1EntitySpec<TConf>
+        where TStatus : V1alpha1EntityStatus<TInfo>
+        where TConf : class
+        where TInfo : class
+    {
+
+        readonly EntityRequeue<TEntity> _requeue;
+
+        /// <summary>
+        /// Initializes a new instance.
+        /// </summary>
+        /// <param name="kube"></param>
+        /// <param name="requeue"></param>
+        /// <param name="cache"></param>
+        /// <param name="options"></param>
+        /// <param name="logger"></param>
+        public V1alpha1Controller(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger logger) :
+            base(kube, cache, options, logger)
+        {
+            _requeue = requeue ?? throw new ArgumentNullException(nameof(requeue));
+        }
+
+        /// <summary>
+        /// Gets the type name of the entity used in messages.
+        /// </summary>
+        protected abstract string EntityTypeName { get; }
+
+        /// <summary>
+        /// Gets the requeue function for the entity controller.
+        /// </summary>
+        protected EntityRequeue<TEntity> Requeue => _requeue;
 
         /// <summary>
         /// Tests that the conncetion is able to retrieve server status.
@@ -223,7 +240,7 @@ namespace Alethic.Seq.Operator
                 return null;
             }
 
-            var secret = _kube.Get<V1Secret>(secretRef.Name, secretRef.NamespaceProperty ?? instance.Namespace());
+            var secret = await ResolveSecretRefAsync(secretRef, instance.Namespace(), cancellationToken);
             if (secret == null)
             {
                 Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing login secret.");
@@ -352,7 +369,7 @@ namespace Alethic.Seq.Operator
                 return null;
             }
 
-            var secret = _kube.Get<V1Secret>(secretRef.Name, secretRef.NamespaceProperty ?? instance.Namespace());
+            var secret = await ResolveSecretRefAsync(secretRef, instance.Namespace(), cancellationToken);
             if (secret == null)
             {
                 Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing secret.");
@@ -446,7 +463,7 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         protected async Task<SeqConnection> GetInstanceConnectionAsync(V1alpha1Instance instance, CancellationToken cancellationToken)
         {
-            var connection = await _cache.GetOrCreateAsync((typeof(V1alpha1Controller<,,,,>), nameof(GetInstanceConnectionAsync), instance.Namespace(), instance.Name()), async entry =>
+            var connection = await Cache.GetOrCreateAsync((typeof(V1alpha1Controller<,,,,>), nameof(GetInstanceConnectionAsync), instance.Namespace(), instance.Name()), async entry =>
             {
                 // use specified remote connection(s) if present
                 if (instance.Spec.Remote is not null)
@@ -508,7 +525,7 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         protected async Task ReconcileSuccessAsync(TEntity entity, CancellationToken cancellationToken)
         {
-            await _kube.CreateAsync(new Eventsv1Event(
+            await Kube.CreateAsync(new Eventsv1Event(
                     DateTime.Now,
                     metadata: new V1ObjectMeta(namespaceProperty: entity.Namespace(), generateName: "seq"),
                     reportingController: "seq.k8s.datalust.co/operator",
@@ -530,7 +547,7 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         protected async Task ReconcileWarningAsync(TEntity entity, string reason, string note, CancellationToken cancellationToken)
         {
-            await _kube.CreateAsync(new Eventsv1Event(
+            await Kube.CreateAsync(new Eventsv1Event(
                     DateTime.Now,
                     metadata: new V1ObjectMeta(namespaceProperty: entity.Namespace(), generateName: "seq"),
                     reportingController: "seq.k8s.datalust.co/operator",
@@ -553,7 +570,7 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         protected async Task DeletingWarningAsync(TEntity entity, string reason, string note, CancellationToken cancellationToken)
         {
-            await _kube.CreateAsync(new Eventsv1Event(
+            await Kube.CreateAsync(new Eventsv1Event(
                     DateTime.Now,
                     metadata: new V1ObjectMeta(namespaceProperty: entity.Namespace(), generateName: "seq"),
                     reportingController: "seq.k8s.datalust.co/operator",
@@ -583,7 +600,7 @@ namespace Alethic.Seq.Operator
                 if (ready is null)
                 {
                     entity.Status.Conditions.Add(ready = new V1alpha1Condition() { Type = "Ready", Status = "False" });
-                    entity = await _kube.UpdateStatusAsync(entity, cancellationToken);
+                    entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
                 }
 
                 // set initial healthy status
@@ -591,7 +608,7 @@ namespace Alethic.Seq.Operator
                 if (healthy is null)
                 {
                     entity.Status.Conditions.Add(healthy = new V1alpha1Condition() { Type = "Healthy", Status = "False" });
-                    entity = await _kube.UpdateStatusAsync(entity, cancellationToken);
+                    entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
                 }
 
                 // does the actual work of reconciling
@@ -603,7 +620,7 @@ namespace Alethic.Seq.Operator
                 entity = await UpdateStatusAsync(entity, "Healthy", "True", null, null, cancellationToken);
 
                 // schedule periodic reconciliation to detect external changes (e.g., manual deletion from Seq)
-                var interval = _options.Value.Reconciliation.Interval;
+                var interval = Options.Reconciliation.Interval;
                 Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} scheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
                 Requeue(entity, interval);
             }
@@ -623,7 +640,7 @@ namespace Alethic.Seq.Operator
                     Logger.LogCritical(e2, "Unexpected exception creating event.");
                 }
 
-                var interval = _options.Value.Reconciliation.RetryInterval;
+                var interval = Options.Reconciliation.RetryInterval;
                 Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} rescheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
                 Requeue(entity, interval);
             }
@@ -643,7 +660,7 @@ namespace Alethic.Seq.Operator
                     Logger.LogCritical(e2, "Unexpected exception creating event.");
                 }
 
-                var interval = _options.Value.Reconciliation.RetryInterval;
+                var interval = Options.Reconciliation.RetryInterval;
                 Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} rescheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
                 Requeue(entity, interval);
             }
@@ -663,7 +680,7 @@ namespace Alethic.Seq.Operator
                     Logger.LogCritical(e2, "Unexpected exception creating event.");
                 }
 
-                var interval = _options.Value.Reconciliation.RetryInterval;
+                var interval = Options.Reconciliation.RetryInterval;
                 Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} rescheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
                 Requeue(entity, interval);
             }
@@ -690,7 +707,7 @@ namespace Alethic.Seq.Operator
             condition.Status = status;
             condition.Error = error;
             condition.Message = message;
-            return await _kube.UpdateStatusAsync(entity, cancellationToken);
+            return await Kube.UpdateStatusAsync(entity, cancellationToken);
         }
 
     }

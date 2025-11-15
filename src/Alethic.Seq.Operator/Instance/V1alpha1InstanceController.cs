@@ -295,15 +295,15 @@ namespace Alethic.Seq.Operator.Instance
             if (deployment is not null)
             {
                 var adminApiKeyName = instance.Name();
-                var adminApiKeyspace = deployment.LoginSecretRef?.NamespaceProperty ?? instance.Namespace();
-                if (adminApiKeyspace != instance.Namespace())
+                var adminApiKeyNamespace = deployment.TokenSecretRef?.NamespaceProperty ?? instance.Namespace();
+                if (adminApiKeyNamespace != instance.Namespace())
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: ApiKey must be in same namespace as Instance.");
 
                 // we have an existing secret, owned by us
                 if (adminApiKey is not null && adminApiKey.IsOwnedBy(instance))
                 {
                     // existing apikey does not match our specification
-                    if (adminApiKey.Name() != adminApiKeyName || adminApiKey.Namespace() != adminApiKeyspace)
+                    if (adminApiKey.Name() != adminApiKeyName || adminApiKey.Namespace() != adminApiKeyNamespace)
                     {
                         await Kube.DeleteAsync(adminApiKey, cancellationToken);
                         adminApiKey = null;
@@ -322,7 +322,7 @@ namespace Alethic.Seq.Operator.Instance
                             ApplyDeploymentAdminApiKey(
                                 instance,
                                 deployment,
-                                new V1alpha1ApiKey() { Metadata = new V1ObjectMeta(namespaceProperty: adminApiKeyspace, name: adminApiKeyName) }.WithOwnerReference(instance))),
+                                new V1alpha1ApiKey() { Metadata = new V1ObjectMeta(namespaceProperty: adminApiKeyNamespace, name: adminApiKeyName) }.WithOwnerReference(instance))),
                         cancellationToken);
                 }
 
