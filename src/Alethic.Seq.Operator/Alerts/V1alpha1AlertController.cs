@@ -54,9 +54,14 @@ namespace Alethic.Seq.Operator.Alerts
         protected override string EntityTypeName => "Alert";
 
         /// <inheritdoc />
+        protected override bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanAttachAlert(ns);
+
+        /// <inheritdoc />
+        protected override bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanCreateAlert(ns);
+
+        /// <inheritdoc />
         protected override async Task<string?> FindAsync(V1alpha1Alert entity, SeqConnection api, V1alpha1AlertSpec spec, string defaultNamespace, CancellationToken cancellationToken)
         {
-
             if (spec.Find is not null)
             {
                 var title = spec.Find.Title;
@@ -107,13 +112,13 @@ namespace Alethic.Seq.Operator.Alerts
         }
 
         /// <inheritdoc />
-        protected override string? ValidateCreate(AlertConf conf)
+        protected override async Task<string?> ValidateUpdateAsync(V1alpha1Instance instance, V1alpha1Alert entity, AlertConf? conf, CancellationToken cancellationToken)
         {
             return null;
         }
 
         /// <inheritdoc />
-        protected override async Task<string> CreateAsync(V1alpha1Alert entity, SeqConnection api, AlertConf conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string> CreateAsync(V1alpha1Instance instance, V1alpha1Alert entity, SeqConnection api, AlertConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} creating Alert in Seq.", EntityTypeName);
             var self = await api.Alerts.AddAsync(ApplyToApi(new AlertEntity(), conf, null), cancellationToken);
@@ -122,7 +127,7 @@ namespace Alethic.Seq.Operator.Alerts
         }
 
         /// <inheritdoc />
-        protected override async Task UpdateAsync(V1alpha1Alert entity, SeqConnection api, string id, AlertInfo? info, AlertConf conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task UpdateAsync(V1alpha1Instance instance, V1alpha1Alert entity, SeqConnection api, string id, AlertInfo? info, AlertConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} updating Alert in Seq with id: {Id}", EntityTypeName, id);
             await api.Alerts.UpdateAsync(ApplyToApi(await api.Alerts.FindAsync(id, cancellationToken), conf, info), cancellationToken);
@@ -130,7 +135,7 @@ namespace Alethic.Seq.Operator.Alerts
         }
 
         /// <inheritdoc />
-        protected override async Task DeleteAsync(SeqConnection api, string id, CancellationToken cancellationToken)
+        protected override async Task DeleteAsync(V1alpha1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} deleting Alert from Seq with ID: {Id} (reason: Kubernetes entity deleted)", EntityTypeName, id);
             await api.Alerts.RemoveAsync(await api.Alerts.FindAsync(id, cancellationToken), cancellationToken);
@@ -185,8 +190,11 @@ namespace Alethic.Seq.Operator.Alerts
         /// <param name="conf"></param>
         /// <param name="info"></param>
         /// <returns></returns>
-        AlertEntity ApplyToApi(AlertEntity target, AlertConf conf, AlertInfo? info)
+        AlertEntity ApplyToApi(AlertEntity target, AlertConf? conf, AlertInfo? info)
         {
+            if (conf is null)
+                return target;
+
             if (conf.Title is not null)
                 if (info == null || info.Title != conf.Title)
                     target.Title = conf.Title;

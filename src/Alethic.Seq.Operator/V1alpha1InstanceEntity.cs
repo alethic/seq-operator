@@ -8,8 +8,6 @@
         where TInfo : class
     {
 
-
-
     }
 
 }

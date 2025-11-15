@@ -59,6 +59,12 @@ namespace Alethic.Seq.Operator.ApiKey
         protected override string EntityTypeName => "ApiKey";
 
         /// <inheritdoc />
+        protected override bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanAttachApiKey(ns);
+
+        /// <inheritdoc />
+        protected override bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanCreateApiKey(ns);
+
+        /// <inheritdoc />
         protected override async Task<string?> FindAsync(V1alpha1ApiKey entity, SeqConnection api, V1alpha1ApiKeySpec spec, string defaultNamespace, CancellationToken cancellationToken)
         {
             if (spec.Find is not null)
@@ -111,27 +117,30 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <inheritdoc />
-        protected override string? ValidateCreate(ApiKeyConf conf)
+        protected override async Task<string?> ValidateUpdateAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, ApiKeyConf? conf, CancellationToken cancellationToken)
         {
-            if (conf.Title == null)
-                return "conf.title is required";
+            var ns = await ResolveNamespaceAsync(entity.Namespace(), cancellationToken);
+            if (ns is null)
+                throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: cannot retrieve namespace.");
+
+            var setTitle = instance.CheckPermission(ns, true, p => p.ApiKeys?.SetTitle);
+            if (setTitle == false && conf?.Title != null)
+                return "title cannot be set explicitly";
 
             return null;
         }
 
         /// <inheritdoc />
-        protected override async Task<string> CreateAsync(V1alpha1ApiKey entity, SeqConnection api, ApiKeyConf conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string> CreateAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, SeqConnection api, ApiKeyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
-            Logger.LogInformation("{EntityTypeName} creating ApiKey in Seq with title: {Title}", EntityTypeName, conf.Title);
-
             // create a new entity
             var create = new ApiKeyEntity();
-            ApplyToApi(create, conf, null);
+            ApplyToApi(entity, create, conf, null);
 
             // entity specifies an existing secret, this may be a token source
             if (entity.Spec.SecretRef is not null)
             {
-                var secret = await ResolveSecretRef(entity.Spec.SecretRef, entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, cancellationToken);
+                var secret = await ResolveSecretRefAsync(entity.Spec.SecretRef, entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, cancellationToken);
                 if (secret is not null)
                     if (secret.Data.TryGetValue("token", out var tokenBuf))
                         create.Token = Encoding.UTF8.GetString(tokenBuf);
@@ -139,7 +148,6 @@ namespace Alethic.Seq.Operator.ApiKey
 
             // submit the new key to the API
             var self = await api.ApiKeys.AddAsync(create, cancellationToken);
-            Logger.LogInformation("{EntityTypeName} successfully created ApiKey in Seq with ID: {Id} and title: {Title}", EntityTypeName, self.Id, conf.Title);
 
             // update the secret with the token, which may be from the server
             // todo we need to find a clean way to not do this here, or to propigate out the changes
@@ -150,19 +158,15 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <inheritdoc />
-        protected override async Task UpdateAsync(V1alpha1ApiKey entity, SeqConnection api, string id, ApiKeyInfo? info, ApiKeyConf conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task UpdateAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, SeqConnection api, string id, ApiKeyInfo? info, ApiKeyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
-            Logger.LogInformation("{EntityTypeName} updating ApiKey in Seq with id: {Id} and title: {Title}", EntityTypeName, id, conf.Title);
-            await api.ApiKeys.UpdateAsync(ApplyToApi(await api.ApiKeys.FindAsync(id, cancellationToken), conf, info), cancellationToken);
-            Logger.LogInformation("{EntityTypeName} successfully updated ApiKey in Seq with id: {Id} and title: {Title}", EntityTypeName, id, conf.Title);
+            await api.ApiKeys.UpdateAsync(ApplyToApi(entity, await api.ApiKeys.FindAsync(id, cancellationToken), conf, info), cancellationToken);
         }
 
         /// <inheritdoc />
-        protected override async Task DeleteAsync(SeqConnection api, string id, CancellationToken cancellationToken)
+        protected override async Task DeleteAsync(V1alpha1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken)
         {
-            Logger.LogInformation("{EntityTypeName} deleting client from Seq with ID: {ClientId} (reason: Kubernetes entity deleted)", EntityTypeName, id);
             await api.ApiKeys.RemoveAsync(await api.ApiKeys.FindAsync(id, cancellationToken), cancellationToken);
-            Logger.LogInformation("{EntityTypeName} successfully deleted client from Seq with ID: {ClientId}", EntityTypeName, id);
         }
 
         /// <summary>
@@ -324,17 +328,19 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <summary>
         /// Creates an <see cref="ApiKeyEntity"/> for creating or updating.
         /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="target"></param>
         /// <param name="conf"></param>
         /// <param name="info"></param>
         /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        ApiKeyEntity ApplyToApi(ApiKeyEntity target, ApiKeyConf conf, ApiKeyInfo? info)
+        ApiKeyEntity ApplyToApi(V1alpha1ApiKey entity, ApiKeyEntity target, ApiKeyConf? conf, ApiKeyInfo? info)
         {
-            if (conf.Title is not null)
-                if (info == null || info.Title != conf.Title)
-                    target.Title = conf.Title;
+            var title = conf?.Title ?? "SeqOperatorApiKey_" + entity.Uid();
+            if (title is not null)
+                if (info == null || info.Title != title)
+                    target.Title = title;
 
-            if (conf.IsDefault is not null)
+            if (conf?.IsDefault is not null)
                 if (info == null || info.IsDefault != conf.IsDefault)
                     target.IsDefault = (bool)conf.IsDefault;
 
@@ -342,12 +348,12 @@ namespace Alethic.Seq.Operator.ApiKey
             //    if (info == null || info.OwnerId != conf.OwnerId)
             //        target.OwnerId = conf.OwnerId;
 
-            if (conf.Permissions != null)
+            if (conf?.Permissions != null)
                 ApplyToApi(target, conf.Permissions);
             else if (info != null && info.Permissions != null)
                 ApplyToApi(target, info.Permissions);
 
-            if (conf.InputSettings != null)
+            if (conf?.InputSettings != null)
                 ApplyToApi(target.InputSettings, conf.InputSettings);
             else if (info != null && info.InputSettings != null)
                 ApplyToApi(target.InputSettings, info.InputSettings);
@@ -358,6 +364,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <summary>
         /// Transforms the entity version of <see cref="ApiKeyPermission"/> into the API version.
         /// </summary>
+        /// <param name="target"></param>
         /// <param name="permissions"></param>
         /// <returns></returns>
         void ApplyToApi(ApiKeyEntity target, ApiKeyPermission[] permissions)

@@ -1116,6 +1116,100 @@ spec:
                         type: string
                     type: object
                 type: object
+              permissions:
+                items:
+                  properties:
+                    namespaces:
+                      nullable: true
+                      properties:
+                        from:
+                          enum:
+                          - All
+                          - Selector
+                          - Same
+                          - None
+                          nullable: true
+                          type: string
+                        selector:
+                          nullable: true
+                          properties:
+                            matchExpressions:
+                              items:
+                                properties:
+                                  key:
+                                    nullable: false
+                                    type: string
+                                  operator:
+                                    nullable: false
+                                    type: string
+                                  values:
+                                    items:
+                                      nullable: false
+                                      type: string
+                                    nullable: false
+                                    type: array
+                                type: object
+                              nullable: false
+                              type: array
+                            matchLabels:
+                              additionalProperties:
+                                nullable: false
+                                type: string
+                              nullable: false
+                              type: object
+                          type: object
+                      type: object
+                    alerts:
+                      nullable: true
+                      properties:
+                        create:
+                          nullable: true
+                          type: boolean
+                        attach:
+                          nullable: true
+                          type: boolean
+                      type: object
+                    apiKeys:
+                      nullable: true
+                      properties:
+                        create:
+                          nullable: true
+                          type: boolean
+                        attach:
+                          nullable: true
+                          type: boolean
+                        setTitle:
+                          nullable: true
+                          type: boolean
+                        allowedPermissions:
+                          items:
+                            enum:
+                            - Undefined
+                            - Public
+                            - Ingest
+                            - Read
+                            - Write
+                            - Setup
+                            - Project
+                            - System
+                            - Organization
+                            type: string
+                          nullable: true
+                          type: array
+                      type: object
+                    retentionPolicies:
+                      nullable: true
+                      properties:
+                        create:
+                          nullable: true
+                          type: boolean
+                        attach:
+                          nullable: true
+                          type: boolean
+                      type: object
+                  type: object
+                nullable: true
+                type: array
               init:
                 nullable: true
                 properties:

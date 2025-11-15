@@ -51,6 +51,12 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         protected override string EntityTypeName => "RetentionPolicy";
 
         /// <inheritdoc />
+        protected override bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanAttachRetentionPolicy(ns);
+
+        /// <inheritdoc />
+        protected override bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns) => instance.CanCreateRetentionPolicy(ns);
+
+        /// <inheritdoc />
         protected override async Task<RetentionPolicyInfo?> GetAsync(V1alpha1RetentionPolicy entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
         {
             try
@@ -64,13 +70,13 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         }
 
         /// <inheritdoc />
-        protected override string? ValidateCreate(RetentionPolicyConf conf)
+        protected override async Task<string?> ValidateUpdateAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, RetentionPolicyConf? conf, CancellationToken cancellationToken)
         {
             return null;
         }
 
         /// <inheritdoc />
-        protected override async Task<string> CreateAsync(V1alpha1RetentionPolicy entity, SeqConnection api, RetentionPolicyConf conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string> CreateAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, SeqConnection api, RetentionPolicyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} creating RetentionPolicy in Seq.", EntityTypeName);
             var self = await api.RetentionPolicies.AddAsync(ApplyToApi(new RetentionPolicyEntity(), conf, null), cancellationToken);
@@ -79,7 +85,7 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         }
 
         /// <inheritdoc />
-        protected override async Task UpdateAsync(V1alpha1RetentionPolicy entity, SeqConnection api, string id, RetentionPolicyInfo? info, RetentionPolicyConf conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task UpdateAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, SeqConnection api, string id, RetentionPolicyInfo? info, RetentionPolicyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} updating RetentionPolicy in Seq with id: {Id}", EntityTypeName, id);
             await api.RetentionPolicies.UpdateAsync(ApplyToApi(await api.RetentionPolicies.FindAsync(id, cancellationToken), conf, info), cancellationToken);
@@ -87,7 +93,7 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         }
 
         /// <inheritdoc />
-        protected override async Task DeleteAsync(SeqConnection api, string id, CancellationToken cancellationToken)
+        protected override async Task DeleteAsync(V1alpha1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} deleting RetentionPolicy from Seq with ID: {Id} (reason: Kubernetes entity deleted)", EntityTypeName, id);
             await api.RetentionPolicies.RemoveAsync(await api.RetentionPolicies.FindAsync(id, cancellationToken), cancellationToken);
@@ -113,8 +119,11 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         /// <param name="conf"></param>
         /// <param name="info"></param>
         /// <returns></returns>
-        RetentionPolicyEntity ApplyToApi(RetentionPolicyEntity target, RetentionPolicyConf conf, RetentionPolicyInfo? info)
+        RetentionPolicyEntity ApplyToApi(RetentionPolicyEntity target, RetentionPolicyConf? conf, RetentionPolicyInfo? info)
         {
+            if (conf is null)
+                return target; ;
+
             if (conf.RetentionTime is string retentionTime)
                 if (info == null || info.RetentionTime != conf.RetentionTime)
                     target.RetentionTime = TimeSpan.Parse(retentionTime);

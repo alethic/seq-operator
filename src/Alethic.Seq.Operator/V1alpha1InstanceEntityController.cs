@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
+using Alethic.Seq.Operator.Instance;
 using Alethic.Seq.Operator.Options;
 
 using k8s;
@@ -42,6 +43,22 @@ namespace Alethic.Seq.Operator
         }
 
         /// <summary>
+        /// Returns <c>true</c> if the managed entity can attach to existing Seq objects in the given instance.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="ns"></param>
+        /// <returns></returns>
+        protected abstract bool CanAttachFrom(V1alpha1Instance instance, V1Namespace ns);
+
+        /// <summary>
+        /// Returns <c>true</c> if the managed entity can create new Seq objects in the given instance.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="ns"></param>
+        /// <returns></returns>
+        protected abstract bool CanCreateFrom(V1alpha1Instance instance, V1Namespace ns);
+
+        /// <summary>
         /// Gets the <typeparamref name="TInfo"/> for the entity with the given <paramref name="id"/> or returns <c>null</c>.
         /// </summary>
         /// <param name="entity"></param>
@@ -69,24 +86,40 @@ namespace Alethic.Seq.Operator
         /// <summary>
         /// Performs a validation on the <paramref name="conf"/> parameter for usage in create operations.
         /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="entity"></param>
         /// <param name="conf"></param>
         /// <returns></returns>
-        protected abstract string? ValidateCreate(TConf conf);
+        protected virtual async Task<string?> ValidateCreateAsync(V1alpha1Instance instance, TEntity entity, TConf? conf, CancellationToken cancellationToken)
+        {
+            return await ValidateUpdateAsync(instance, entity, conf, cancellationToken);
+        }
+
+        /// <summary>
+        /// Performs a validation on the <paramref name="conf"/> parameter for usage in update operations.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="entity"></param>
+        /// <param name="conf"></param>
+        /// <returns></returns>
+        protected abstract Task<string?> ValidateUpdateAsync(V1alpha1Instance instance, TEntity entity, TConf? conf, CancellationToken cancellationToken);
 
         /// <summary>
         /// Attempts to perform a creation through the API. If successful returns the new ID value.
         /// </summary>
+        /// <param name="instance"></param>
         /// <param name="entity"></param>
         /// <param name="api"></param>
         /// <param name="conf"></param>
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task<string> CreateAsync(TEntity entity, SeqConnection api, TConf conf, string defaultNamespace, CancellationToken cancellationToken);
+        protected abstract Task<string> CreateAsync(V1alpha1Instance instance, TEntity entity, SeqConnection api, TConf? conf, string defaultNamespace, CancellationToken cancellationToken);
 
         /// <summary>
         /// Attempts to perform an update through the API.
         /// </summary>
+        /// <param name="instance"></param>
         /// <param name="entity"></param>
         /// <param name="api"></param>
         /// <param name="id"></param>
@@ -95,7 +128,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task UpdateAsync(TEntity entity, SeqConnection api, string id, TInfo? info, TConf conf, string defaultNamespace, CancellationToken cancellationToken);
+        protected abstract Task UpdateAsync(V1alpha1Instance instance, TEntity entity, SeqConnection api, string id, TInfo? info, TConf? conf, string defaultNamespace, CancellationToken cancellationToken);
 
         /// <inheritdoc />
         protected override async Task<TEntity> Reconcile(TEntity entity, CancellationToken cancellationToken)
@@ -103,10 +136,7 @@ namespace Alethic.Seq.Operator
             if (entity.Spec.InstanceRef is null)
                 throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} missing an instance reference.");
 
-            if (entity.Spec.Conf is null)
-                throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} missing configuration.");
-
-            var instance = await ResolveInstanceRef(entity.Spec.InstanceRef, entity.Namespace(), cancellationToken);
+            var instance = await ResolveInstanceRefAsync(entity.Spec.InstanceRef, entity.Namespace(), cancellationToken);
             if (instance is null)
                 throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} missing an instance.");
 
@@ -132,15 +162,29 @@ namespace Alethic.Seq.Operator
 
                     // validate configuration version used for initialization
                     var init = entity.Spec.Init ?? entity.Spec.Conf;
-                    if (ValidateCreate(init) is string msg)
+                    if (await ValidateCreateAsync(instance, entity, init, cancellationToken) is string msg)
                         throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: {msg}");
 
+                    var ns = await ResolveNamespaceAsync(entity.Namespace(), cancellationToken);
+                    if (ns is null)
+                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: cannot retrieve namespace.");
+
+                    if (CanCreateFrom(instance, ns) == false)
+                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: referenced Seq instance does not permit creating.");
+
                     // create new entity and associate
-                    entity.Status.Id = await CreateAsync(entity, api, init, entity.Namespace(), cancellationToken);
+                    entity.Status.Id = await CreateAsync(instance, entity, api, init, entity.Namespace(), cancellationToken);
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} created with {Id}", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
                 }
                 else
                 {
+                    var ns = await ResolveNamespaceAsync(entity.Namespace(), cancellationToken);
+                    if (ns is null)
+                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: cannot retrieve namespace.");
+
+                    if (CanAttachFrom(instance, ns) == false)
+                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: referenced Seq instance does not permit attaching.");
+
                     entity.Status.Id = entityId;
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} found with {Id}", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
                 }
@@ -168,7 +212,12 @@ namespace Alethic.Seq.Operator
 
             // apply configuration if specified
             if (entity.Spec.Conf is { } conf)
-                await UpdateAsync(entity, api, entity.Status.Id, info, conf, entity.Namespace(), cancellationToken);
+            {
+                if (await ValidateUpdateAsync(instance, entity, conf, cancellationToken) is string msg)
+                    throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: {msg}");
+
+                await UpdateAsync(instance, entity, api, entity.Status.Id, info, conf, entity.Namespace(), cancellationToken);
+            }
 
             // save entity
             await ApplyStatusAsync(entity, api, info, entity.Namespace(), cancellationToken);
@@ -194,11 +243,12 @@ namespace Alethic.Seq.Operator
         /// <summary>
         /// Implement this method to delete a specific entity from the API.
         /// </summary>
+        /// <param name="instance"></param>
         /// <param name="api"></param>
         /// <param name="id"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task DeleteAsync(SeqConnection api, string id, CancellationToken cancellationToken);
+        protected abstract Task DeleteAsync(V1alpha1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken);
 
         /// <inheritdoc />
         public override sealed async Task DeletedAsync(TEntity entity, CancellationToken cancellationToken)
@@ -208,11 +258,11 @@ namespace Alethic.Seq.Operator
                 if (entity.Spec.InstanceRef is null)
                     throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is missing an instance reference.");
 
-                var tenant = await ResolveInstanceRef(entity.Spec.InstanceRef, entity.Namespace(), cancellationToken);
-                if (tenant is null)
+                var instance = await ResolveInstanceRefAsync(entity.Spec.InstanceRef, entity.Namespace(), cancellationToken);
+                if (instance is null)
                     throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is missing an instance.");
 
-                var api = await GetInstanceConnectionAsync(tenant, cancellationToken);
+                var api = await GetInstanceConnectionAsync(instance, cancellationToken);
                 if (api is null)
                     throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} failed to retrieve API client.");
 
@@ -230,7 +280,7 @@ namespace Alethic.Seq.Operator
                 }
 
                 Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} initiating deletion from Seq with ID: {Id} (reason: Kubernetes entity was deleted)", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
-                await DeleteAsync(api, entity.Status.Id, cancellationToken);
+                await DeleteAsync(instance, api, entity.Status.Id, cancellationToken);
                 Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} deletion completed successfully", EntityTypeName, entity.Namespace(), entity.Name());
             }
             catch (RetryException e)

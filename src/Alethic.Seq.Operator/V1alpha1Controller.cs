@@ -88,13 +88,46 @@ namespace Alethic.Seq.Operator
         protected ILogger Logger => _logger;
 
         /// <summary>
+        /// Resolves the specified namespace object.
+        /// </summary>
+        /// <param name="namespaceName"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        protected async Task<V1Namespace?> ResolveNamespaceAsync(string namespaceName, CancellationToken cancellationToken)
+        {
+            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller<,,,,>), nameof(ResolveNamespaceAsync), namespaceName), async entry =>
+            {
+                var ns = await _kube.GetAsync<V1Namespace>(name: namespaceName, cancellationToken: cancellationToken);
+                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
+                return ns;
+            });
+        }
+
+        /// <summary>
+        /// Attempts to resolve the secret document referenced by the secret reference.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="namespaceName"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        protected async Task<V1Secret?> ResolveSecretAsync(string name, string namespaceName, CancellationToken cancellationToken)
+        {
+            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller<,,,,>), nameof(ResolveSecretAsync), name, namespaceName), async entry =>
+            {
+                var ns = await _kube.GetAsync<V1Secret>(name, namespaceName, cancellationToken: cancellationToken);
+                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
+                return ns;
+            });
+        }
+
+        /// <summary>
         /// Attempts to resolve the secret document referenced by the secret reference.
         /// </summary>
         /// <param name="secretRef"></param>
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected async Task<V1Secret?> ResolveSecretRef(V1SecretReference? secretRef, string defaultNamespace, CancellationToken cancellationToken)
+        protected async Task<V1Secret?> ResolveSecretRefAsync(V1SecretReference? secretRef, string defaultNamespace, CancellationToken cancellationToken)
         {
             if (secretRef is null)
                 return null;
@@ -106,11 +139,24 @@ namespace Alethic.Seq.Operator
             if (string.IsNullOrWhiteSpace(ns))
                 throw new InvalidOperationException($"Secret reference {secretRef} has no discovered namesace.");
 
-            var secret = await _kube.GetAsync<V1Secret>(secretRef.Name, ns, cancellationToken);
-            if (secret is null)
-                return null;
+            return await ResolveSecretAsync(secretRef.Name, ns, cancellationToken);
+        }
 
-            return secret;
+        /// <summary>
+        /// Attempts to resolve the secret document referenced by the secret reference.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="namespaceName"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        protected async Task<V1alpha1Instance?> ResolveInstanceAsync(string name, string namespaceName, CancellationToken cancellationToken)
+        {
+            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller<,,,,>), nameof(ResolveInstanceAsync), name, namespaceName), async entry =>
+            {
+                var ns = await _kube.GetAsync<V1alpha1Instance>(name, namespaceName, cancellationToken: cancellationToken);
+                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
+                return ns;
+            });
         }
 
         /// <summary>
@@ -120,7 +166,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected async Task<V1alpha1Instance?> ResolveInstanceRef(V1alpha1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
+        protected async Task<V1alpha1Instance?> ResolveInstanceRefAsync(V1alpha1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
         {
             if (instanceRef is null)
                 return null;
@@ -132,11 +178,7 @@ namespace Alethic.Seq.Operator
             if (string.IsNullOrWhiteSpace(ns))
                 throw new InvalidOperationException($"Instance reference {instanceRef} has no discovered namesace.");
 
-            var tenant = await _kube.GetAsync<V1alpha1Instance>(instanceRef.Name, ns, cancellationToken);
-            if (tenant is null)
-                throw new RetryException($"Instance reference {instanceRef} cannot be resolved.");
-
-            return tenant;
+            return await ResolveInstanceAsync(instanceRef.Name, ns, cancellationToken);
         }
 
         /// <summary>
