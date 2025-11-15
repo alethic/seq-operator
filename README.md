@@ -79,3 +79,5 @@ metadata:
   namespace: default
 spec: {}
 ```
+
+This will generate a secret for the 'admin' login, with a randomlly generated first-run password and user password. It will bring up the instance. Once up, it will authenticate as the first-run password, change the password to the real-password, then generate an ApiToken which it will use for management purposes from that point forward.
