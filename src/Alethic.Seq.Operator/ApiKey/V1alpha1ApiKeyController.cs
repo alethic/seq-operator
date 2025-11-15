@@ -212,7 +212,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <returns></returns>
         async Task ApplySecretAsync(V1alpha1ApiKey entity, string? token, string defaultNamespace, CancellationToken cancellationToken)
         {
-            var secretName = entity.Spec.SecretRef?.Name ?? entity.Name();
+            var secretName = entity.Spec.SecretRef?.Name ?? entity.Name() + "-apikey";
             var secretNamespace = entity.Spec.SecretRef?.NamespaceProperty ?? entity.Namespace();
             if (secretNamespace != entity.Namespace())
                 throw new RetryException($"ApiKey {entity.Namespace()}/{entity.Name()} could not deploy: Secret must be in same namespace as ApiKey.");
