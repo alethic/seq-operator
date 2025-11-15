@@ -170,7 +170,7 @@ namespace Alethic.Seq.Operator
                         throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: cannot retrieve namespace.");
 
                     if (CanCreateFrom(instance, ns) == false)
-                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: referenced Seq instance does not permit creating.");
+                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: referenced Seq instance does not permit creating from this namespace.");
 
                     // create new entity and associate
                     entity.Status.Id = await CreateAsync(instance, entity, api, init, entity.Namespace(), cancellationToken);
@@ -183,7 +183,7 @@ namespace Alethic.Seq.Operator
                         throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: cannot retrieve namespace.");
 
                     if (CanAttachFrom(instance, ns) == false)
-                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: referenced Seq instance does not permit attaching.");
+                        throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: referenced Seq instance does not permit attaching from this namespace.");
 
                     entity.Status.Id = entityId;
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} found with {Id}", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
