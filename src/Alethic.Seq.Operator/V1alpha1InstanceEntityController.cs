@@ -130,13 +130,6 @@ namespace Alethic.Seq.Operator
                 {
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} could not be located, creating.", EntityTypeName, entity.Namespace(), entity.Name());
 
-                    // reject creation if disallowed
-                    if (entity.HasPolicy(V1alpha1EntityPolicyType.Create) == false)
-                    {
-                        Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} does not support creation.", EntityTypeName, entity.Namespace(), entity.Name());
-                        return entity;
-                    }
-
                     // validate configuration version used for initialization
                     var init = entity.Spec.Init ?? entity.Spec.Conf;
                     if (ValidateCreate(init) is string msg)
@@ -173,18 +166,11 @@ namespace Alethic.Seq.Operator
                 throw new RetryException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} has missing API object, invalidating.");
             }
 
-            // apply updates if allowed
-            if (entity.HasPolicy(V1alpha1EntityPolicyType.Update))
-            {
-                if (entity.Spec.Conf is { } conf)
-                    await UpdateAsync(entity, api, entity.Status.Id, info, conf, entity.Namespace(), cancellationToken);
-            }
-            else
-            {
-                Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} does not support update.", EntityTypeName, entity.Namespace(), entity.Name());
-            }
+            // apply configuration if specified
+            if (entity.Spec.Conf is { } conf)
+                await UpdateAsync(entity, api, entity.Status.Id, info, conf, entity.Namespace(), cancellationToken);
 
-            // apply new configuration
+            // save entity
             await ApplyStatusAsync(entity, api, info, entity.Namespace(), cancellationToken);
             entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
             return entity;
@@ -243,17 +229,9 @@ namespace Alethic.Seq.Operator
                     return;
                 }
 
-                // reject deletion if disallowed by policy
-                if (entity.HasPolicy(V1alpha1EntityPolicyType.Delete) == false)
-                {
-                    Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} does not support delete (reason: Delete policy not enabled).", EntityTypeName, entity.Namespace(), entity.Name());
-                }
-                else
-                {
-                    Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} initiating deletion from Seq with ID: {Id} (reason: Kubernetes entity was deleted)", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
-                    await DeleteAsync(api, entity.Status.Id, cancellationToken);
-                    Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} deletion completed successfully", EntityTypeName, entity.Namespace(), entity.Name());
-                }
+                Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} initiating deletion from Seq with ID: {Id} (reason: Kubernetes entity was deleted)", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
+                await DeleteAsync(api, entity.Status.Id, cancellationToken);
+                Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} deletion completed successfully", EntityTypeName, entity.Namespace(), entity.Name());
             }
             catch (RetryException e)
             {

@@ -8,9 +8,6 @@ namespace Alethic.Seq.Operator.Alerts
     public class V1alpha1AlertSpec : V1alpha1InstanceEntitySpec<AlertConf>
     {
 
-        [JsonPropertyName("policy")]
-        public V1alpha1EntityPolicyType[]? Policy { get; set; }
-
         [JsonPropertyName("instanceRef")]
         [Required]
         public V1alpha1InstanceReference? InstanceRef { get; set; }

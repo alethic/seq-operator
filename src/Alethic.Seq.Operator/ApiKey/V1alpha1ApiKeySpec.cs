@@ -10,9 +10,6 @@ namespace Alethic.Seq.Operator.ApiKey
     public class V1alpha1ApiKeySpec : V1alpha1InstanceEntitySpec<ApiKeyConf>
     {
 
-        [JsonPropertyName("policy")]
-        public V1alpha1EntityPolicyType[]? Policy { get; set; }
-
         [JsonPropertyName("instanceRef")]
         [Required]
         public V1alpha1InstanceReference? InstanceRef { get; set; }

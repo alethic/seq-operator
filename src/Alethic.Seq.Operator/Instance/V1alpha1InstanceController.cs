@@ -350,7 +350,6 @@ namespace Alethic.Seq.Operator.Instance
         V1alpha1ApiKey ApplyDeploymentAdminApiKey(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1alpha1ApiKey apikey)
         {
             apikey.Spec ??= new V1alpha1ApiKeySpec();
-            apikey.Spec.Policy = [V1alpha1EntityPolicyType.Create, V1alpha1EntityPolicyType.Update, V1alpha1EntityPolicyType.Delete];
             apikey.Spec.InstanceRef = new V1alpha1InstanceReference() { Name = instance.Name(), Namespace = instance.Namespace() };
             apikey.Spec.SecretRef = deployment.TokenSecretRef;
             apikey.Spec.Find = new ApiKeyFind() { Title = "SeqOperatorApiKey" };

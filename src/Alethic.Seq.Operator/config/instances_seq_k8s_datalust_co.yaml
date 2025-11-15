@@ -204,15 +204,6 @@ spec:
           spec:
             nullable: false
             properties:
-              policy:
-                items:
-                  enum:
-                  - Create
-                  - Update
-                  - Delete
-                  type: string
-                nullable: true
-                type: array
               remote:
                 nullable: true
                 properties:

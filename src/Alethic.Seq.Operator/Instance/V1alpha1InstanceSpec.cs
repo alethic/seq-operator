@@ -7,12 +7,6 @@ namespace Alethic.Seq.Operator.Instance
     {
 
         /// <summary>
-        /// Describes the permitted operations on the entity.
-        /// </summary>
-        [JsonPropertyName("policy")]
-        public V1alpha1EntityPolicyType[]? Policy { get; set; }
-
-        /// <summary>
         /// Connection information for a remote instance.
         /// </summary>
         [JsonPropertyName("remote")]

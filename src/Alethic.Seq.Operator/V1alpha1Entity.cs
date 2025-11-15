@@ -11,25 +11,6 @@ namespace Alethic.Seq.Operator
     {
 
         /// <summary>
-        /// Gets the policy set on the entity.
-        /// </summary>
-        /// <returns></returns>
-        public V1alpha1EntityPolicyType[] GetPolicy() => Spec.Policy ?? [
-            V1alpha1EntityPolicyType.Create,
-            V1alpha1EntityPolicyType.Update,
-        ];
-
-        /// <summary>
-        /// Gets whether or not this entity has this policy applied.
-        /// </summary>
-        /// <param name="policy"></param>
-        /// <returns></returns>
-        public bool HasPolicy(V1alpha1EntityPolicyType policy)
-        {
-            return GetPolicy().Contains(policy);
-        }
-
-        /// <summary>
         /// Gets the specification of the entity.
         /// </summary>
         TSpec Spec { get; }
