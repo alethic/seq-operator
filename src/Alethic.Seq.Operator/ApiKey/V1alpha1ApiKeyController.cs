@@ -151,7 +151,7 @@ namespace Alethic.Seq.Operator.ApiKey
 
             // update the secret with the token, which may be from the server
             // todo we need to find a clean way to not do this here, or to propigate out the changes
-            entity = await ApplySecret(entity, self.Token ?? create.Token, defaultNamespace, cancellationToken);
+            await ApplySecretAsync(entity, self.Token ?? create.Token, defaultNamespace, cancellationToken);
 
             // newly created ID
             return self.Id;
@@ -177,7 +177,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<V1alpha1ApiKey> ApplySecret(V1alpha1ApiKey entity, string? token, string defaultNamespace, CancellationToken cancellationToken)
+        async Task ApplySecretAsync(V1alpha1ApiKey entity, string? token, string defaultNamespace, CancellationToken cancellationToken)
         {
             var secretName = entity.Spec.SecretRef?.Name ?? entity.Name();
             var secretNamespace = entity.Spec.SecretRef?.NamespaceProperty ?? entity.Namespace();
@@ -237,8 +237,6 @@ namespace Alethic.Seq.Operator.ApiKey
 
             // apply the reference to the secret to the apikey
             entity.Status.SecretRef = new V1SecretReference(secret.Name(), secret.Namespace());
-            entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
-            return entity;
         }
 
         /// <summary>
