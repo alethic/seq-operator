@@ -153,9 +153,6 @@ spec:
                   title:
                     nullable: true
                     type: string
-                  ownerId:
-                    nullable: true
-                    type: string
                 type: object
               init:
                 nullable: true

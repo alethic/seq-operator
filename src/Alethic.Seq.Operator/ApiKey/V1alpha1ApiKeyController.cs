@@ -106,18 +106,15 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<string?> FindByTitleAsync(V1alpha1ApiKey entity, SeqConnection api, string title, string defaultNamespace,  CancellationToken cancellationToken)
+        async Task<string?> FindByTitleAsync(V1alpha1ApiKey entity, SeqConnection api, string title, string defaultNamespace, CancellationToken cancellationToken)
         {
             try
             {
                 var apiKeys = (IEnumerable<ApiKeyEntity>)await api.ApiKeys.ListAsync(null, shared: true, cancellationToken: cancellationToken);
-                if (title is not null)
-                    apiKeys = apiKeys.Where(i => i.Title == title);
-
-                var apiKey = apiKeys.FirstOrDefault();
+                var apiKey = apiKeys.FirstOrDefault(i => i.Title == title);
                 if (apiKey is null)
                 {
-                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} could not find ApiKey with title {Title} or owner {OwnerId}.", EntityTypeName, entity.Namespace(), entity.Name(), title, spec.Find.OwnerId);
+                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} could not find ApiKey with title {Title}.", EntityTypeName, entity.Namespace(), entity.Name(), title);
                     return null;
                 }
 
