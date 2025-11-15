@@ -101,4 +101,15 @@ rules:
   - get
   - update
   - patch
+
+
+# Additional not generated
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
 ---
