@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Alethic.Seq.Operator.ApiKey;
 using Alethic.Seq.Operator.Instance;
 using Alethic.Seq.Operator.Options;
 
@@ -14,6 +15,7 @@ using k8s.Models;
 using KubeOps.Abstractions.Controller;
 using KubeOps.Abstractions.Entities;
 using KubeOps.Abstractions.Queue;
+using KubeOps.Abstractions.Rbac;
 using KubeOps.KubernetesClient;
 
 using Microsoft.Extensions.Caching.Memory;
@@ -26,6 +28,9 @@ using Seq.Api.Client;
 namespace Alethic.Seq.Operator
 {
 
+    [EntityRbac(typeof(V1Namespace), Verbs = RbacVerb.List | RbacVerb.Get | RbacVerb.Watch)]
+    [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.List | RbacVerb.Get | RbacVerb.Watch)]
+    [EntityRbac(typeof(Eventsv1Event), Verbs = RbacVerb.Create)]
     public abstract class V1alpha1Controller<TEntity, TSpec, TStatus, TConf, TInfo> : IEntityController<TEntity>
         where TEntity : IKubernetesObject<V1ObjectMeta>, V1alpha1Entity<TSpec, TStatus, TConf, TInfo>
         where TSpec : V1alpha1EntitySpec<TConf>

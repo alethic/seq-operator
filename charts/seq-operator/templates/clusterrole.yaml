@@ -14,17 +14,6 @@ rules:
   - ""
   resources:
   - secrets
-  verbs:
-  - '*'
-- apiGroups:
-  - events.k8s.io
-  resources:
-  - events
-  verbs:
-  - '*'
-- apiGroups:
-  - ""
-  resources:
   - services
   - serviceaccounts
   verbs:
@@ -41,6 +30,12 @@ rules:
   - apikeys
   - retentionpolicys
   - alerts
+  verbs:
+  - '*'
+- apiGroups:
+  - events.k8s.io
+  resources:
+  - events
   verbs:
   - '*'
 - apiGroups:

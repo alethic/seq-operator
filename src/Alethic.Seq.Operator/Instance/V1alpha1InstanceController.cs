@@ -29,8 +29,7 @@ namespace Alethic.Seq.Operator.Instance
 {
 
     [EntityRbac(typeof(V1alpha1Instance), Verbs = RbacVerb.All)]
-    [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.List | RbacVerb.Get)]
-    [EntityRbac(typeof(Eventsv1Event), Verbs = RbacVerb.All)]
+    [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Service), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1ServiceAccount), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1StatefulSet), Verbs = RbacVerb.All)]
