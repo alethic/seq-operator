@@ -81,7 +81,7 @@ namespace Alethic.Seq.Operator
             return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller), nameof(ResolveNamespaceAsync), namespaceName), async entry =>
             {
                 var ns = await Kube.GetAsync<V1Namespace>(name: namespaceName, cancellationToken: cancellationToken);
-                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
+                entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
                 return ns;
             });
         }
@@ -98,7 +98,7 @@ namespace Alethic.Seq.Operator
             return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller), nameof(ResolveSecretAsync), name, namespaceName), async entry =>
             {
                 var ns = await Kube.GetAsync<V1Secret>(name, namespaceName, cancellationToken: cancellationToken);
-                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
+                entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
                 return ns;
             });
         }
@@ -137,7 +137,7 @@ namespace Alethic.Seq.Operator
             return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller), nameof(ResolveInstanceAsync), name, namespaceName), async entry =>
             {
                 var ns = await Kube.GetAsync<V1alpha1Instance>(name, namespaceName, cancellationToken: cancellationToken);
-                entry.SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
+                entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
                 return ns;
             });
         }
