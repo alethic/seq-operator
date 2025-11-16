@@ -41,7 +41,7 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         /// <param name="cache"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1RetentionPolicyController(IKubernetesClient kube, EntityRequeue<V1alpha1RetentionPolicy> requeue, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1RetentionPolicyController> logger) :
+        public V1alpha1RetentionPolicyController(IKubernetesClient kube, EntityRequeue<V1alpha1RetentionPolicy> requeue, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1RetentionPolicyController> logger) :
             base(kube, requeue, cache, lookup, options, logger)
         {
 

@@ -45,7 +45,7 @@ namespace Alethic.Seq.Operator.Alerts
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1AlertController(IKubernetesClient kube, EntityRequeue<V1alpha1Alert> requeue, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1AlertController> logger) :
+        public V1alpha1AlertController(IKubernetesClient kube, EntityRequeue<V1alpha1Alert> requeue, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1AlertController> logger) :
             base(kube, requeue, cache, lookup, options, logger)
         {
 

@@ -14,7 +14,10 @@ using Microsoft.Extensions.Caching.Memory;
 namespace Alethic.Seq.Operator
 {
 
-    public class V1alpha1LookupService
+    /// <summary>
+    /// Provides the ability to lookup and cache various entities.
+    /// </summary>
+    public class LookupService
     {
 
         readonly IKubernetesClient _kube;
@@ -26,7 +29,7 @@ namespace Alethic.Seq.Operator
         /// <param name="kube"></param>
         /// <param name="cache"></param>
         /// <param name="logger"></param>
-        public V1alpha1LookupService(IKubernetesClient kube, IMemoryCache cache)
+        public LookupService(IKubernetesClient kube, IMemoryCache cache)
         {
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _kube = kube ?? throw new ArgumentNullException(nameof(kube));
@@ -40,7 +43,7 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         public async Task<V1Namespace?> ResolveNamespaceAsync(string namespaceName, CancellationToken cancellationToken)
         {
-            return await _cache.GetOrCreateAsync((typeof(V1alpha1LookupService), nameof(ResolveNamespaceAsync), namespaceName), async entry =>
+            return await _cache.GetOrCreateAsync((typeof(LookupService), nameof(ResolveNamespaceAsync), namespaceName), async entry =>
             {
                 var ns = await _kube.GetAsync<V1Namespace>(name: namespaceName, cancellationToken: cancellationToken);
                 entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
@@ -57,7 +60,7 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         public async Task<V1Secret?> ResolveSecretAsync(string name, string namespaceName, CancellationToken cancellationToken)
         {
-            return await _cache.GetOrCreateAsync((typeof(V1alpha1LookupService), nameof(ResolveSecretAsync), name, namespaceName), async entry =>
+            return await _cache.GetOrCreateAsync((typeof(LookupService), nameof(ResolveSecretAsync), name, namespaceName), async entry =>
             {
                 var ns = await _kube.GetAsync<V1Secret>(name, namespaceName, cancellationToken: cancellationToken);
                 entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
@@ -135,7 +138,7 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         public async Task<V1alpha1Instance?> ResolveInstanceAsync(string name, string namespaceName, CancellationToken cancellationToken)
         {
-            return await _cache.GetOrCreateAsync((typeof(V1alpha1LookupService), nameof(ResolveInstanceAsync), name, namespaceName), async entry =>
+            return await _cache.GetOrCreateAsync((typeof(LookupService), nameof(ResolveInstanceAsync), name, namespaceName), async entry =>
             {
                 var ns = await _kube.GetAsync<V1alpha1Instance>(name, namespaceName, cancellationToken: cancellationToken);
                 entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(30));

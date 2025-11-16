@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -33,7 +32,7 @@ namespace Alethic.Seq.Operator
 
         readonly IKubernetesClient _kube;
         readonly IMemoryCache _cache;
-        readonly V1alpha1LookupService _lookup;
+        readonly LookupService _lookup;
         readonly IOptions<OperatorOptions> _options;
         readonly ILogger _logger;
 
@@ -44,7 +43,7 @@ namespace Alethic.Seq.Operator
         /// <param name="cache"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1Controller(IKubernetesClient kube, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger logger)
+        public V1alpha1Controller(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger)
         {
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _lookup = lookup ?? throw new ArgumentNullException(nameof(lookup));
@@ -66,7 +65,7 @@ namespace Alethic.Seq.Operator
         /// <summary>
         /// Gets a service that can be used to lookup various entities.
         /// </summary>
-        protected V1alpha1LookupService Lookup => _lookup;
+        protected LookupService Lookup => _lookup;
 
         /// <summary>
         /// Gets the operator options.
@@ -101,7 +100,7 @@ namespace Alethic.Seq.Operator
         /// <param name="cache"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1Controller(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
+        public V1alpha1Controller(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
             base(kube, cache, lookup, options, logger)
         {
             _requeue = requeue ?? throw new ArgumentNullException(nameof(requeue));
@@ -150,26 +149,26 @@ namespace Alethic.Seq.Operator
         {
             if (string.IsNullOrWhiteSpace(secretRef.Name))
             {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no login secret name.");
+                Logger.LogError("Instance {EntityNamespace}/{EntityName} has no login secret name.", instance.Namespace(), instance.Name());
                 return null;
             }
 
             var secret = await Lookup.ResolveSecretRefAsync(secretRef, instance.Namespace(), cancellationToken);
             if (secret == null)
             {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing login secret.");
+                Logger.LogError("Instance {EntityNamespace}/{EntityName} has missing login secret.", instance.Namespace(), instance.Name());
                 return null;
             }
 
             if (secret.Data.TryGetValue("username", out var usernameBuf) == false)
             {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing login username value on secret.");
+                Logger.LogError("Instance {EntityNamespace}/{EntityName} has missing login username value on secret.", instance.Namespace(), instance.Name());
                 return null;
             }
 
             if (secret.Data.TryGetValue("password", out var passwordBuf) == false)
             {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing login password value on secret.");
+                Logger.LogError("Instance {EntityNamespace}/{EntityName} has missing login password value on secret.", instance.Namespace(), instance.Name());
                 return null;
             }
 
@@ -189,7 +188,7 @@ namespace Alethic.Seq.Operator
                 // test that connection is usable
                 if (await TestConnectionAsync(connection, cancellationToken) == false)
                 {
-                    Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with password.");
+                    Logger.LogError("Instance {InstanceNamespace}/{InstanceName} was unable to authenticate with password.", instance.Namespace(), instance.Name());
                     return null;
                 }
             }
@@ -200,7 +199,7 @@ namespace Alethic.Seq.Operator
 
                 if (secret.Data.TryGetValue("firstRun", out var firstRunBuf) == false)
                 {
-                    Logger.LogError(e, $"Instance {instance.Namespace()}/{instance.Name()} has was unable to authenticate with password, and firstRun was not present.");
+                    Logger.LogError(e, "Instance {InstanceNamespace}/{InstanceName} has was unable to authenticate with password, and firstRun was not present.", instance.Namespace(), instance.Name());
                     return null;
                 }
 
@@ -217,7 +216,7 @@ namespace Alethic.Seq.Operator
                     // test that connection is usable
                     if (await TestConnectionAsync(connection, cancellationToken) == false)
                     {
-                        Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with firstRun password.");
+                        Logger.LogError("Instance {InstanceNamespace}/{InstanceName} was unable to authenticate with firstRun password.", instance.Namespace(), instance.Name());
                         return null;
                     }
 
@@ -230,13 +229,13 @@ namespace Alethic.Seq.Operator
                     }
                     catch (SeqApiException e2)
                     {
-                        Logger.LogError(e2, $"Instance {instance.Namespace()}/{instance.Name()} was unable to update password after authenticating with firstRun password.");
+                        Logger.LogError(e2, "Instance {InstanceNamespace}/{InstanceName} was unable to update password after authenticating with firstRun password.", instance.Namespace(), instance.Name());
                         return null;
                     }
                 }
                 catch (SeqApiException e2)
                 {
-                    Logger.LogError(e2, $"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with firstRun password.");
+                    Logger.LogError(e2, "Instance {InstanceNamespace}/{InstanceName} was unable to authenticate with firstRun password.", instance.Namespace(), instance.Name());
                     return null;
                 }
             }
@@ -259,7 +258,7 @@ namespace Alethic.Seq.Operator
             var secretRef = loginDef.SecretRef;
             if (secretRef == null)
             {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no login authentication secret.");
+                Logger.LogError("Instance {InstanceNamespace}/{InstanceName} has no login authentication secret.", instance.Namespace(), instance.Name());
                 return null;
             }
 
@@ -279,20 +278,20 @@ namespace Alethic.Seq.Operator
         {
             if (string.IsNullOrWhiteSpace(secretRef.Name))
             {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no secret name.");
+                Logger.LogError("Instance {InstanceNamespace}/{InstanceName} has no secret name.", instance.Namespace(), instance.Name());
                 return null;
             }
 
             var secret = await Lookup.ResolveSecretRefAsync(secretRef, instance.Namespace(), cancellationToken);
             if (secret == null)
             {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing secret.");
+                Logger.LogError("Instance {InstanceNamespace}/{InstanceName} has missing secret.", instance.Namespace(), instance.Name());
                 return null;
             }
 
             if (secret.Data.TryGetValue("token", out var tokenBuf) == false || tokenBuf.Length == 0)
             {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing token value on secret.");
+                Logger.LogError("Instance {InstanceNamespace}/{InstanceName} has missing token value on secret.", instance.Namespace(), instance.Name());
                 return null;
             }
 
@@ -302,7 +301,7 @@ namespace Alethic.Seq.Operator
             // test that connection is usable
             if (await TestConnectionAsync(connection, cancellationToken) == false)
             {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} was unable to authenticate with token.");
+                Logger.LogError("Instance {InstanceNamespace}/{InstanceName} was unable to authenticate with token.", instance.Namespace(), instance.Name());
                 return null;
             }
 
@@ -321,9 +320,9 @@ namespace Alethic.Seq.Operator
         async Task<SeqConnection?> CreateSeqTokenConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceTokenRemoteAuthenticationSpec tokenDef, CancellationToken cancellationToken)
         {
             var secretRef = tokenDef.SecretRef;
-            if (secretRef == null)
+            if (secretRef is null)
             {
-                Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has no token authentication secret.");
+                Logger.LogError("Instance {InstanceNamespace}/{InstanceName} has no token authentication secret.", instance.Namespace(), instance.Name());
                 return null;
             }
 

@@ -38,7 +38,7 @@ namespace Alethic.Seq.Operator
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1InstanceEntityController(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
+        public V1alpha1InstanceEntityController(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
             base(kube, requeue, cache, lookup, options, logger)
         {
 

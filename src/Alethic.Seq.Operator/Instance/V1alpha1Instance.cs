@@ -134,7 +134,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public async Task<bool> CheckPermissionAsync(V1alpha1LookupService lookup, IKubernetesObject<V1ObjectMeta> entity, bool defaultValue, Func<InstancePermission, bool?> func, CancellationToken cancellationToken)
+        public async Task<bool> CheckPermissionAsync(LookupService lookup, IKubernetesObject<V1ObjectMeta> entity, bool defaultValue, Func<InstancePermission, bool?> func, CancellationToken cancellationToken)
         {
             var ns = await lookup.ResolveNamespaceAsync(entity.Namespace(), cancellationToken);
             if (ns is null)

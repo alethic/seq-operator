@@ -50,7 +50,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1ApiKeyController(IKubernetesClient kube, EntityRequeue<V1alpha1ApiKey> requeue, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1ApiKeyController> logger) :
+        public V1alpha1ApiKeyController(IKubernetesClient kube, EntityRequeue<V1alpha1ApiKey> requeue, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1ApiKeyController> logger) :
             base(kube, requeue, cache, lookup, options, logger)
         {
 
