@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -120,9 +121,48 @@ namespace Alethic.Seq.Operator
 
             var ns = secretRef.NamespaceProperty ?? defaultNamespace;
             if (string.IsNullOrWhiteSpace(ns))
-                throw new InvalidOperationException($"Secret reference {secretRef} has no discovered namesace.");
+                throw new InvalidOperationException($"Secret reference {secretRef} has no discovered namespace.");
 
             return await ResolveSecretAsync(secretRef.Name, ns, cancellationToken);
+        }
+
+        /// <summary>
+        /// Attempts to resolve the secret value referenced by the secret key selector.
+        /// </summary>
+        /// <param name="secretRef"></param>
+        /// <param name="defaultNamespace"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<byte[]?> ResolveSecretKeySelectorAsync(V1SecretKeySelector? secretKeySelector, string defaultNamespace, CancellationToken cancellationToken)
+        {
+            if (secretKeySelector is null)
+                return null;
+
+            if (string.IsNullOrWhiteSpace(secretKeySelector.Name))
+                throw new InvalidOperationException($"Secret selector {secretKeySelector} has no name.");
+
+            if (secretKeySelector.Key is null)
+                throw new InvalidOperationException($"Secret selector {secretKeySelector} has no key.");
+
+            var ns = defaultNamespace;
+            if (string.IsNullOrWhiteSpace(ns))
+                throw new InvalidOperationException($"Secret selector {secretKeySelector} has no discovered namespace.");
+
+            var secret = await ResolveSecretAsync(secretKeySelector.Name, ns, cancellationToken);
+            if (secret is null)
+                if (secretKeySelector.Optional == false)
+                    throw new InvalidOperationException($"Secret selector {secretKeySelector} could not be found.");
+                else
+                    return null;
+
+            secret.Data ??= new Dictionary<string, byte[]>();
+            if (secret.Data.TryGetValue(secretKeySelector.Key, out var buf) == false)
+                if (secretKeySelector.Optional == false)
+                    throw new InvalidOperationException($"Secret selector {secretKeySelector} has missing key value on secret.");
+                else
+                    return null;
+
+            return buf;
         }
 
         /// <summary>

@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 using Alethic.Seq.Operator.ApiKey;
 using Alethic.Seq.Operator.Options;
@@ -839,7 +840,36 @@ namespace Alethic.Seq.Operator.Instance
             info.RawPayloadMaximumContentLength = await GetSettingValueAsync<long>(api, SettingName.RawPayloadMaximumContentLength, cancellationToken);
             info.TargetReplicaCount = await GetSettingValueAsync<long>(api, SettingName.TargetReplicaCount, cancellationToken);
             info.ThemeStyles = await GetSettingValueAsync<string>(api, SettingName.ThemeStyles, cancellationToken);
+            info.License = await GetLicenseInfoAsync(api, cancellationToken);
             return info;
+        }
+
+        /// <summary>
+        /// Gets the license information from the API.
+        /// </summary>
+        /// <param name="api"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        async Task<InstanceInfoLicense?> GetLicenseInfoAsync(SeqConnection api, CancellationToken cancellationToken)
+        {
+            var license = await api.Licenses.FindCurrentAsync(cancellationToken);
+            if (license is not null)
+            {
+                return new InstanceInfoLicense()
+                {
+                    AutomaticallyRefresh = license.AutomaticallyRefresh,
+                    Clustered = license.Clustered,
+                    CanRenewOnlineNow = license.CanRenewOnlineNow,
+                    StorageLimitGigabytes = license.StorageLimitGigabytes,
+                    IsValid = license.IsValid,
+                    IsWarning = license.IsWarning,
+                    IsSingleUser = license.IsSingleUser,
+                    SubscriptionId = license.SubscriptionId,
+                    Status = license.StatusDescription
+                };
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -989,6 +1019,39 @@ namespace Alethic.Seq.Operator.Instance
                 if (conf.ThemeStyles is string themeStyles)
                     if (info == null || info.ThemeStyles != themeStyles)
                         await PutSettingValueAsync(instance, api, SettingName.ThemeStyles, themeStyles, cancellationToken);
+
+                if (conf.License is { } license)
+                {
+                    var changed = false;
+                    var current = await api.Licenses.FindCurrentAsync(cancellationToken);
+                    if (current is null)
+                        throw new InvalidOperationException($"{EntityTypeName} {instance.Namespace()}:{instance.Name()} failed to retrieve License: null.");
+
+                    if (license is { SecretKeyRef: { } secretKeyRef })
+                    {
+                        var secret = await ResolveSecretKeySelectorAsync(secretKeyRef, instance.Namespace(), cancellationToken);
+                        if (secret is not null)
+                        {
+                            var text = Encoding.UTF8.GetString(secret);
+                            if (current.LicenseText != text)
+                            {
+                                Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} license text changed, updating.", EntityTypeName, instance.Namespace(), instance.Name());
+                                current.LicenseText = text;
+                                changed = true;
+                            }
+                        }
+                    }
+
+                    if (license.AutomaticallyRefresh is bool automaticallyRefresh)
+                    {
+                        Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} AutomaticallyRefresh changed, updating.", EntityTypeName, instance.Namespace(), instance.Name());
+                        current.AutomaticallyRefresh = automaticallyRefresh;
+                        changed = true;
+                    }
+
+                    if (changed)
+                        await api.Licenses.UpdateAsync(current, cancellationToken);
+                }
             }
         }
 

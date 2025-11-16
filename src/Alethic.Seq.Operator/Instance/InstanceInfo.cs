@@ -83,6 +83,10 @@ namespace Alethic.Seq.Operator.Instance
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? ThemeStyles { get; set; }
 
+        [JsonPropertyName("license")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public InstanceInfoLicense? License { get; set; }
+
     }
 
 }

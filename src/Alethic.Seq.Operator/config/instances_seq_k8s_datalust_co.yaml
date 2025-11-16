@@ -181,6 +181,38 @@ spec:
                   themeStyles:
                     nullable: true
                     type: string
+                  license:
+                    nullable: true
+                    properties:
+                      automaticallyRefresh:
+                        nullable: true
+                        type: boolean
+                      clustered:
+                        nullable: true
+                        type: boolean
+                      canRenewOnlineNow:
+                        nullable: true
+                        type: boolean
+                      storageLimitGigabytes:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      isValid:
+                        nullable: true
+                        type: boolean
+                      isWarning:
+                        nullable: true
+                        type: boolean
+                      isSingleUser:
+                        nullable: true
+                        type: boolean
+                      subscriptionId:
+                        nullable: true
+                        type: string
+                      status:
+                        nullable: true
+                        type: string
+                    type: object
                 type: object
               conditions:
                 items:
@@ -1324,6 +1356,26 @@ spec:
                   themeStyles:
                     nullable: true
                     type: string
+                  license:
+                    nullable: true
+                    properties:
+                      secretKeyRef:
+                        nullable: true
+                        properties:
+                          key:
+                            nullable: false
+                            type: string
+                          name:
+                            nullable: false
+                            type: string
+                          optional:
+                            nullable: true
+                            type: boolean
+                        type: object
+                      automaticallyRefresh:
+                        nullable: true
+                        type: boolean
+                    type: object
                 type: object
             type: object
         type: object
