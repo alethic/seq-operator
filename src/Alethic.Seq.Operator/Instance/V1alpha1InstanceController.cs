@@ -644,7 +644,7 @@ namespace Alethic.Seq.Operator.Instance
             // we have deployment
             if (deployment is not null)
             {
-                var serviceName = instance.Name() + "-server";
+                var serviceName = instance.Name();
                 var serviceNamespace = instance.Namespace();
                 if (serviceNamespace != instance.Namespace())
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: Service must be in same namespace as Instance.");
