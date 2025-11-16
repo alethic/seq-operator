@@ -153,9 +153,6 @@ spec:
                   title:
                     nullable: true
                     type: string
-                  isDefault:
-                    nullable: true
-                    type: boolean
                   permissions:
                     items:
                       enum:

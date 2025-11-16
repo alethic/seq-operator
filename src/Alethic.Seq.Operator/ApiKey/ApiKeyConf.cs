@@ -10,14 +10,6 @@ namespace Alethic.Seq.Operator.ApiKey
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Title { get; set; }
 
-        [JsonPropertyName("isDefault")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public bool? IsDefault { get; set; }
-
-        //[JsonPropertyName("ownerId")]
-        //[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        //public string? OwnerId { get; set; }
-
         [JsonPropertyName("permissions")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ApiKeyPermission[]? Permissions { get; set; }

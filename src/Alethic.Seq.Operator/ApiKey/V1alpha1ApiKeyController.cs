@@ -374,14 +374,6 @@ namespace Alethic.Seq.Operator.ApiKey
                 if (info == null || info.Title != title)
                     target.Title = title;
 
-            if (conf?.IsDefault is not null)
-                if (info == null || info.IsDefault != conf.IsDefault)
-                    target.IsDefault = (bool)conf.IsDefault;
-
-            //if (conf.OwnerId is not null)
-            //    if (info == null || info.OwnerId != conf.OwnerId)
-            //        target.OwnerId = conf.OwnerId;
-
             if (conf?.Permissions != null)
                 ApplyToApi(target, conf.Permissions);
             else if (info != null && info.Permissions != null)
