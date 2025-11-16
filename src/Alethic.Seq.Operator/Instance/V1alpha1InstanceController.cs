@@ -764,16 +764,6 @@ namespace Alethic.Seq.Operator.Instance
             var l = m.EnsureLabels();
             var a = m.EnsureAnnotations();
 
-            // apply instance labels
-            if (instance.Labels() is { } labels)
-                foreach (var kvp in labels)
-                    l[kvp.Key] = kvp.Value;
-
-            // apply instance annotations
-            if (instance.Annotations() is { } annotations)
-                foreach (var kvp in annotations)
-                    a[kvp.Key] = kvp.Value;
-
             // apply deployment labels
             if (deployment.Labels is { } deploymentLabels)
                 foreach (var kvp in deploymentLabels)
