@@ -256,12 +256,9 @@ namespace Alethic.Seq.Operator.ApiKey
                 secret = await Kube.CreateAsync(
                     new V1Secret(
                             metadata: new V1ObjectMeta(
-                                namespaceProperty: secretNamespace ?? defaultNamespace,
+                                namespaceProperty: secretNamespace,
                                 name: secretName,
-                                labels: new Dictionary<string, string>()
-                                {
-                                    ["seq.k8s.datalust.co/apikey"] = entity.Name(),
-                                }))
+                                labels: new Dictionary<string, string>() { ["seq.k8s.datalust.co/apikey"] = entity.Name() }))
                         .WithOwnerReference(entity),
                     cancellationToken);
             }
