@@ -12,9 +12,6 @@ namespace Alethic.Seq.Operator.Alerts
         [Required]
         public V1alpha1InstanceReference? InstanceRef { get; set; }
 
-        [JsonPropertyName("find")]
-        public AlertFind? Find { get; set; }
-
         [JsonPropertyName("conf")]
         [Required]
         public AlertConf? Conf { get; set; }

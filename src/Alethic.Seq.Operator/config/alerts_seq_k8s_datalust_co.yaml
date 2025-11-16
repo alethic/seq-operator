@@ -131,16 +131,6 @@ spec:
                 required:
                 - name
                 type: object
-              find:
-                nullable: true
-                properties:
-                  title:
-                    nullable: true
-                    type: string
-                  ownerId:
-                    nullable: true
-                    type: string
-                type: object
               conf:
                 nullable: true
                 properties:

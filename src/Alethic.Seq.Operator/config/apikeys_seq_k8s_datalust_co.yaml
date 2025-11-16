@@ -147,13 +147,6 @@ spec:
                     nullable: false
                     type: string
                 type: object
-              find:
-                nullable: true
-                properties:
-                  title:
-                    nullable: true
-                    type: string
-                type: object
               conf:
                 nullable: true
                 properties:

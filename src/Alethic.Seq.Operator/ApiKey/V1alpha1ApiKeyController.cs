@@ -131,18 +131,9 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <inheritdoc />
         protected override async Task<string?> FindAsync(V1alpha1ApiKey entity, SeqConnection api, V1alpha1ApiKeySpec spec, string defaultNamespace, CancellationToken cancellationToken)
         {
-            if (spec.Find is not null)
-            {
-                var title = spec.Find.Title;
-                if (title is not null)
-                    return await FindByTitleAsync(entity, api, title, defaultNamespace, cancellationToken);
-
-                return null;
-            }
-
-            // no find and no manually specified title
+            // no manually specified title
             // this would result in an auto generated title, which we can search on safely
-            if (spec.Find is null && spec.Conf is { Title: null })
+            if (spec.Conf is { Title: null })
                 return await FindByTitleAsync(entity, api, "SeqOperatorApiKey_" + entity.Uid(), defaultNamespace, cancellationToken);
 
             return null;

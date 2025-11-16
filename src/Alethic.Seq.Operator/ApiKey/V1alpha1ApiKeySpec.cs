@@ -20,9 +20,6 @@ namespace Alethic.Seq.Operator.ApiKey
         [JsonPropertyName("secretRef")]
         public V1SecretReference? SecretRef { get; set; }
 
-        [JsonPropertyName("find")]
-        public ApiKeyFind? Find { get; set; }
-
         [JsonPropertyName("conf")]
         [Required]
         public ApiKeyConf? Conf { get; set; }

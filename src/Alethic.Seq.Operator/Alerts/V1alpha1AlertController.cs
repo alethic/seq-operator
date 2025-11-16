@@ -62,40 +62,7 @@ namespace Alethic.Seq.Operator.Alerts
         /// <inheritdoc />
         protected override async Task<string?> FindAsync(V1alpha1Alert entity, SeqConnection api, V1alpha1AlertSpec spec, string defaultNamespace, CancellationToken cancellationToken)
         {
-            if (spec.Find is not null)
-            {
-                var title = spec.Find.Title;
-                if (title is not null)
-                {
-                    try
-                    {
-                        var alerts = (IEnumerable<AlertEntity>)await api.Alerts.ListAsync(spec.Find.OwnerId, shared: true, cancellationToken: cancellationToken);
-                        if (title is not null)
-                            alerts = alerts.Where(i => i.Title == title);
-
-                        var apiKey = alerts.FirstOrDefault();
-                        if (apiKey is null)
-                        {
-                            Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} could not find Alert with title {Title} or owner {OwnerId}.", EntityTypeName, entity.Namespace(), entity.Name(), title, spec.Find.OwnerId);
-                            return null;
-                        }
-
-                        Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} found existing Alert: {Id}", EntityTypeName, entity.Namespace(), entity.Name(), apiKey.Id);
-                        return apiKey.Id;
-                    }
-                    catch (SeqApiException e)
-                    {
-                        Logger.LogInformation(e, "{EntityTypeName} {EntityNamespace}/{EntityName} exception finding Alert.", EntityTypeName, entity.Namespace(), entity.Name());
-                        return null;
-                    }
-                }
-
-                return null;
-            }
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
         /// <inheritdoc />
