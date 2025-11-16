@@ -174,10 +174,10 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="instance"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<T?> GetDeploymentObject<T>(V1alpha1Instance instance, string component, CancellationToken cancellationToken)
+        async Task<T?> GetDeploymentObject<T>(V1alpha1Instance instance, string resource, CancellationToken cancellationToken)
             where T : k8s.IKubernetesObject<V1ObjectMeta>
         {
-            var l = await Kube.ListAsync<T>(instance.Namespace(), $"seq.k8s.datalust.co/instance={instance.Name()},seq.k8s.datalust.co/component={component}", cancellationToken);
+            var l = await Kube.ListAsync<T>(instance.Namespace(), $"seq.k8s.datalust.co/instance={instance.Name()},seq.k8s.datalust.co/resource={resource}", cancellationToken);
             return l.FirstOrDefault();
         }
 
@@ -224,7 +224,7 @@ namespace Alethic.Seq.Operator.Instance
                 {
                     Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required Secret {LoginSecretName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), loginSecretName);
                     loginSecret = await Kube.CreateAsync(
-                        ApplyDeployment(
+                        ApplyDeploymentResource(
                             instance,
                             deployment,
                             "login-secret",
@@ -239,7 +239,7 @@ namespace Alethic.Seq.Operator.Instance
                 if (loginSecret.IsOwnedBy(instance))
                 {
                     ApplyDeploymentLoginSecret(instance, deployment, loginSecret);
-                    ApplyDeployment(instance, deployment, "login-secret", loginSecret);
+                    ApplyDeploymentResource(instance, deployment, "login-secret", loginSecret);
 
                     loginSecret = await Kube.UpdateAsync(loginSecret, cancellationToken);
                 }
@@ -316,7 +316,7 @@ namespace Alethic.Seq.Operator.Instance
                 {
                     Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required Secret {ApiKeyName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), adminApiKeyName);
                     adminApiKey = await Kube.CreateAsync(
-                        ApplyDeployment(
+                        ApplyDeploymentResource(
                             instance,
                             deployment,
                             "admin-apikey",
@@ -331,7 +331,7 @@ namespace Alethic.Seq.Operator.Instance
                 if (adminApiKey.IsOwnedBy(instance))
                 {
                     ApplyDeploymentAdminApiKey(instance, deployment, adminApiKey);
-                    ApplyDeployment(instance, deployment, "admin-apikey", adminApiKey);
+                    ApplyDeploymentResource(instance, deployment, "admin-apikey", adminApiKey);
 
                     adminApiKey = await Kube.UpdateAsync(adminApiKey, cancellationToken);
                 }
@@ -399,7 +399,7 @@ namespace Alethic.Seq.Operator.Instance
                 {
                     Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required ServiceAccount {ServiceAccountName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), serviceAccountName);
                     serviceAccount = await Kube.CreateAsync(
-                        ApplyDeployment(
+                        ApplyDeploymentResource(
                             instance,
                             deployment,
                             "service-account",
@@ -410,7 +410,7 @@ namespace Alethic.Seq.Operator.Instance
                 // we have a secret at this point, and it is owned by us, we can ensure the login information is set to defaults
                 if (serviceAccount.IsOwnedBy(instance))
                 {
-                    ApplyDeployment(instance, deployment, "service-account", serviceAccount);
+                    ApplyDeploymentResource(instance, deployment, "service-account", serviceAccount);
                     serviceAccount = await Kube.UpdateAsync(serviceAccount, cancellationToken);
                 }
             }
@@ -468,7 +468,7 @@ namespace Alethic.Seq.Operator.Instance
                 {
                     Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required StatefulSet {StatefulSetName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), statefulSetName);
                     statefulSet = await Kube.CreateAsync(
-                        ApplyDeployment(
+                        ApplyDeploymentResource(
                             instance,
                             deployment,
                             "stateful-set",
@@ -488,7 +488,7 @@ namespace Alethic.Seq.Operator.Instance
 
                 // update object if required
                 ApplyDeploymentStatefulSet(instance, deployment, statefulSet, adminSecret, serviceAccount, service);
-                ApplyDeployment(instance, deployment, "stateful-set", statefulSet);
+                ApplyDeploymentResource(instance, deployment, "stateful-set", statefulSet);
                 statefulSet = await Kube.UpdateAsync(statefulSet, cancellationToken);
             }
 
@@ -522,7 +522,6 @@ namespace Alethic.Seq.Operator.Instance
 
             vct.Metadata.Name = "seq-data";
             vct.Spec ??= new V1PersistentVolumeClaimSpec();
-
             vct.Spec.AccessModes ??= new List<string>();
             vct.Spec.AccessModes.Clear();
             vct.Spec.AccessModes.Add("ReadWriteOnce");
@@ -534,13 +533,13 @@ namespace Alethic.Seq.Operator.Instance
 
             // get and update template object
             var template = statefulSet.Spec.Template ??= new V1PodTemplateSpec();
-            ApplyDeployment(instance, deployment, "pod", template);
+            ApplyDeploymentResource(instance, deployment, "pod", template);
 
             // apply match labels from template
             statefulSet.Spec.Selector.MatchLabels ??= new Dictionary<string, string>();
             statefulSet.Spec.Selector.MatchLabels.Clear();
-            foreach (var kvp in template.Labels())
-                statefulSet.Spec.Selector.MatchLabels[kvp.Key] = kvp.Value;
+            statefulSet.Spec.Selector.MatchLabels["seq.k8s.datalust.co/instance"] = instance.Name();
+            statefulSet.Spec.Selector.MatchLabels["seq.k8s.datalust.co/resource"] = "pod";
 
             template.Spec ??= new V1PodSpec();
             template.Spec.ServiceAccountName = serviceAccount.Name();
@@ -670,7 +669,7 @@ namespace Alethic.Seq.Operator.Instance
                 {
                     Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required Service {ServiceName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), serviceName);
                     service = await Kube.CreateAsync(
-                        ApplyDeployment(
+                        ApplyDeploymentResource(
                             instance,
                             deployment,
                             "service",
@@ -687,7 +686,7 @@ namespace Alethic.Seq.Operator.Instance
 
                 // update object if required
                 ApplyDeploymentService(instance, deployment, service);
-                ApplyDeployment(instance, deployment, "service", service);
+                ApplyDeploymentResource(instance, deployment, "service", service);
                 service = await Kube.UpdateAsync(service, cancellationToken);
             }
 
@@ -718,7 +717,7 @@ namespace Alethic.Seq.Operator.Instance
             service.Spec.Selector ??= new Dictionary<string, string>();
             service.Spec.Selector.Clear();
             service.Spec.Selector["seq.k8s.datalust.co/instance"] = instance.Name();
-            service.Spec.Selector["seq.k8s.datalust.co/component"] = "pod";
+            service.Spec.Selector["seq.k8s.datalust.co/resource"] = "pod";
 
             var port = new V1ServicePort(deployment.Service?.Port ?? 80, name: "http");
             if (deployment.Service?.NodePort is int nodePort)
@@ -755,10 +754,10 @@ namespace Alethic.Seq.Operator.Instance
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="instance"></param>
-        /// <param name="component"></param>
+        /// <param name="resource"></param>
         /// <param name="entity"></param>
         /// <returns></returns>
-        T ApplyDeployment<T>(V1alpha1Instance instance, InstanceDeploymentSpec deployment, string component, T entity)
+        T ApplyDeploymentResource<T>(V1alpha1Instance instance, InstanceDeploymentSpec deployment, string resource, T entity)
             where T : IMetadata<V1ObjectMeta>
         {
             var m = entity.EnsureMetadata();
@@ -787,8 +786,7 @@ namespace Alethic.Seq.Operator.Instance
 
             // apply component labels
             l["seq.k8s.datalust.co/instance"] = instance.Name();
-            l["seq.k8s.datalust.co/component"] = component;
-            l["app.kubernetes.io/part-of"] = "seq-server";
+            l["seq.k8s.datalust.co/resource"] = resource;
 
             return entity;
         }
