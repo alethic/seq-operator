@@ -174,8 +174,8 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="instance"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<T?> GetDeploymentObject<T>(V1alpha1Instance instance, string resource, CancellationToken cancellationToken)
-            where T : k8s.IKubernetesObject<V1ObjectMeta>
+        async Task<T?> GetRelatedObject<T>(V1alpha1Instance instance, string resource, CancellationToken cancellationToken)
+            where T : IKubernetesObject<V1ObjectMeta>
         {
             var l = await Kube.ListAsync<T>(instance.Namespace(), $"seq.k8s.datalust.co/instance={instance.Name()},seq.k8s.datalust.co/resource={resource}", cancellationToken);
             return l.FirstOrDefault();
@@ -191,7 +191,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <exception cref="RetryException"></exception>
         async Task<V1Secret?> ReconcileDeploymentLoginSecretAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
         {
-            var operatorLoginSecret = await GetDeploymentObject<V1Secret>(instance, "operator-login", cancellationToken);
+            var operatorLoginSecret = await GetRelatedObject<V1Secret>(instance, "operator-login", cancellationToken);
 
             // no deployment, we have an existing admin secret owned by us, delete
             if (deployment is null && operatorLoginSecret is not null && operatorLoginSecret.IsOwnedBy(instance))
@@ -283,7 +283,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <returns></returns>
         async Task<V1alpha1ApiKey?> ReconcileDeploymentAdminApiKeyAsync(V1alpha1Instance instance, InstanceDeploymentSpec deployment, CancellationToken cancellationToken)
         {
-            var operatorTokenApiKey = await GetDeploymentObject<V1alpha1ApiKey>(instance, "operator-token", cancellationToken);
+            var operatorTokenApiKey = await GetRelatedObject<V1alpha1ApiKey>(instance, "operator-token", cancellationToken);
 
             // no deployment, we have an existing operator apikey owned by us, delete
             if (deployment is null && operatorTokenApiKey is not null && operatorTokenApiKey.IsOwnedBy(instance))
@@ -366,7 +366,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <returns></returns>
         async Task<V1ServiceAccount?> ReconcileDeploymentServiceAccountAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
         {
-            var serviceAccount = await GetDeploymentObject<V1ServiceAccount>(instance, "service-account", cancellationToken);
+            var serviceAccount = await GetRelatedObject<V1ServiceAccount>(instance, "service-account", cancellationToken);
 
             // no deployment, we have an existing service account owned by us, delete
             if (deployment is null && serviceAccount is not null && serviceAccount.IsOwnedBy(instance))
@@ -428,7 +428,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <returns></returns>
         async Task<V1StatefulSet?> ReconcileDeploymentStatefulSetAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, V1Secret? adminSecret, V1ServiceAccount? serviceAccount, V1Service? service, CancellationToken cancellationToken)
         {
-            var statefulSet = await GetDeploymentObject<V1StatefulSet>(instance, "stateful-set", cancellationToken);
+            var statefulSet = await GetRelatedObject<V1StatefulSet>(instance, "stateful-set", cancellationToken);
 
             // no deployment, we have an existing stateful set owned by us, delete
             if (deployment is null && statefulSet is not null && statefulSet.IsOwnedBy(instance))
@@ -636,7 +636,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <returns></returns>
         async Task<V1Service?> ReconcileDeploymentServiceAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
         {
-            var service = await GetDeploymentObject<V1Service>(instance, "service", cancellationToken);
+            var service = await GetRelatedObject<V1Service>(instance, "service", cancellationToken);
 
             // no deployment, we have an existing service owned by us, delete
             if (deployment is null && service is not null && service.IsOwnedBy(instance))

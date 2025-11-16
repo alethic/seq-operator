@@ -207,6 +207,20 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <summary>
+        /// Queries for the related object with the specified type.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="apikey"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        async Task<T?> FindRelatedAsync<T>(V1alpha1ApiKey apikey, CancellationToken cancellationToken)
+            where T : k8s.IKubernetesObject<V1ObjectMeta>
+        {
+            var l = await Kube.ListAsync<T>(apikey.Namespace(), $"seq.k8s.datalust.co/apikey={apikey.Name()}", cancellationToken);
+            return l.FirstOrDefault();
+        }
+
+        /// <summary>
         /// Applies the client secret.
         /// </summary>
         /// <param name="entity"></param>
@@ -222,7 +236,7 @@ namespace Alethic.Seq.Operator.ApiKey
                 throw new RetryException($"ApiKey {entity.Namespace()}/{entity.Name()} could not deploy: Secret must be in same namespace as ApiKey.");
 
             // find existing secret or create
-            var secret = await Kube.GetAsync<V1Secret>(secretName, secretNamespace, cancellationToken);
+            var secret = await FindRelatedAsync<V1Secret>(entity, cancellationToken);
 
             // we have an existing secret, owned by us
             if (secret is not null && secret.IsOwnedBy(entity))
@@ -241,7 +255,13 @@ namespace Alethic.Seq.Operator.ApiKey
                 Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName} which does not exist: creating.", EntityTypeName, entity.Namespace(), entity.Name(), secretName);
                 secret = await Kube.CreateAsync(
                     new V1Secret(
-                            metadata: new V1ObjectMeta(namespaceProperty: secretNamespace ?? defaultNamespace, name: secretName))
+                            metadata: new V1ObjectMeta(
+                                namespaceProperty: secretNamespace ?? defaultNamespace,
+                                name: secretName,
+                                labels: new Dictionary<string, string>()
+                                {
+                                    ["seq.k8s.datalust.co/apikey"] = entity.Name(),
+                                }))
                         .WithOwnerReference(entity),
                     cancellationToken);
             }
