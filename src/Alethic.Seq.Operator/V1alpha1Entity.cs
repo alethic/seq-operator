@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace Alethic.Seq.Operator
+﻿namespace Alethic.Seq.Operator
 {
 
     public interface V1alpha1Entity<TSpec, TStatus, TConf, TInfo>

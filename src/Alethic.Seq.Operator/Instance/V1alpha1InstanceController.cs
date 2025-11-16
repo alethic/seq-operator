@@ -587,7 +587,7 @@ namespace Alethic.Seq.Operator.Instance
             container.VolumeMounts.Add(new V1VolumeMount("/data", "seq-data"));
 
             container.LivenessProbe = new V1Probe(
-                httpGet: new V1HTTPGetAction("ui", path: "/"),
+                httpGet: new V1HTTPGetAction("ui", path: "/health"),
                 failureThreshold: 3,
                 initialDelaySeconds: 0,
                 periodSeconds: 10,
@@ -595,7 +595,7 @@ namespace Alethic.Seq.Operator.Instance
                 timeoutSeconds: 1);
 
             container.ReadinessProbe = new V1Probe(
-                httpGet: new V1HTTPGetAction("ui", path: "/"),
+                httpGet: new V1HTTPGetAction("ui", path: "/health"),
                 failureThreshold: 3,
                 initialDelaySeconds: 0,
                 periodSeconds: 10,
@@ -603,7 +603,7 @@ namespace Alethic.Seq.Operator.Instance
                 timeoutSeconds: 1);
 
             container.StartupProbe = new V1Probe(
-                httpGet: new V1HTTPGetAction("ui", path: "/"),
+                httpGet: new V1HTTPGetAction("ui", path: "/health"),
                 failureThreshold: 30,
                 periodSeconds: 10);
 
