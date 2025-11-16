@@ -64,13 +64,6 @@ spec:
                 required:
                 - name
                 type: object
-              init:
-                nullable: true
-                properties:
-                  retentionTime:
-                    nullable: true
-                    type: string
-                type: object
               conf:
                 nullable: true
                 properties:

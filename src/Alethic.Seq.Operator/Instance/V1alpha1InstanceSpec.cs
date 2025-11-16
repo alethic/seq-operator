@@ -25,12 +25,6 @@ namespace Alethic.Seq.Operator.Instance
         public InstancePermission[]? Permissions { get; set; }
 
         /// <summary>
-        /// Configuration to apply when initializing the entity for the first time.
-        /// </summary>
-        [JsonPropertyName("init")]
-        public InstanceConf? Init { get; set; }
-
-        /// <summary>
         /// Configuration to apply when reconcilling the entity.
         /// </summary>
         [JsonPropertyName("conf")]

@@ -142,7 +142,7 @@ namespace Alethic.Seq.Operator.ApiKey
 
             // no find and no manually specified title
             // this would result in an auto generated title, which we can search on safely
-            if (spec.Find is null && spec.Init is { Title: null } && spec.Conf is { Title: null })
+            if (spec.Find is null && spec.Conf is { Title: null })
                 return await FindByTitleAsync(entity, api, "SeqOperatorApiKey_" + entity.Uid(), defaultNamespace, cancellationToken);
 
             return null;

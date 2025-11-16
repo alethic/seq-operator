@@ -141,16 +141,6 @@ spec:
                     nullable: true
                     type: string
                 type: object
-              init:
-                nullable: true
-                properties:
-                  title:
-                    nullable: true
-                    type: string
-                  description:
-                    nullable: true
-                    type: string
-                type: object
               conf:
                 nullable: true
                 properties:

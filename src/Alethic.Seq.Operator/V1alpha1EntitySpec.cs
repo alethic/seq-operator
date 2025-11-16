@@ -6,12 +6,7 @@
     {
 
         /// <summary>
-        /// Version of configuration used for initial creation.
-        /// </summary>
-        TConf? Init { get; set; }
-
-        /// <summary>
-        /// Version of configuration used for periodic reconciliation.
+        /// Configuration to be applied to the entity.
         /// </summary>
         TConf? Conf { get; set; }
 

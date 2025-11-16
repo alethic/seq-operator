@@ -165,12 +165,11 @@ namespace Alethic.Seq.Operator
                         throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: referenced Seq instance does not permit creating from this namespace.");
 
                     // validate configuration version used for initialization
-                    var init = entity.Spec.Init ?? entity.Spec.Conf;
-                    if (await ValidateCreateAsync(instance, entity, init, cancellationToken) is string msg)
+                    if (await ValidateCreateAsync(instance, entity, entity.Spec.Conf, cancellationToken) is string msg)
                         throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: {msg}");
 
                     // create new entity and associate
-                    entity.Status.Id = await CreateAsync(instance, entity, api, init, entity.Namespace(), cancellationToken);
+                    entity.Status.Id = await CreateAsync(instance, entity, api, entity.Spec.Conf, entity.Namespace(), cancellationToken);
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} created with {Id}", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
                 }
                 else

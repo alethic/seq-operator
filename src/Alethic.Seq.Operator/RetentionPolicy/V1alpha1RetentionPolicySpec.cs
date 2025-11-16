@@ -12,9 +12,6 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         [Required]
         public V1alpha1InstanceReference? InstanceRef { get; set; }
 
-        [JsonPropertyName("init")]
-        public RetentionPolicyConf? Init { get; set; }
-
         [JsonPropertyName("conf")]
         [Required]
         public RetentionPolicyConf? Conf { get; set; }

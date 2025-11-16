@@ -15,9 +15,6 @@ namespace Alethic.Seq.Operator.Alerts
         [JsonPropertyName("find")]
         public AlertFind? Find { get; set; }
 
-        [JsonPropertyName("init")]
-        public AlertConf? Init { get; set; }
-
         [JsonPropertyName("conf")]
         [Required]
         public AlertConf? Conf { get; set; }

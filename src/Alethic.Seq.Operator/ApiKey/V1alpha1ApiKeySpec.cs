@@ -23,9 +23,6 @@ namespace Alethic.Seq.Operator.ApiKey
         [JsonPropertyName("find")]
         public ApiKeyFind? Find { get; set; }
 
-        [JsonPropertyName("init")]
-        public ApiKeyConf? Init { get; set; }
-
         [JsonPropertyName("conf")]
         [Required]
         public ApiKeyConf? Conf { get; set; }
