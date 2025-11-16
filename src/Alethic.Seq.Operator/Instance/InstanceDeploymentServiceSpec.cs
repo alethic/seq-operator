@@ -12,6 +12,9 @@ namespace Alethic.Seq.Operator.Instance
     public class InstanceDeploymentServiceSpec
     {
 
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
         [JsonPropertyName("annotations")]
         public IDictionary<string, string>? Annotations { get; set; }
 
