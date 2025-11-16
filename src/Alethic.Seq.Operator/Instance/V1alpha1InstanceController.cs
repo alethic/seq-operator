@@ -191,39 +191,39 @@ namespace Alethic.Seq.Operator.Instance
         /// <exception cref="RetryException"></exception>
         async Task<V1Secret?> ReconcileDeploymentLoginSecretAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
         {
-            var loginSecret = await GetDeploymentObject<V1Secret>(instance, "operator-login", cancellationToken);
+            var operatorLoginSecret = await GetDeploymentObject<V1Secret>(instance, "operator-login", cancellationToken);
 
             // no deployment, we have an existing admin secret owned by us, delete
-            if (deployment is null && loginSecret is not null && loginSecret.IsOwnedBy(instance))
+            if (deployment is null && operatorLoginSecret is not null && operatorLoginSecret.IsOwnedBy(instance))
             {
-                await Kube.DeleteAsync(loginSecret, cancellationToken);
-                loginSecret = null;
+                await Kube.DeleteAsync(operatorLoginSecret, cancellationToken);
+                operatorLoginSecret = null;
             }
 
             // we have deployment
             if (deployment is not null)
             {
-                var loginSecretName = deployment.LoginSecretRef?.Name ?? instance.Name() + "-operator-login";
-                var loginSecretNamespace = deployment.LoginSecretRef?.NamespaceProperty ?? instance.Namespace();
-                if (loginSecretNamespace != instance.Namespace())
+                var operatorLoginSecretName = deployment.LoginSecretRef?.Name ?? instance.Name() + "-operator-login";
+                var operatorLoginSecretNamespace = deployment.LoginSecretRef?.NamespaceProperty ?? instance.Namespace();
+                if (operatorLoginSecretNamespace != instance.Namespace())
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: LoginSecret must be in same namespace as Instance.");
 
                 // we have an existing secret, owned by us
-                if (loginSecret is not null && loginSecret.IsOwnedBy(instance))
+                if (operatorLoginSecret is not null && operatorLoginSecret.IsOwnedBy(instance))
                 {
                     // existing secret does not match our specification
-                    if (loginSecret.Name() != loginSecretName || loginSecret.Namespace() != loginSecretNamespace)
+                    if (operatorLoginSecret.Name() != operatorLoginSecretName || operatorLoginSecret.Namespace() != operatorLoginSecretNamespace)
                     {
-                        await Kube.DeleteAsync(loginSecret, cancellationToken);
-                        loginSecret = null;
+                        await Kube.DeleteAsync(operatorLoginSecret, cancellationToken);
+                        operatorLoginSecret = null;
                     }
                 }
 
                 // no secret remaining, but we need one
-                if (loginSecret is null)
+                if (operatorLoginSecret is null)
                 {
-                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required Secret {LoginSecretName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), loginSecretName);
-                    loginSecret = await Kube.CreateAsync(
+                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required Secret {OperatorLoginSecretName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), operatorLoginSecretName);
+                    operatorLoginSecret = await Kube.CreateAsync(
                         ApplyDeploymentResource(
                             instance,
                             deployment,
@@ -231,21 +231,21 @@ namespace Alethic.Seq.Operator.Instance
                             ApplyDeploymentLoginSecret(
                                 instance,
                                 deployment,
-                                new V1Secret(metadata: new V1ObjectMeta(namespaceProperty: loginSecretNamespace, name: loginSecretName)).WithOwnerReference(instance))),
+                                new V1Secret(metadata: new V1ObjectMeta(namespaceProperty: operatorLoginSecretNamespace, name: operatorLoginSecretName)).WithOwnerReference(instance))),
                         cancellationToken);
                 }
 
                 // we have a secret at this point, and it is owned by us, we can ensure the login information is set to defaults
-                if (loginSecret.IsOwnedBy(instance))
+                if (operatorLoginSecret.IsOwnedBy(instance))
                 {
-                    ApplyDeploymentLoginSecret(instance, deployment, loginSecret);
-                    ApplyDeploymentResource(instance, deployment, "operator-login", loginSecret);
+                    ApplyDeploymentLoginSecret(instance, deployment, operatorLoginSecret);
+                    ApplyDeploymentResource(instance, deployment, "operator-login", operatorLoginSecret);
 
-                    loginSecret = await Kube.UpdateAsync(loginSecret, cancellationToken);
+                    operatorLoginSecret = await Kube.UpdateAsync(operatorLoginSecret, cancellationToken);
                 }
             }
 
-            return loginSecret;
+            return operatorLoginSecret;
         }
 
         /// <summary>
@@ -283,39 +283,39 @@ namespace Alethic.Seq.Operator.Instance
         /// <returns></returns>
         async Task<V1alpha1ApiKey?> ReconcileDeploymentAdminApiKeyAsync(V1alpha1Instance instance, InstanceDeploymentSpec deployment, CancellationToken cancellationToken)
         {
-            var operatorApiKey = await GetDeploymentObject<V1alpha1ApiKey>(instance, "operator-token", cancellationToken);
+            var operatorTokenApiKey = await GetDeploymentObject<V1alpha1ApiKey>(instance, "operator-token", cancellationToken);
 
             // no deployment, we have an existing operator apikey owned by us, delete
-            if (deployment is null && operatorApiKey is not null && operatorApiKey.IsOwnedBy(instance))
+            if (deployment is null && operatorTokenApiKey is not null && operatorTokenApiKey.IsOwnedBy(instance))
             {
-                await Kube.DeleteAsync(operatorApiKey, cancellationToken);
-                operatorApiKey = null;
+                await Kube.DeleteAsync(operatorTokenApiKey, cancellationToken);
+                operatorTokenApiKey = null;
             }
 
             // we have deployment
             if (deployment is not null)
             {
-                var adminApiKeyName = instance.Name() + "-operator";
-                var adminApiKeyNamespace = deployment.TokenSecretRef?.NamespaceProperty ?? instance.Namespace();
-                if (adminApiKeyNamespace != instance.Namespace())
+                var operatorTokenApiKeyName = instance.Name() + "-operator";
+                var operatorTokenApiKeyNamespace = deployment.TokenSecretRef?.NamespaceProperty ?? instance.Namespace();
+                if (operatorTokenApiKeyNamespace != instance.Namespace())
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: ApiKey must be in same namespace as Instance.");
 
                 // we have an existing secret, owned by us
-                if (operatorApiKey is not null && operatorApiKey.IsOwnedBy(instance))
+                if (operatorTokenApiKey is not null && operatorTokenApiKey.IsOwnedBy(instance))
                 {
                     // existing apikey does not match our specification
-                    if (operatorApiKey.Name() != adminApiKeyName || operatorApiKey.Namespace() != adminApiKeyNamespace)
+                    if (operatorTokenApiKey.Name() != operatorTokenApiKeyName || operatorTokenApiKey.Namespace() != operatorTokenApiKeyNamespace)
                     {
-                        await Kube.DeleteAsync(operatorApiKey, cancellationToken);
-                        operatorApiKey = null;
+                        await Kube.DeleteAsync(operatorTokenApiKey, cancellationToken);
+                        operatorTokenApiKey = null;
                     }
                 }
 
                 // no apikey remaining, but we need one
-                if (operatorApiKey is null)
+                if (operatorTokenApiKey is null)
                 {
-                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required Secret {ApiKeyName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), adminApiKeyName);
-                    operatorApiKey = await Kube.CreateAsync(
+                    Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} deployment required ApiKey {OperatorTokenApiKeyName} which does not exist: creating.", EntityTypeName, instance.Namespace(), instance.Name(), operatorTokenApiKeyName);
+                    operatorTokenApiKey = await Kube.CreateAsync(
                         ApplyDeploymentResource(
                             instance,
                             deployment,
@@ -323,21 +323,21 @@ namespace Alethic.Seq.Operator.Instance
                             ApplyDeploymentAdminApiKey(
                                 instance,
                                 deployment,
-                                new V1alpha1ApiKey() { Metadata = new V1ObjectMeta(namespaceProperty: adminApiKeyNamespace, name: adminApiKeyName) }.WithOwnerReference(instance))),
+                                new V1alpha1ApiKey() { Metadata = new V1ObjectMeta(namespaceProperty: operatorTokenApiKeyNamespace, name: operatorTokenApiKeyName) }.WithOwnerReference(instance))),
                         cancellationToken);
                 }
 
                 // we have a apikey at this point, and it is owned by us, we can ensure the login information is set to defaults
-                if (operatorApiKey.IsOwnedBy(instance))
+                if (operatorTokenApiKey.IsOwnedBy(instance))
                 {
-                    ApplyDeploymentAdminApiKey(instance, deployment, operatorApiKey);
-                    ApplyDeploymentResource(instance, deployment, "operator-token", operatorApiKey);
+                    ApplyDeploymentAdminApiKey(instance, deployment, operatorTokenApiKey);
+                    ApplyDeploymentResource(instance, deployment, "operator-token", operatorTokenApiKey);
 
-                    operatorApiKey = await Kube.UpdateAsync(operatorApiKey, cancellationToken);
+                    operatorTokenApiKey = await Kube.UpdateAsync(operatorTokenApiKey, cancellationToken);
                 }
             }
 
-            return operatorApiKey;
+            return operatorTokenApiKey;
         }
 
         /// <summary>
