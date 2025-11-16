@@ -288,8 +288,9 @@ namespace Alethic.Seq.Operator
                     Logger.LogCritical(e2, "Unexpected exception creating event.");
                 }
 
-                Logger.LogInformation("Rescheduling delete after {TimeSpan}.", TimeSpan.FromMinutes(1));
-                Requeue(entity, TimeSpan.FromMinutes(1));
+                var interval = Options.Reconciliation.RetryInterval;
+                Logger.LogInformation("Rescheduling delete after {TimeSpan}.", interval);
+                Requeue(entity, interval);
             }
             catch (Exception e)
             {
