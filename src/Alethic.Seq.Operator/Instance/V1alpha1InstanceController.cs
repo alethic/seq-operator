@@ -68,10 +68,11 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="kube"></param>
         /// <param name="requeue"></param>
         /// <param name="cache"></param>
+        /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1InstanceController(IKubernetesClient kube, EntityRequeue<V1alpha1Instance> requeue, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger<V1alpha1InstanceController> logger) :
-            base(kube, requeue, cache, options, logger)
+        public V1alpha1InstanceController(IKubernetesClient kube, EntityRequeue<V1alpha1Instance> requeue, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1InstanceController> logger) :
+            base(kube, requeue, cache, lookup, options, logger)
         {
 
         }
@@ -1029,7 +1030,7 @@ namespace Alethic.Seq.Operator.Instance
 
                     if (license is { SecretKeyRef: { } secretKeyRef })
                     {
-                        var secret = await ResolveSecretKeySelectorAsync(secretKeyRef, instance.Namespace(), cancellationToken);
+                        var secret = await Lookup.ResolveSecretKeySelectorAsync(secretKeyRef, instance.Namespace(), cancellationToken);
                         if (secret is not null)
                         {
                             var text = Encoding.UTF8.GetString(secret);

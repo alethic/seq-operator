@@ -127,16 +127,16 @@ namespace Alethic.Seq.Operator.Instance
         /// <summary>
         /// Checks the given permission boolean.
         /// </summary>
-        /// <param name="controller"></param>
+        /// <param name="lookup"></param>
         /// <param name="entity"></param>
         /// <param name="defaultValue"></param>
         /// <param name="func"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public async Task<bool> CheckPermissionAsync(V1alpha1Controller controller, IKubernetesObject<V1ObjectMeta> entity, bool defaultValue, Func<InstancePermission, bool?> func, CancellationToken cancellationToken)
+        public async Task<bool> CheckPermissionAsync(V1alpha1LookupService lookup, IKubernetesObject<V1ObjectMeta> entity, bool defaultValue, Func<InstancePermission, bool?> func, CancellationToken cancellationToken)
         {
-            var ns = await controller.ResolveNamespaceAsync(entity.Namespace(), cancellationToken);
+            var ns = await lookup.ResolveNamespaceAsync(entity.Namespace(), cancellationToken);
             if (ns is null)
                 throw new InvalidOperationException($"{entity.Namespace()}/{entity.Name()} is invalid: cannot retrieve namespace.");
 

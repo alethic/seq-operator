@@ -35,10 +35,11 @@ namespace Alethic.Seq.Operator
         /// <param name="kube"></param>
         /// <param name="requeue"></param>
         /// <param name="cache"></param>
+        /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1InstanceEntityController(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger logger) :
-            base(kube, requeue, cache, options, logger)
+        public V1alpha1InstanceEntityController(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
+            base(kube, requeue, cache, lookup, options, logger)
         {
 
         }
@@ -137,7 +138,7 @@ namespace Alethic.Seq.Operator
             if (entity.Spec.InstanceRef is null)
                 throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} missing an instance reference.");
 
-            var instance = await ResolveInstanceRefAsync(entity.Spec.InstanceRef, entity.Namespace(), cancellationToken);
+            var instance = await Lookup.ResolveInstanceRefAsync(entity.Spec.InstanceRef, entity.Namespace(), cancellationToken);
             if (instance is null)
                 throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} missing an instance.");
 
@@ -250,7 +251,7 @@ namespace Alethic.Seq.Operator
                 if (entity.Spec.InstanceRef is null)
                     throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is missing an instance reference.");
 
-                var instance = await ResolveInstanceRefAsync(entity.Spec.InstanceRef, entity.Namespace(), cancellationToken);
+                var instance = await Lookup.ResolveInstanceRefAsync(entity.Spec.InstanceRef, entity.Namespace(), cancellationToken);
                 if (instance is null)
                     throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is missing an instance.");
 

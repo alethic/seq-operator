@@ -47,10 +47,11 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="kube"></param>
         /// <param name="requeue"></param>
         /// <param name="cache"></param>
+        /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1ApiKeyController(IKubernetesClient kube, EntityRequeue<V1alpha1ApiKey> requeue, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger<V1alpha1ApiKeyController> logger) :
-            base(kube, requeue, cache, options, logger)
+        public V1alpha1ApiKeyController(IKubernetesClient kube, EntityRequeue<V1alpha1ApiKey> requeue, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1ApiKeyController> logger) :
+            base(kube, requeue, cache, lookup, options, logger)
         {
 
         }
@@ -77,13 +78,13 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <inheritdoc />
         protected override async Task<bool> CanAttachFromAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, CancellationToken cancellationToken)
         {
-            return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(this, entity, false, p => p.ApiKeys?.Attach, cancellationToken);
+            return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(Lookup, entity, false, p => p.ApiKeys?.Attach, cancellationToken);
         }
 
         /// <inheritdoc />
         protected override async Task<bool> CanCreateFromAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, CancellationToken cancellationToken)
         {
-            return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(this, entity, false, p => p.ApiKeys?.Create, cancellationToken);
+            return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(Lookup, entity, false, p => p.ApiKeys?.Create, cancellationToken);
         }
 
         /// <summary>
@@ -94,7 +95,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <returns></returns>
         async Task<bool> CanSetTitleAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, CancellationToken cancellationToken)
         {
-            return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(this, entity, false, p => p.ApiKeys?.SetTitle, cancellationToken);
+            return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(Lookup, entity, false, p => p.ApiKeys?.SetTitle, cancellationToken);
         }
 
         /// <summary>
@@ -155,7 +156,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <inheritdoc />
         protected override async Task<string?> ValidateUpdateAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, ApiKeyConf? conf, CancellationToken cancellationToken)
         {
-            var ns = await ResolveNamespaceAsync(entity.Namespace(), cancellationToken);
+            var ns = await Lookup.ResolveNamespaceAsync(entity.Namespace(), cancellationToken);
             if (ns is null)
                 throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: cannot retrieve namespace.");
 
@@ -176,7 +177,7 @@ namespace Alethic.Seq.Operator.ApiKey
             // entity specifies an existing secret, this may be a token source
             if (entity.Spec.SecretRef is not null)
             {
-                var secret = await ResolveSecretRefAsync(entity.Spec.SecretRef, entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, cancellationToken);
+                var secret = await Lookup.ResolveSecretRefAsync(entity.Spec.SecretRef, entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, cancellationToken);
                 if (secret is not null)
                     if (secret.Data.TryGetValue("token", out var tokenBuf))
                         create.Token = Encoding.UTF8.GetString(tokenBuf);

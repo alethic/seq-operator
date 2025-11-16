@@ -42,10 +42,11 @@ namespace Alethic.Seq.Operator.Alerts
         /// <param name="kube"></param>
         /// <param name="requeue"></param>
         /// <param name="cache"></param>
+        /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1AlertController(IKubernetesClient kube, EntityRequeue<V1alpha1Alert> requeue, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger<V1alpha1AlertController> logger) :
-            base(kube, requeue, cache, options, logger)
+        public V1alpha1AlertController(IKubernetesClient kube, EntityRequeue<V1alpha1Alert> requeue, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1AlertController> logger) :
+            base(kube, requeue, cache, lookup, options, logger)
         {
 
         }
@@ -54,10 +55,10 @@ namespace Alethic.Seq.Operator.Alerts
         protected override string EntityTypeName => "Alert";
 
         /// <inheritdoc />
-        protected override Task<bool> CanAttachFromAsync(V1alpha1Instance instance, V1alpha1Alert entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(this, entity, false, p => p.Alerts?.Attach, cancellationToken);
+        protected override Task<bool> CanAttachFromAsync(V1alpha1Instance instance, V1alpha1Alert entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.Alerts?.Attach, cancellationToken);
 
         /// <inheritdoc />
-        protected override Task<bool> CanCreateFromAsync(V1alpha1Instance instance, V1alpha1Alert entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(this, entity, false, p => p.Alerts?.Create, cancellationToken);
+        protected override Task<bool> CanCreateFromAsync(V1alpha1Instance instance, V1alpha1Alert entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.Alerts?.Create, cancellationToken);
 
         /// <inheritdoc />
         protected override async Task<string?> FindAsync(V1alpha1Alert entity, SeqConnection api, V1alpha1AlertSpec spec, string defaultNamespace, CancellationToken cancellationToken)

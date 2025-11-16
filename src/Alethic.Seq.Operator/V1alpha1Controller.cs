@@ -33,6 +33,7 @@ namespace Alethic.Seq.Operator
 
         readonly IKubernetesClient _kube;
         readonly IMemoryCache _cache;
+        readonly V1alpha1LookupService _lookup;
         readonly IOptions<OperatorOptions> _options;
         readonly ILogger _logger;
 
@@ -43,9 +44,10 @@ namespace Alethic.Seq.Operator
         /// <param name="cache"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1Controller(IKubernetesClient kube, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger logger)
+        public V1alpha1Controller(IKubernetesClient kube, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger logger)
         {
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+            _lookup = lookup ?? throw new ArgumentNullException(nameof(lookup));
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _kube = kube ?? throw new ArgumentNullException(nameof(kube));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -62,6 +64,11 @@ namespace Alethic.Seq.Operator
         protected IMemoryCache Cache => _cache;
 
         /// <summary>
+        /// Gets a service that can be used to lookup various entities.
+        /// </summary>
+        protected V1alpha1LookupService Lookup => _lookup;
+
+        /// <summary>
         /// Gets the operator options.
         /// </summary>
         protected OperatorOptions Options => _options.Value;
@@ -70,139 +77,6 @@ namespace Alethic.Seq.Operator
         /// Gets the logger.
         /// </summary>
         protected ILogger Logger => _logger;
-
-        /// <summary>
-        /// Resolves the specified namespace object.
-        /// </summary>
-        /// <param name="namespaceName"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<V1Namespace?> ResolveNamespaceAsync(string namespaceName, CancellationToken cancellationToken)
-        {
-            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller), nameof(ResolveNamespaceAsync), namespaceName), async entry =>
-            {
-                var ns = await Kube.GetAsync<V1Namespace>(name: namespaceName, cancellationToken: cancellationToken);
-                entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
-                return ns;
-            });
-        }
-
-        /// <summary>
-        /// Attempts to resolve the secret document referenced by the secret reference.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="namespaceName"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<V1Secret?> ResolveSecretAsync(string name, string namespaceName, CancellationToken cancellationToken)
-        {
-            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller), nameof(ResolveSecretAsync), name, namespaceName), async entry =>
-            {
-                var ns = await Kube.GetAsync<V1Secret>(name, namespaceName, cancellationToken: cancellationToken);
-                entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
-                return ns;
-            });
-        }
-
-        /// <summary>
-        /// Attempts to resolve the secret document referenced by the secret reference.
-        /// </summary>
-        /// <param name="secretRef"></param>
-        /// <param name="defaultNamespace"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<V1Secret?> ResolveSecretRefAsync(V1SecretReference? secretRef, string defaultNamespace, CancellationToken cancellationToken)
-        {
-            if (secretRef is null)
-                return null;
-
-            if (string.IsNullOrWhiteSpace(secretRef.Name))
-                throw new InvalidOperationException($"Secret reference {secretRef} has no name.");
-
-            var ns = secretRef.NamespaceProperty ?? defaultNamespace;
-            if (string.IsNullOrWhiteSpace(ns))
-                throw new InvalidOperationException($"Secret reference {secretRef} has no discovered namespace.");
-
-            return await ResolveSecretAsync(secretRef.Name, ns, cancellationToken);
-        }
-
-        /// <summary>
-        /// Attempts to resolve the secret value referenced by the secret key selector.
-        /// </summary>
-        /// <param name="secretRef"></param>
-        /// <param name="defaultNamespace"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<byte[]?> ResolveSecretKeySelectorAsync(V1SecretKeySelector? secretKeySelector, string defaultNamespace, CancellationToken cancellationToken)
-        {
-            if (secretKeySelector is null)
-                return null;
-
-            if (string.IsNullOrWhiteSpace(secretKeySelector.Name))
-                throw new InvalidOperationException($"Secret selector {secretKeySelector} has no name.");
-
-            if (secretKeySelector.Key is null)
-                throw new InvalidOperationException($"Secret selector {secretKeySelector} has no key.");
-
-            var ns = defaultNamespace;
-            if (string.IsNullOrWhiteSpace(ns))
-                throw new InvalidOperationException($"Secret selector {secretKeySelector} has no discovered namespace.");
-
-            var secret = await ResolveSecretAsync(secretKeySelector.Name, ns, cancellationToken);
-            if (secret is null)
-                if (secretKeySelector.Optional == false)
-                    throw new InvalidOperationException($"Secret selector {secretKeySelector} could not be found.");
-                else
-                    return null;
-
-            secret.Data ??= new Dictionary<string, byte[]>();
-            if (secret.Data.TryGetValue(secretKeySelector.Key, out var buf) == false)
-                if (secretKeySelector.Optional == false)
-                    throw new InvalidOperationException($"Secret selector {secretKeySelector} has missing key value on secret.");
-                else
-                    return null;
-
-            return buf;
-        }
-
-        /// <summary>
-        /// Attempts to resolve the secret document referenced by the secret reference.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="namespaceName"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<V1alpha1Instance?> ResolveInstanceAsync(string name, string namespaceName, CancellationToken cancellationToken)
-        {
-            return await Cache.GetOrCreateAsync((typeof(V1alpha1Controller), nameof(ResolveInstanceAsync), name, namespaceName), async entry =>
-            {
-                var ns = await Kube.GetAsync<V1alpha1Instance>(name, namespaceName, cancellationToken: cancellationToken);
-                entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
-                return ns;
-            });
-        }
-
-        /// <summary>
-        /// Attempts to resolve the instance document referenced by the instance reference.
-        /// </summary>
-        /// <param name="instanceRef"></param>
-        /// <param name="defaultNamespace"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<V1alpha1Instance?> ResolveInstanceRefAsync(V1alpha1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
-        {
-            if (instanceRef is null)
-                return null;
-
-            if (string.IsNullOrWhiteSpace(instanceRef.Name))
-                throw new InvalidOperationException($"Instance reference {instanceRef} has no name.");
-
-            var ns = instanceRef.Namespace ?? defaultNamespace;
-            if (string.IsNullOrWhiteSpace(ns))
-                throw new InvalidOperationException($"Instance reference {instanceRef} has no discovered namesace.");
-
-            return await ResolveInstanceAsync(instanceRef.Name, ns, cancellationToken);
-        }
 
     }
 
@@ -227,8 +101,8 @@ namespace Alethic.Seq.Operator
         /// <param name="cache"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1Controller(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger logger) :
-            base(kube, cache, options, logger)
+        public V1alpha1Controller(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
+            base(kube, cache, lookup, options, logger)
         {
             _requeue = requeue ?? throw new ArgumentNullException(nameof(requeue));
         }
@@ -280,7 +154,7 @@ namespace Alethic.Seq.Operator
                 return null;
             }
 
-            var secret = await ResolveSecretRefAsync(secretRef, instance.Namespace(), cancellationToken);
+            var secret = await Lookup.ResolveSecretRefAsync(secretRef, instance.Namespace(), cancellationToken);
             if (secret == null)
             {
                 Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing login secret.");
@@ -409,7 +283,7 @@ namespace Alethic.Seq.Operator
                 return null;
             }
 
-            var secret = await ResolveSecretRefAsync(secretRef, instance.Namespace(), cancellationToken);
+            var secret = await Lookup.ResolveSecretRefAsync(secretRef, instance.Namespace(), cancellationToken);
             if (secret == null)
             {
                 Logger.LogError($"Instance {instance.Namespace()}/{instance.Name()} has missing secret.");

@@ -19,6 +19,7 @@ namespace Alethic.Seq.Operator
             builder.Services.AddKubernetesOperator().RegisterComponents();
             builder.Services.AddMemoryCache();
             builder.Services.Configure<OperatorOptions>(builder.Configuration.GetSection("Seq:Operator"));
+            builder.Services.AddScoped<V1alpha1LookupService>();
 
             var app = builder.Build();
             return app.RunAsync();

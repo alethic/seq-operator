@@ -41,8 +41,8 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         /// <param name="cache"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1RetentionPolicyController(IKubernetesClient kube, EntityRequeue<V1alpha1RetentionPolicy> requeue, IMemoryCache cache, IOptions<OperatorOptions> options, ILogger<V1alpha1RetentionPolicyController> logger) :
-            base(kube, requeue, cache, options, logger)
+        public V1alpha1RetentionPolicyController(IKubernetesClient kube, EntityRequeue<V1alpha1RetentionPolicy> requeue, IMemoryCache cache, V1alpha1LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1RetentionPolicyController> logger) :
+            base(kube, requeue, cache, lookup, options, logger)
         {
 
         }
@@ -51,10 +51,10 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         protected override string EntityTypeName => "RetentionPolicy";
 
         /// <inheritdoc />
-        protected override Task<bool> CanAttachFromAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(this, entity, false, p => p.RetentionPolicies?.Attach, cancellationToken);
+        protected override Task<bool> CanAttachFromAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.RetentionPolicies?.Attach, cancellationToken);
 
         /// <inheritdoc />
-        protected override Task<bool> CanCreateFromAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(this, entity, false, p => p.RetentionPolicies?.Create, cancellationToken);
+        protected override Task<bool> CanCreateFromAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.RetentionPolicies?.Create, cancellationToken);
 
         /// <inheritdoc />
         protected override async Task<RetentionPolicyInfo?> GetAsync(V1alpha1RetentionPolicy entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
