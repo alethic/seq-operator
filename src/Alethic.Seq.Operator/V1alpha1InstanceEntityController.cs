@@ -136,11 +136,11 @@ namespace Alethic.Seq.Operator
         protected override async Task<TEntity> Reconcile(TEntity entity, CancellationToken cancellationToken)
         {
             if (entity.Spec.InstanceRef is null)
-                throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} missing an instance reference.");
+                throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} missing a Seq instance reference.");
 
             var instance = await Lookup.ResolveInstanceRefAsync(entity.Spec.InstanceRef, entity.Namespace(), cancellationToken);
             if (instance is null)
-                throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} missing an instance.");
+                throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} could not resolve Seq instance.");
 
             var api = await GetInstanceConnectionAsync(instance, cancellationToken);
             if (api is null)
@@ -249,11 +249,11 @@ namespace Alethic.Seq.Operator
             try
             {
                 if (entity.Spec.InstanceRef is null)
-                    throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is missing an instance reference.");
+                    throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} missing a Seq instance reference.");
 
                 var instance = await Lookup.ResolveInstanceRefAsync(entity.Spec.InstanceRef, entity.Namespace(), cancellationToken);
                 if (instance is null)
-                    throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is missing an instance.");
+                    throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} could not resolve Seq instance.");
 
                 var api = await GetInstanceConnectionAsync(instance, cancellationToken);
                 if (api is null)
