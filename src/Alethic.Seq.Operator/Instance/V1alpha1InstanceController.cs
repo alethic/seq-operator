@@ -5,7 +5,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 
 using Alethic.Seq.Operator.ApiKey;
 using Alethic.Seq.Operator.Options;
@@ -517,15 +516,21 @@ namespace Alethic.Seq.Operator.Instance
             statefulSet.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable = 1;
 
             statefulSet.Spec.VolumeClaimTemplates ??= new List<V1PersistentVolumeClaim>();
-            statefulSet.Spec.VolumeClaimTemplates.Clear();
-            statefulSet.Spec.VolumeClaimTemplates.Add(
-                new V1PersistentVolumeClaim(
-                    metadata: new V1ObjectMeta(name: "seq-data"),
-                    spec: new V1PersistentVolumeClaimSpec(
-                        accessModes: ["ReadWriteOnce"],
-                        volumeMode: "Filesystem",
-                        storageClassName: deployment.Persistence?.StorageClassName,
-                        resources: new V1VolumeResourceRequirements(requests: new Dictionary<string, ResourceQuantity>() { ["storage"] = new ResourceQuantity("8Gi") }))));
+            var vct = statefulSet.Spec.VolumeClaimTemplates.FirstOrDefault(i => i.Name() == "seq-data");
+            if (vct is null)
+                statefulSet.Spec.VolumeClaimTemplates.Add(vct = new V1PersistentVolumeClaim());
+
+            vct.Metadata.Name = "seq-data";
+            vct.Spec ??= new V1PersistentVolumeClaimSpec();
+
+            vct.Spec.AccessModes ??= new List<string>();
+            vct.Spec.AccessModes.Clear();
+            vct.Spec.AccessModes.Add("ReadWriteOnce");
+            vct.Spec.VolumeMode = "Filesystem";
+            vct.Spec.StorageClassName = deployment.Persistence?.StorageClassName;
+            vct.Spec.Resources ??= new V1VolumeResourceRequirements();
+            vct.Spec.Resources.Requests ??= new Dictionary<string, ResourceQuantity>();
+            vct.Spec.Resources.Requests["storage"] = new ResourceQuantity(deployment.Persistence?.Capacity ?? "8Gi");
 
             // get and update template object
             var template = statefulSet.Spec.Template ??= new V1PodTemplateSpec();

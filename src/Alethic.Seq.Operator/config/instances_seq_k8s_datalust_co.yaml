@@ -1051,6 +1051,9 @@ spec:
                   service:
                     nullable: true
                     properties:
+                      name:
+                        nullable: true
+                        type: string
                       annotations:
                         additionalProperties:
                           nullable: false
