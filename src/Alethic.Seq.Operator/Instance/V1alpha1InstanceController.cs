@@ -529,7 +529,7 @@ namespace Alethic.Seq.Operator.Instance
             vct.Spec.StorageClassName = deployment.Persistence?.StorageClassName;
             vct.Spec.Resources ??= new V1VolumeResourceRequirements();
             vct.Spec.Resources.Requests ??= new Dictionary<string, ResourceQuantity>();
-            vct.Spec.Resources.Requests["storage"] = new ResourceQuantity(deployment.Persistence?.Capacity ?? "8Gi");
+            vct.Spec.Resources.Requests["storage"] = new ResourceQuantity(deployment.Persistence?.Capacity ?? "32Gi");
 
             // get and update template object
             var template = statefulSet.Spec.Template ??= new V1PodTemplateSpec();
