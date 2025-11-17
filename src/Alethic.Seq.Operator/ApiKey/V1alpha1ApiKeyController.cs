@@ -186,9 +186,8 @@ namespace Alethic.Seq.Operator.ApiKey
             // submit the new key to the API
             var self = await api.ApiKeys.AddAsync(create, cancellationToken);
 
-            // update the secret with the token, which may be from the server
-            // todo we need to find a clean way to not do this here, or to propigate out the changes
-            await ApplySecretAsync(entity, self.Token ?? create.Token, defaultNamespace, cancellationToken);
+            // update the secret with the endpoint and the token which may be from the server
+            await ApplySecretAsync(entity, api.Client.ServerUrl, self.Token ?? create.Token, defaultNamespace, cancellationToken);
 
             // newly created ID
             return self.Id;
