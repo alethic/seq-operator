@@ -228,7 +228,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task ApplySecretAsync(V1alpha1ApiKey entity, string? token, string defaultNamespace, CancellationToken cancellationToken)
+        async Task ApplySecretAsync(V1alpha1ApiKey entity, string? endpoint, string? token, string defaultNamespace, CancellationToken cancellationToken)
         {
             var secretName = entity.Spec.SecretRef?.Name ?? entity.Name() + "-seq-apikey";
             var secretNamespace = entity.Spec.SecretRef?.NamespaceProperty ?? entity.Namespace();
@@ -268,6 +268,18 @@ namespace Alethic.Seq.Operator.ApiKey
             {
                 Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName}: updating.", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
                 secret.StringData ??= new Dictionary<string, string>();
+
+                // ensure the endpoint exists, possible empty, if we're retrieving an existing ApiKey
+                if (endpoint is not null)
+                {
+                    secret.StringData["endpoint"] = endpoint;
+                    Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} updated secret {SecretName} with endpoint", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
+                }
+                else if (!secret.StringData.ContainsKey("endpoint"))
+                {
+                    secret.StringData["endpoint"] = "";
+                    Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} initialized empty endpoint in secret {SecretName}", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
+                }
 
                 // ensure the key exists, possible empty, if we're retrieving an existing ApiKey
                 if (token is not null)
