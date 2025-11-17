@@ -509,7 +509,6 @@ namespace Alethic.Seq.Operator.Instance
             statefulSet.Spec.ServiceName = serviceAccount.Name();
             statefulSet.Spec.PodManagementPolicy = "OrderedReady";
             statefulSet.Spec.Replicas = 1;
-            statefulSet.Spec.Selector ??= new V1LabelSelector();
             statefulSet.Spec.UpdateStrategy ??= new V1StatefulSetUpdateStrategy();
             statefulSet.Spec.UpdateStrategy.Type = "RollingUpdate";
             statefulSet.Spec.UpdateStrategy.RollingUpdate ??= new V1RollingUpdateStatefulSetStrategy();
