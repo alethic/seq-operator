@@ -271,7 +271,7 @@ namespace Alethic.Seq.Operator.ApiKey
                 secret.StringData ??= new Dictionary<string, string>();
 
                 // ensure the endpoint exists, possible empty, if we're retrieving an existing ApiKey
-                if (endpoint is not null)
+                if (!string.IsNullOrWhiteSpace(endpoint))
                 {
                     secret.StringData["endpoint"] = endpoint;
                     Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} updated secret {SecretName} with endpoint", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
@@ -283,12 +283,12 @@ namespace Alethic.Seq.Operator.ApiKey
                 }
 
                 // ensure the key exists, possible empty, if we're retrieving an existing ApiKey
-                if (token is not null)
+                if (!string.IsNullOrWhiteSpace(token))
                 {
                     secret.StringData["token"] = token;
                     Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} updated secret {SecretName} with token", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
                 }
-                else if (!secret.StringData.ContainsKey("apikey"))
+                else if (!secret.StringData.ContainsKey("token"))
                 {
                     secret.StringData["token"] = "";
                     Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} initialized empty token in secret {SecretName}", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
