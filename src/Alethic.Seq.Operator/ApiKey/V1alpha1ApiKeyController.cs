@@ -41,6 +41,8 @@ namespace Alethic.Seq.Operator.ApiKey
         IEntityController<V1alpha1ApiKey>
     {
 
+        static string? EmptyToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+
         const string SECRET_ENDPOINT_KEY_NAME = "endpoint";
         const string SECRET_TOKEN_KEY_NAME = "token";
 
@@ -190,7 +192,7 @@ namespace Alethic.Seq.Operator.ApiKey
             var self = await api.ApiKeys.AddAsync(create, cancellationToken);
 
             // update the secret with the endpoint and the token which may be from the server
-            await ApplySecretAsync(entity, api.Client.ServerUrl, self.Token ?? create.Token, defaultNamespace, cancellationToken);
+            await ApplySecretAsync(entity, api.Client.ServerUrl, EmptyToNull(self.Token) ?? EmptyToNull(create.Token), defaultNamespace, cancellationToken);
 
             // newly created ID
             return self.Id;
@@ -278,22 +280,12 @@ namespace Alethic.Seq.Operator.ApiKey
                     secret.StringData[SECRET_ENDPOINT_KEY_NAME] = endpoint;
                     Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} updated secret {SecretName} with endpoint", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
                 }
-                else if (!secret.StringData.ContainsKey(SECRET_ENDPOINT_KEY_NAME))
-                {
-                    secret.StringData[SECRET_ENDPOINT_KEY_NAME] = "";
-                    Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} initialized empty endpoint in secret {SecretName}", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
-                }
 
                 // ensure the key exists, possible empty, if we're retrieving an existing ApiKey
                 if (!string.IsNullOrWhiteSpace(token))
                 {
                     secret.StringData[SECRET_TOKEN_KEY_NAME] = token;
                     Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} updated secret {SecretName} with token", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
-                }
-                else if (!secret.StringData.ContainsKey(SECRET_TOKEN_KEY_NAME))
-                {
-                    secret.StringData[SECRET_TOKEN_KEY_NAME] = "";
-                    Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} initialized empty token in secret {SecretName}", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
                 }
 
                 secret = await Kube.UpdateAsync(secret, cancellationToken);
