@@ -520,6 +520,7 @@ namespace Alethic.Seq.Operator.Instance
             if (vct is null)
                 statefulSet.Spec.VolumeClaimTemplates.Add(vct = new V1PersistentVolumeClaim());
 
+            vct.EnsureMetadata();
             vct.Metadata.Name = "seq-data";
             vct.Spec ??= new V1PersistentVolumeClaimSpec();
             vct.Spec.AccessModes ??= new List<string>();
@@ -536,6 +537,7 @@ namespace Alethic.Seq.Operator.Instance
             ApplyDeploymentResource(instance, deployment, "pod", template);
 
             // apply match labels from template
+            statefulSet.Spec.Selector ??= new V1LabelSelector();
             statefulSet.Spec.Selector.MatchLabels ??= new Dictionary<string, string>();
             statefulSet.Spec.Selector.MatchLabels.Clear();
             statefulSet.Spec.Selector.MatchLabels["seq.k8s.datalust.co/instance"] = instance.Name();
