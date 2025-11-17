@@ -115,7 +115,11 @@ namespace Alethic.Seq.Operator.Signals
         {
             return new SignalInfo()
             {
-
+                Title = source.Title,
+                Description = source.Description,
+                ExplicitGroupName = source.ExplicitGroupName,
+                IsIndexSuppressed = source.IsIndexSuppressed,
+                IsProtected = source.IsProtected,
             };
         }
 
@@ -127,6 +131,17 @@ namespace Alethic.Seq.Operator.Signals
         /// <returns></returns>
         SignalEntity ApplyToApi(SignalEntity target, SignalConf? conf, SignalInfo? info)
         {
+            if (conf is null)
+                return target;
+
+            if (conf.Title is not null)
+                if (info == null || info.Title != conf.Title)
+                    target.Title = conf.Title;
+
+            if (conf.Description is not null)
+                if (info == null || info.Description != conf.Description)
+                    target.Description = conf.Description;
+
             return target;
         }
 
