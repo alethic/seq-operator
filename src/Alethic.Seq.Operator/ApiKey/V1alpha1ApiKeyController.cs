@@ -18,6 +18,7 @@ using KubeOps.Abstractions.Queue;
 using KubeOps.Abstractions.Rbac;
 using KubeOps.KubernetesClient;
 
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -196,6 +197,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <inheritdoc />
         protected override async Task UpdateAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, SeqConnection api, string id, ApiKeyInfo? info, ApiKeyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
+            await ApplySecretAsync(entity, api.Client.ServerUrl, null, defaultNamespace, cancellationToken);
             await api.ApiKeys.UpdateAsync(ApplyToApi(entity, await api.ApiKeys.FindAsync(id, cancellationToken), conf, info), cancellationToken);
         }
 

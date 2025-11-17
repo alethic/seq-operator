@@ -1,6 +1,4 @@
-﻿using Alethic.Seq.Operator.ApiKey;
-
-using k8s.Models;
+﻿using k8s.Models;
 
 using KubeOps.Abstractions.Entities;
 using KubeOps.Abstractions.Entities.Attributes;
