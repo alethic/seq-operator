@@ -1252,6 +1252,16 @@ spec:
                           nullable: true
                           type: boolean
                       type: object
+                    signals:
+                      nullable: true
+                      properties:
+                        create:
+                          nullable: true
+                          type: boolean
+                        attach:
+                          nullable: true
+                          type: boolean
+                      type: object
                   type: object
                 nullable: true
                 type: array

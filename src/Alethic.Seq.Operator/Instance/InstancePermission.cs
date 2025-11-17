@@ -33,6 +33,12 @@ namespace Alethic.Seq.Operator.Instance
         [JsonPropertyName("retentionPolicies")]
         public InstanceRetentionPolicyPermissions? RetentionPolicies { get; set; }
 
+        /// <summary>
+        /// Permissions to apply to signals.
+        /// </summary>
+        [JsonPropertyName("signals")]
+        public InstanceSignalPermissions? Signals { get; set; }
+
     }
 
 }

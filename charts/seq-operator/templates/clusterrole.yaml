@@ -11,6 +11,15 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - seq.k8s.datalust.co
+  resources:
+  - signals
+  - retentionpolicys
+  - apikeys
+  - alerts
+  verbs:
+  - '*'
+- apiGroups:
   - ""
   resources:
   - secrets
@@ -19,23 +28,15 @@ rules:
   verbs:
   - '*'
 - apiGroups:
-  - apps
-  resources:
-  - statefulsets
-  verbs:
-  - '*'
-- apiGroups:
-  - seq.k8s.datalust.co
-  resources:
-  - apikeys
-  - retentionpolicys
-  - alerts
-  verbs:
-  - '*'
-- apiGroups:
   - events.k8s.io
   resources:
   - events
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
   verbs:
   - '*'
 - apiGroups:
@@ -62,6 +63,22 @@ rules:
   - update
   - patch
 - apiGroups:
+  - seq.k8s.datalust.co
+  resources:
+  - signals/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - seq.k8s.datalust.co
+  resources:
+  - retentionpolicys/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
   - ""
   resources:
   - services/status
@@ -81,14 +98,6 @@ rules:
   - seq.k8s.datalust.co
   resources:
   - apikeys/status
-  verbs:
-  - get
-  - update
-  - patch
-- apiGroups:
-  - seq.k8s.datalust.co
-  resources:
-  - retentionpolicys/status
   verbs:
   - get
   - update
