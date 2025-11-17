@@ -615,15 +615,9 @@ namespace Alethic.Seq.Operator.Instance
                 periodSeconds: 10);
 
             container.Resources ??= new V1ResourceRequirements();
-
-            if (deployment.Resources is { Claims: { } claims })
-                container.Resources.Claims = claims;
-
-            if (deployment.Resources is { Limits: { } limits })
-                container.Resources.Limits = limits;
-
-            if (deployment.Resources is { Requests: { } requests })
-                container.Resources.Requests = requests;
+            container.Resources.Claims = deployment.Resources?.Claims;
+            container.Resources.Limits = deployment.Resources?.Limits;
+            container.Resources.Requests = deployment.Resources?.Requests;
 
             return statefulSet;
         }
