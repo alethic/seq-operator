@@ -18,7 +18,6 @@ using KubeOps.Abstractions.Queue;
 using KubeOps.Abstractions.Rbac;
 using KubeOps.KubernetesClient;
 
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -41,6 +40,9 @@ namespace Alethic.Seq.Operator.ApiKey
         V1alpha1InstanceEntityController<V1alpha1ApiKey, V1alpha1ApiKeySpec, V1alpha1ApiKeyStatus, ApiKeyConf, ApiKeyInfo>,
         IEntityController<V1alpha1ApiKey>
     {
+
+        const string SECRET_ENDPOINT_KEY_NAME = "endpoint";
+        const string SECRET_TOKEN_KEY_NAME = "token";
 
         /// <summary>
         /// Initializes a new instance.
@@ -180,7 +182,7 @@ namespace Alethic.Seq.Operator.ApiKey
             {
                 var secret = await Lookup.ResolveSecretRefAsync(entity.Spec.SecretRef, entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, cancellationToken);
                 if (secret is not null)
-                    if (secret.Data.TryGetValue("token", out var tokenBuf))
+                    if (secret.Data.TryGetValue(SECRET_TOKEN_KEY_NAME, out var tokenBuf))
                         create.Token = Encoding.UTF8.GetString(tokenBuf);
             }
 
@@ -273,24 +275,24 @@ namespace Alethic.Seq.Operator.ApiKey
                 // ensure the endpoint exists, possible empty, if we're retrieving an existing ApiKey
                 if (!string.IsNullOrWhiteSpace(endpoint))
                 {
-                    secret.StringData["endpoint"] = endpoint;
+                    secret.StringData[SECRET_ENDPOINT_KEY_NAME] = endpoint;
                     Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} updated secret {SecretName} with endpoint", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
                 }
-                else if (!secret.StringData.ContainsKey("endpoint"))
+                else if (!secret.StringData.ContainsKey(SECRET_ENDPOINT_KEY_NAME))
                 {
-                    secret.StringData["endpoint"] = "";
+                    secret.StringData[SECRET_ENDPOINT_KEY_NAME] = "";
                     Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} initialized empty endpoint in secret {SecretName}", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
                 }
 
                 // ensure the key exists, possible empty, if we're retrieving an existing ApiKey
                 if (!string.IsNullOrWhiteSpace(token))
                 {
-                    secret.StringData["token"] = token;
+                    secret.StringData[SECRET_TOKEN_KEY_NAME] = token;
                     Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} updated secret {SecretName} with token", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
                 }
-                else if (!secret.StringData.ContainsKey("token"))
+                else if (!secret.StringData.ContainsKey(SECRET_TOKEN_KEY_NAME))
                 {
-                    secret.StringData["token"] = "";
+                    secret.StringData[SECRET_TOKEN_KEY_NAME] = "";
                     Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} initialized empty token in secret {SecretName}", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
                 }
 
