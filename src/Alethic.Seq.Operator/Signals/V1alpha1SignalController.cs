@@ -1,9 +1,12 @@
-﻿using System.Net;
+﻿using System;
+using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Alethic.Seq.Operator.Instance;
 using Alethic.Seq.Operator.Options;
+using Alethic.Seq.Operator.Shared;
 
 using k8s.Models;
 
@@ -111,17 +114,41 @@ namespace Alethic.Seq.Operator.Signals
         /// </summary>
         /// <param name="source"></param>
         /// <returns></returns>
-        SignalInfo ToInfo(SignalEntity source)
+        SignalInfo ToInfo(SignalEntity source) => new SignalInfo()
         {
-            return new SignalInfo()
-            {
-                Title = source.Title,
-                Description = source.Description,
-                ExplicitGroupName = source.ExplicitGroupName,
-                IsIndexSuppressed = source.IsIndexSuppressed,
-                IsProtected = source.IsProtected,
-            };
-        }
+            Title = source.Title,
+            Description = source.Description,
+            ExplicitGroupName = source.ExplicitGroupName,
+            IsIndexSuppressed = source.IsIndexSuppressed,
+            IsProtected = source.IsProtected,
+            Grouping = ToInfo(source.Grouping),
+            Filters = source.Filters.Select(DescriptiveFilter.FromApi).ToList(),
+            Columns = source.Columns.Select(ToInfo).ToList(),
+        };
+
+        /// <summary>
+        /// Transforms the <see cref="global::Seq.Api.Model.Signals.SignalGrouping"/> to a <see cref="SignalGrouping"/>.
+        /// </summary>
+        /// <param name="source"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        SignalGrouping ToInfo(global::Seq.Api.Model.Signals.SignalGrouping source) => source switch
+        {
+            global::Seq.Api.Model.Signals.SignalGrouping.Inferred => SignalGrouping.Inferred,
+            global::Seq.Api.Model.Signals.SignalGrouping.Explicit => SignalGrouping.Explicit,
+            global::Seq.Api.Model.Signals.SignalGrouping.None => SignalGrouping.None,
+            _ => throw new NotImplementedException(),
+        };
+
+        /// <summary>
+        /// Transforms the <see cref="SignalColumnPart"/> to a <see cref="SignalColumn"/>.
+        /// </summary>
+        /// <param name="source"></param>
+        /// <returns></returns>
+        SignalColumn ToInfo(SignalColumnPart source) => new SignalColumn()
+        {
+            Expression = source.Expression
+        };
 
         /// <summary>
         /// Creates an <see cref="SignalEntity"/> for creating or updating.

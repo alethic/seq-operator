@@ -22,7 +22,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// </summary>
         [JsonPropertyName("filter")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public ApiKeyDescriptiveFilter? Filter { get; set; }
+        public DescriptiveFilter? Filter { get; set; }
 
         /// <summary>
         /// A minimum level at which events received using the key will be ingested. The level hierarchy understood by Seq is fuzzy

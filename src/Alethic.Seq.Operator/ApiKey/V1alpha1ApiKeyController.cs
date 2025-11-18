@@ -355,11 +355,11 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <summary>
-        /// Transforms a <see cref="DescriptiveFilterPart"/> to a <see cref="ApiKeyDescriptiveFilter"/>.
+        /// Transforms a <see cref="DescriptiveFilterPart"/> to a <see cref="DescriptiveFilter"/>.
         /// </summary>
         /// <param name="source"></param>
         /// <returns></returns>
-        ApiKeyDescriptiveFilter ToInfo(DescriptiveFilterPart source) => new ApiKeyDescriptiveFilter()
+        DescriptiveFilter ToInfo(DescriptiveFilterPart source) => new DescriptiveFilter()
         {
             DescriptionIsExcluded = source.DescriptionIsExcluded,
             Description = source.Description,
@@ -468,11 +468,11 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <summary>
-        /// Applies the <see cref="ApiKeyDescriptiveFilter"/> to the API version.
+        /// Applies the <see cref="DescriptiveFilter"/> to the API version.
         /// </summary>
         /// <param name="target"></param>
         /// <param name="source"></param>
-        void ApplyToApi(DescriptiveFilterPart target, ApiKeyDescriptiveFilter source)
+        void ApplyToApi(DescriptiveFilterPart target, DescriptiveFilter source)
         {
             if (source.DescriptionIsExcluded is bool descriptionIsExcluded)
                 target.DescriptionIsExcluded = descriptionIsExcluded;

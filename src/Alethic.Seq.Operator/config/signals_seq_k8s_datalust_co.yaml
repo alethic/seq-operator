@@ -32,6 +32,49 @@ spec:
                   description:
                     nullable: true
                     type: string
+                  explicitGroupName:
+                    nullable: true
+                    type: string
+                  isIndexSuppressed:
+                    nullable: true
+                    type: boolean
+                  isProtected:
+                    nullable: true
+                    type: boolean
+                  grouping:
+                    enum:
+                    - Inferred
+                    - Explicit
+                    - None
+                    nullable: true
+                    type: string
+                  filters:
+                    items:
+                      properties:
+                        description:
+                          nullable: true
+                          type: string
+                        descriptionIsExcluded:
+                          nullable: true
+                          type: boolean
+                        filter:
+                          nullable: true
+                          type: string
+                        filterNonStrict:
+                          nullable: true
+                          type: string
+                      type: object
+                    nullable: true
+                    type: array
+                  columns:
+                    items:
+                      properties:
+                        expression:
+                          nullable: true
+                          type: string
+                      type: object
+                    nullable: true
+                    type: array
                 type: object
               conditions:
                 items:

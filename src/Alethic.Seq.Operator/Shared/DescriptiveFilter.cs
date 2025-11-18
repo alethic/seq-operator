@@ -1,10 +1,25 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Alethic.Seq.Operator.ApiKey
+using Seq.Api.Model.Shared;
+
+namespace Alethic.Seq.Operator.Shared
 {
 
-    public class ApiKeyDescriptiveFilter
+    public class DescriptiveFilter
     {
+
+        /// <summary>
+        /// Transforms a <see cref="DescriptiveFilterPart"/> to a <see cref="DescriptiveFilter"/>.
+        /// </summary>
+        /// <param name="source"></param>
+        /// <returns></returns>
+        public static DescriptiveFilter FromApi(DescriptiveFilterPart source) => new DescriptiveFilter()
+        {
+            DescriptionIsExcluded = source.DescriptionIsExcluded,
+            Description = source.Description,
+            Filter = source.Filter,
+            FilterNonStrict = source.FilterNonStrict,
+        };
 
         /// <summary>
         /// A friendly, human-readable description of the filter.
