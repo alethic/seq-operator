@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -21,6 +22,7 @@ using Microsoft.Extensions.Options;
 
 using Seq.Api;
 using Seq.Api.Client;
+using Seq.Api.Model.Shared;
 using Seq.Api.Model.Signals;
 
 namespace Alethic.Seq.Operator.Signals
@@ -88,8 +90,13 @@ namespace Alethic.Seq.Operator.Signals
         protected override async Task<string> CreateAsync(V1alpha1Instance instance, V1alpha1Signal entity, SeqConnection api, SignalConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} creating Signal in Seq.", EntityTypeName);
-            var self = await api.Signals.AddAsync(ApplyToApi(new SignalEntity(), conf, null), cancellationToken);
+
+            var data = new SignalEntity();
+            ApplyToApi(data, conf);
+            var self = await api.Signals.AddAsync(data, cancellationToken);
+
             Logger.LogInformation("{EntityTypeName} successfully created Signal in Seq with id: {Id}", EntityTypeName, self.Id);
+
             return self.Id;
         }
 
@@ -97,7 +104,11 @@ namespace Alethic.Seq.Operator.Signals
         protected override async Task UpdateAsync(V1alpha1Instance instance, V1alpha1Signal entity, SeqConnection api, string id, SignalInfo? info, SignalConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} updating Signal in Seq with id: {Id}", EntityTypeName, id);
-            await api.Signals.UpdateAsync(ApplyToApi(await api.Signals.FindAsync(id, cancellationToken), conf, info), cancellationToken);
+
+            var data = await api.Signals.FindAsync(id, cancellationToken);
+            if (ApplyToApi(data, conf))
+                await api.Signals.UpdateAsync(data, cancellationToken);
+
             Logger.LogInformation("{EntityTypeName} successfully updated Signal in Seq with id: {Id}", EntityTypeName, id);
         }
 
@@ -156,22 +167,148 @@ namespace Alethic.Seq.Operator.Signals
         /// <param name="conf"></param>
         /// <param name="info"></param>
         /// <returns></returns>
-        SignalEntity ApplyToApi(SignalEntity target, SignalConf? conf, SignalInfo? info)
+        bool ApplyToApi(SignalEntity target, SignalConf? conf)
         {
+            var changed = false;
+
             if (conf is null)
-                return target;
+                return false;
 
-            if (conf.Title is not null)
-                if (info == null || info.Title != conf.Title)
-                    target.Title = conf.Title;
+            if (conf.Title is not null && target.Title != conf.Title)
+            {
+                target.Title = conf.Title;
+                changed = true;
+            }
 
-            if (conf.Description is not null)
-                if (info == null || info.Description != conf.Description)
-                    target.Description = conf.Description;
+            if (conf.Description is not null && target.Description != conf.Description)
+            {
+                target.Description = conf.Description;
+                changed = true;
+            }
 
-            return target;
+            if (conf.ExplicitGroupName is not null && target.ExplicitGroupName != conf.ExplicitGroupName)
+            {
+                target.ExplicitGroupName = conf.ExplicitGroupName;
+                changed = true;
+            }
+
+            if (conf.IsProtected is not null && target.IsProtected != conf.IsProtected)
+            {
+                target.IsProtected = (bool)conf.IsProtected;
+                changed = true;
+            }
+
+            if (conf.Grouping is not null && target.Grouping != ToApi((SignalGrouping)conf.Grouping))
+            {
+                target.Grouping = ToApi((SignalGrouping)conf.Grouping);
+                changed = true;
+            }
+
+            if (conf.Filters is { } filters)
+                changed |= ApplyToApi(target.Filters, filters);
+
+            if (conf.Columns is { } columns)
+                changed |= ApplyToApi(target.Columns, columns);
+
+            return changed;
         }
 
+        /// <summary>
+        /// Applies the source filters to the target filter list.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="source"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        bool ApplyToApi(List<DescriptiveFilterPart> target, IList<DescriptiveFilter> source)
+        {
+            var changed = false;
+
+            // apply each source item in order
+            for (int i = 0; i < source.Count; i++)
+            {
+                var src = source[i];
+                var dst = i < target.Count ? target[i] : null;
+                if (dst is null)
+                {
+                    target.Add(dst = new DescriptiveFilterPart());
+                    changed = true;
+                }
+
+                if (src.Description is not null && dst.Description != src.Description)
+                {
+                    dst.Description = src.Description;
+                    changed = true;
+                }
+
+                if (src.DescriptionIsExcluded is not null && dst.DescriptionIsExcluded != src.DescriptionIsExcluded)
+                {
+                    dst.DescriptionIsExcluded = (bool)src.DescriptionIsExcluded;
+                    changed = true;
+                }
+
+                if (src.Filter is not null && dst.Filter != src.Filter)
+                {
+                    dst.Filter = src.Filter;
+                    changed = true;
+                }
+
+                if (src.FilterNonStrict is not null && dst.FilterNonStrict != src.FilterNonStrict)
+                {
+                    dst.FilterNonStrict = src.FilterNonStrict;
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
+        /// <summary>
+        /// Applies the source columns to the target columns list.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="source"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        bool ApplyToApi(List<SignalColumnPart> target, IList<SignalColumn> source)
+        {
+            var changed = false;
+
+            // apply each source item in order
+            for (int i = 0; i < source.Count; i++)
+            {
+                var src = source[i];
+                var dst = i < target.Count ? target[i] : null;
+                if (dst is null)
+                {
+                    target.Add(dst = new SignalColumnPart());
+                    changed = true;
+                }
+
+                if (src.Expression is not null && dst.Expression != src.Expression)
+                {
+                    dst.Expression = src.Expression;
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
+        /// <summary>
+        /// Transforms a <see cref="SignalGrouping"/> to a <see cref="global::Seq.Api.Model.Signals.SignalGrouping"/>.
+        /// </summary>
+        /// <param name="grouping"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        global::Seq.Api.Model.Signals.SignalGrouping ToApi(SignalGrouping grouping)
+        {
+            return grouping switch
+            {
+                SignalGrouping.Inferred => global::Seq.Api.Model.Signals.SignalGrouping.Inferred,
+                SignalGrouping.Explicit => global::Seq.Api.Model.Signals.SignalGrouping.Explicit,
+                SignalGrouping.None => global::Seq.Api.Model.Signals.SignalGrouping.None,
+                _ => throw new NotImplementedException(),
+            };
+        }
     }
 
 }
