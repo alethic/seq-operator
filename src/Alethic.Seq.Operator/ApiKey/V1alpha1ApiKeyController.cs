@@ -177,7 +177,7 @@ namespace Alethic.Seq.Operator.ApiKey
         {
             // create a new entity
             var create = new ApiKeyEntity();
-            ApplyToApi(entity, create, conf, null);
+            ApplyToApi(entity, create, conf);
 
             // entity specifies an existing secret, this may be a token source
             if (entity.Spec.SecretRef is not null)
@@ -202,7 +202,7 @@ namespace Alethic.Seq.Operator.ApiKey
         protected override async Task UpdateAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, SeqConnection api, string id, ApiKeyInfo? info, ApiKeyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             await ApplySecretAsync(entity, api.Client.ServerUrl, null, defaultNamespace, cancellationToken);
-            await api.ApiKeys.UpdateAsync(ApplyToApi(entity, await api.ApiKeys.FindAsync(id, cancellationToken), conf, info), cancellationToken);
+            await api.ApiKeys.UpdateAsync(ApplyToApi(entity, await api.ApiKeys.FindAsync(id, cancellationToken), conf), cancellationToken);
         }
 
         /// <inheritdoc />
@@ -392,22 +392,17 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="conf"></param>
         /// <param name="info"></param>
         /// <returns></returns>
-        ApiKeyEntity ApplyToApi(V1alpha1ApiKey entity, ApiKeyEntity target, ApiKeyConf? conf, ApiKeyInfo? info)
+        ApiKeyEntity ApplyToApi(V1alpha1ApiKey entity, ApiKeyEntity target, ApiKeyConf? conf)
         {
             var title = conf?.Title ?? "SeqOperatorApiKey_" + entity.Uid();
             if (title is not null)
-                if (info == null || info.Title != title)
-                    target.Title = title;
+                target.Title = title;
 
             if (conf?.Permissions != null)
                 ApplyToApi(target, conf.Permissions);
-            else if (info != null && info.Permissions != null)
-                ApplyToApi(target, info.Permissions);
 
             if (conf?.InputSettings != null)
                 ApplyToApi(target.InputSettings, conf.InputSettings);
-            else if (info != null && info.InputSettings != null)
-                ApplyToApi(target.InputSettings, info.InputSettings);
 
             return target;
         }
