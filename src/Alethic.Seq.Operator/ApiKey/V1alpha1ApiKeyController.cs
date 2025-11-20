@@ -420,6 +420,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <returns></returns>
         void ApplyToApi(ApiKeyEntity target, ApiKeyPermission[] permissions)
         {
+            target.AssignedPermissions.Clear();
             foreach (var i in permissions)
                 target.AssignedPermissions.Add(ToApi(i));
         }
