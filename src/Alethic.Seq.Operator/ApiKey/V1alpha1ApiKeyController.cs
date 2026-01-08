@@ -347,7 +347,7 @@ namespace Alethic.Seq.Operator.ApiKey
         {
             return new ApiKeyInputSettings()
             {
-                AppliedProperties = source.AppliedProperties.ToDictionary(i => i.Name, i => (string?)i.Value),
+                AppliedProperties = source.AppliedProperties.GroupBy(i => i.Name).ToDictionary(i => i.Key, i => (string?)i.First().Value),
                 Filter = ToInfo(source.Filter),
                 UseServerTimestamps = source.UseServerTimestamps,
                 MinimumLevel = source.MinimumLevel != null ? ToInfo(source.MinimumLevel.Value) : null,
@@ -449,7 +449,6 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <returns></returns>
         void ApplyToApi(InputSettingsPart target, ApiKeyInputSettings source)
         {
-            target.AppliedProperties.Clear();
             foreach (var kvp in source.AppliedProperties ?? [])
                 target.AppliedProperties.Add(new EventPropertyPart(kvp.Key, kvp.Value));
 
