@@ -449,6 +449,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <returns></returns>
         void ApplyToApi(InputSettingsPart target, ApiKeyInputSettings source)
         {
+            target.AppliedProperties.Clear();
             foreach (var kvp in source.AppliedProperties ?? [])
                 target.AppliedProperties.Add(new EventPropertyPart(kvp.Key, kvp.Value));
 
