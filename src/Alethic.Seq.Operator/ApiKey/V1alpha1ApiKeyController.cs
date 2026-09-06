@@ -12,10 +12,9 @@ using Alethic.Seq.Operator.Shared;
 
 using k8s.Models;
 
-using KubeOps.Abstractions.Controller;
 using KubeOps.Abstractions.Entities;
-using KubeOps.Abstractions.Queue;
 using KubeOps.Abstractions.Rbac;
+using KubeOps.Abstractions.Reconciliation.Controller;
 using KubeOps.KubernetesClient;
 
 using Microsoft.Extensions.Caching.Memory;
@@ -50,13 +49,12 @@ namespace Alethic.Seq.Operator.ApiKey
         /// Initializes a new instance.
         /// </summary>
         /// <param name="kube"></param>
-        /// <param name="requeue"></param>
         /// <param name="cache"></param>
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1ApiKeyController(IKubernetesClient kube, EntityRequeue<V1alpha1ApiKey> requeue, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1ApiKeyController> logger) :
-            base(kube, requeue, cache, lookup, options, logger)
+        public V1alpha1ApiKeyController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1ApiKeyController> logger) :
+            base(kube, cache, lookup, options, logger)
         {
 
         }
@@ -221,7 +219,7 @@ namespace Alethic.Seq.Operator.ApiKey
         async Task<T?> FindRelatedAsync<T>(V1alpha1ApiKey apikey, CancellationToken cancellationToken)
             where T : k8s.IKubernetesObject<V1ObjectMeta>
         {
-            var l = await Kube.ListAsync<T>(apikey.Namespace(), $"seq.k8s.datalust.co/apikey={apikey.Name()}", cancellationToken);
+            var l = await Kube.ListAsync<T>(apikey.Namespace(), $"seq.k8s.datalust.co/apikey={apikey.Name()}", cancellationToken: cancellationToken);
             return l.FirstOrDefault();
         }
 
@@ -259,12 +257,15 @@ namespace Alethic.Seq.Operator.ApiKey
             {
                 Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName} which does not exist: creating.", EntityTypeName, entity.Namespace(), entity.Name(), secretName);
                 secret = await Kube.CreateAsync(
-                    new V1Secret(
-                            metadata: new V1ObjectMeta(
-                                namespaceProperty: secretNamespace,
-                                name: secretName,
-                                labels: new Dictionary<string, string>() { ["seq.k8s.datalust.co/apikey"] = entity.Name() }))
-                        .WithOwnerReference(entity),
+                    new V1Secret()
+                    {
+                        Metadata = new V1ObjectMeta()
+                        {
+                            NamespaceProperty = secretNamespace,
+                            Name = secretName,
+                            Labels = new Dictionary<string, string>() { ["seq.k8s.datalust.co/apikey"] = entity.Name() },
+                        },
+                    }.WithOwnerReference(entity),
                     cancellationToken);
             }
 
@@ -297,7 +298,7 @@ namespace Alethic.Seq.Operator.ApiKey
             }
 
             // apply the reference to the secret to the apikey
-            entity.Status.SecretRef = new V1SecretReference(secret.Name(), secret.Namespace());
+            entity.Status.SecretRef = new V1SecretReference() { Name = secret.Name(), NamespaceProperty = secret.Namespace() };
         }
 
         /// <summary>

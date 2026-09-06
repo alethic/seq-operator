@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Build.NoTargets">
+<Project Sdk="Microsoft.Build.NoTargets">
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -7,24 +7,120 @@
         <ChartPackage>$(ChartName)-$(Version).tgz</ChartPackage>
     </PropertyGroup>
     <ItemGroup>
-        <ChartItem Include="templates\**\*" TargetPath="templates\%(RecursiveDir)%(Filename)%(Extension)" />
-        <ChartItem Include="*.yaml" TargetPath="%(Filename)%(Extension)" />
-        <ChartItem Include="..\..\src\Alethic.Seq.Operator\config\*_seq_k8s_datalust_co.yaml" TargetPath="crds\%(Filename)%(Extension)" />
+        <PackageReference Include="YamlDotNet" Version="18.1.0" GeneratePathProperty="true" />
+    </ItemGroup>
+    <!-- The CRDs are generated into the operator's config/ directory and are not committed, so the operator has to
+         build before they can be staged into the chart. -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Alethic.Seq.Operator\Alethic.Seq.Operator.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <Folder Include="templates\" />
+        <ChartItem Include="templates\**\*" TargetPath="templates\%(RecursiveDir)%(Filename)%(Extension)" />
+        <ChartItem Include="*.yaml" TargetPath="%(Filename)%(Extension)" />
     </ItemGroup>
-    <Target Name="PackageHelm" BeforeTargets="BeforeBuild" Inputs="@(ChartItem)" Outputs="$(IntermediateOutputPath)$(ChartPackage)">
-        <RemoveDir Directories="$(IntermediateOutputPath)chart" />
+    <Target Name="CollectCrdItems" DependsOnTargets="ResolveProjectReferences">
+        <ItemGroup>
+            <CrdItem Include="..\..\src\Alethic.Seq.Operator\config\*_seq_k8s_datalust_co.yaml" />
+        </ItemGroup>
+        <!-- The CRDs are no longer committed, so an empty match means generation did not run (most often a missing
+             'dotnet tool restore', which leaves the KubeOps CLI unavailable). Fail here rather than shipping a chart
+             with no CRDs in it. -->
+        <Error Condition=" '@(CrdItem)' == '' " Text="No generated CRDs found in src\Alethic.Seq.Operator\config. Run 'dotnet tool restore' and build the operator in Release before packaging the chart." />
+    </Target>
+    <!-- Rewrites each generated CRD into a chart template: injects the chart's labels and annotations and wraps the
+         document in the crds.enabled guard. CRDs shipped in the chart's crds/ directory are installed once and never
+         updated by 'helm upgrade'; as templates they follow the release like every other resource.
+
+         Note: unlike auth0-operator's equivalent, this does not rewrite a conversion webhook's caBundle or service
+         reference, because this operator serves a single API version and has no webhook, Service or TLS secret to
+         point at. That rewriting has to be added here alongside those templates on the day a second version lands. -->
+    <UsingTask TaskName="RewriteCrd" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <Source ParameterType="System.String" Required="true" />
+            <Target ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Reference Include="$(PkgYamlDotNet)/lib/netstandard2.0/YamlDotNet.dll" />
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="YamlDotNet" />
+            <Using Namespace="YamlDotNet.Core" />
+            <Using Namespace="YamlDotNet.RepresentationModel" />
+            <Code Type="Fragment" Language="cs">
+                <![CDATA[
+
+                var yaml = new YamlStream();
+
+                using var reader = new StreamReader(Source);
+                yaml.Load(reader);
+
+                foreach (var doc in yaml.Documents)
+                {
+                    if (doc.RootNode is YamlMappingNode rootMapping)
+                    {
+                        if (rootMapping.Children.TryGetValue(new YamlScalarNode("metadata"), out var metadata) && metadata is YamlMappingNode metadataMapping)
+                        {
+                            metadataMapping.Children[new YamlScalarNode("labels")] = new YamlScalarNode(@"{{- include ""crd.labels"" . | nindent 4 }}") { Style = ScalarStyle.ForcePlain };
+                            metadataMapping.Children[new YamlScalarNode("annotations")] = new YamlScalarNode(@"{{- include ""crd.annotations"" . | nindent 4 }}") { Style = ScalarStyle.ForcePlain };
+                        }
+                    }
+                }
+
+                var buffer = new StringWriter();
+
+                buffer.WriteLine("{{- if .Values.crds.enabled }}");
+
+                yaml.Save(buffer, false);
+
+                buffer.WriteLine("{{- end }}");
+
+                using var writer = new StreamWriter(Target);
+                using var copier = new StringReader(buffer.ToString().Trim());
+
+                string line;
+                while ((line = copier.ReadLine()) != null)
+                {
+                    if (string.IsNullOrWhiteSpace(line.Trim()))
+                        writer.WriteLine("");
+                    else if (line == "...")
+                        writer.WriteLine("---");
+                    else
+                        writer.WriteLine(line);
+                }
+]]>
+            </Code>
+        </Task>
+    </UsingTask>
+    <Target Name="RewriteCrds" DependsOnTargets="CollectCrdItems">
+        <MakeDir Directories="$(IntermediateOutputPath)\crds\" />
+        <RewriteCrd Source="@(CrdItem)" Target="$(IntermediateOutputPath)\crds\%(Filename).yaml" Condition="Exists('%(CrdItem.Identity)')" />
+        <ItemGroup>
+            <ChartItem Include="@(CrdItem->'$(IntermediateOutputPath)\crds\%(Filename).yaml')" TargetPath="templates\crd-%(Filename).yaml" />
+            <FileWrites Include="@(CrdItem->'$(IntermediateOutputPath)\crds\%(Filename).yaml')" />
+        </ItemGroup>
+    </Target>
+    <Target Name="StageHelm" DependsOnTargets="RewriteCrds">
         <Copy SourceFiles="@(ChartItem)" DestinationFiles="@(ChartItem->'$(IntermediateOutputPath)chart\%(TargetPath)')" />
-        <Exec Command="helm package $(IntermediateOutputPath)\chart --version $(Version) --app-version $(Version) -u -d $(IntermediateOutputPath)" />
+        <ItemGroup>
+            <FileWrites Include="@(ChartItem->'$(IntermediateOutputPath)chart\%(TargetPath)')" />
+        </ItemGroup>
+    </Target>
+    <Target Name="PackageHelm" DependsOnTargets="StageHelm" BeforeTargets="AssignTargetPaths">
+        <Exec Command="helm package $(IntermediateOutputPath)chart --version $(Version) --app-version $(Version) -u -d $(IntermediateOutputPath)" />
         <ItemGroup>
             <None Include="$(IntermediateOutputPath)$(ChartPackage)">
                 <TargetPath>$(ChartPackage)</TargetPath>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </None>
-            <FileWrites Include="$(IntermediateOutputPath)chart\**\*" />
             <FileWrites Include="$(IntermediateOutputPath)$(ChartPackage)" />
         </ItemGroup>
     </Target>
+    <!-- Renders the packaged chart and fails the build if it does not. 'helm package' only tars the templates, so
+         without this a CRD rewritten into an unrenderable template would ship and only break at install time. -->
+    <Target Name="TestHelm" DependsOnTargets="PackageHelm">
+        <!-- IgnoreStandardErrorWarningFormat because helm writes progress to stderr, which Exec would otherwise
+             report as MSB3077 even on a successful render. A non-zero exit from helm still fails the task. -->
+        <Exec Command="helm template $(IntermediateOutputPath)$(ChartPackage)" IgnoreStandardErrorWarningFormat="true" />
+    </Target>
+    <Target Name="BuildHelm" BeforeTargets="Build" DependsOnTargets="CollectCrdItems;RewriteCrds;StageHelm;PackageHelm;TestHelm" />
 </Project>

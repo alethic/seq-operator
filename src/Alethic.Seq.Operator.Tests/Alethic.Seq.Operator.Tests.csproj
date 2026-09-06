@@ -1,14 +1,10 @@
-﻿<Project Sdk="MSTest.Sdk/3.6.1">
+<Project Sdk="MSTest.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
     </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="System.Text.Json" Version="9.0.0" />
-    </ItemGroup>
 
 </Project>
