@@ -5,7 +5,12 @@
         <TargetFramework>net10.0</TargetFramework>
         <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
         <Nullable>enable</Nullable>
-        <SelfContained>true</SelfContained>
+        <!-- Self-contained only when a runtime identifier is actually in play, which is the container publish
+             (dist-containers sets RuntimeIdentifier=linux-x64). Set unconditionally it also applies to a plain
+             build, which makes the assembly a RID-scoped asset of anything referencing this project: the test
+             project then resolves it on win-x64 and linux-x64 but not on linux-arm64, which is not in
+             RuntimeIdentifiers. The published image is unaffected, since it always sets a RID. -->
+        <SelfContained Condition=" '$(RuntimeIdentifier)' != '' ">true</SelfContained>
         <ContainerRepository>seq-operator-image</ContainerRepository>
         <KubeOpsCli>dotnet tool run kubeops</KubeOpsCli>
         <GenerateOperatorResources>true</GenerateOperatorResources>
