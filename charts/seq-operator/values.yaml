@@ -1,6 +1,14 @@
 nameOverride: ""
 fullnameOverride: ""
 
+# Options for the CustomResourceDefinitions. The CRDs ship as chart templates rather than in the chart's crds/
+# directory, so that 'helm upgrade' applies schema changes; Helm installs crds/ once and never updates it.
+crds:
+  # Whether to install the CustomResourceDefinitions with the chart. Set false to manage them out of band.
+  enabled: true
+  # Whether to retain the CustomResourceDefinitions when the chart is uninstalled.
+  keep: false
+
 operator:
   env: []
 

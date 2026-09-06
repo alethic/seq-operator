@@ -8,6 +8,24 @@
         <Platform Condition=" '$(Platform)' == '' ">Any CPU</Platform>
     </PropertyGroup>
 
+    <!-- Two passes over the operator project before anything is published. The KubeOps generator target only runs
+         when the operator assembly actually recompiled or the configuration is Release, so an incremental build can
+         otherwise leave config/ stale -- and since the CRDs are no longer committed, stale means absent. The first
+         pass compiles without generating; the second forces a Release build with generation on. -->
+    <ItemGroup>
+        <TargetsForPrePrepare Include="$(SolutionFile)">
+            <Targets>Alethic_Seq_Operator</Targets>
+            <Properties>Configuration=Debug;GenerateOperatorResources=false</Properties>
+        </TargetsForPrePrepare>
+    </ItemGroup>
+
+    <ItemGroup>
+        <TargetsForPrepare Include="$(SolutionFile)">
+            <Targets>Alethic_Seq_Operator</Targets>
+            <Properties>Configuration=Release;GenerateOperatorResources=true</Properties>
+        </TargetsForPrepare>
+    </ItemGroup>
+
     <ItemGroup>
         <TargetsForPublish Include="$(SolutionFile)">
             <Targets>dist%5Cdist-containers:Publish</Targets>
@@ -23,7 +41,27 @@
         </TargetsForPublish>
     </ItemGroup>
 
-    <Target Name="Publish">
+    <Target Name="PrePrepare">
+        <ItemGroup>
+            <_TargetsForPrePrepare Include="@(TargetsForPrePrepare)">
+                <Properties>%(TargetsForPrePrepare.Properties)</Properties>
+            </_TargetsForPrePrepare>
+        </ItemGroup>
+
+        <MSBuild BuildInParallel="False" ContinueOnError="false" Projects="@(_TargetsForPrePrepare)" Targets="%(_TargetsForPrePrepare.Targets)" />
+    </Target>
+
+    <Target Name="Prepare" DependsOnTargets="PrePrepare">
+        <ItemGroup>
+            <_TargetsForPrepare Include="@(TargetsForPrepare)">
+                <Properties>%(TargetsForPrepare.Properties)</Properties>
+            </_TargetsForPrepare>
+        </ItemGroup>
+
+        <MSBuild BuildInParallel="False" ContinueOnError="false" Projects="@(_TargetsForPrepare)" Targets="%(_TargetsForPrepare.Targets)" />
+    </Target>
+
+    <Target Name="Publish" DependsOnTargets="Prepare">
         <ItemGroup>
             <_TargetsForPublish Include="@(TargetsForPublish)">
                 <Properties>%(TargetsForPublish.Properties)</Properties>

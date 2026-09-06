@@ -257,12 +257,15 @@ namespace Alethic.Seq.Operator.ApiKey
             {
                 Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName} which does not exist: creating.", EntityTypeName, entity.Namespace(), entity.Name(), secretName);
                 secret = await Kube.CreateAsync(
-                    new V1Secret(
-                            metadata: new V1ObjectMeta(
-                                namespaceProperty: secretNamespace,
-                                name: secretName,
-                                labels: new Dictionary<string, string>() { ["seq.k8s.datalust.co/apikey"] = entity.Name() }))
-                        .WithOwnerReference(entity),
+                    new V1Secret()
+                    {
+                        Metadata = new V1ObjectMeta()
+                        {
+                            NamespaceProperty = secretNamespace,
+                            Name = secretName,
+                            Labels = new Dictionary<string, string>() { ["seq.k8s.datalust.co/apikey"] = entity.Name() },
+                        },
+                    }.WithOwnerReference(entity),
                     cancellationToken);
             }
 

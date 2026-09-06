@@ -36,3 +36,15 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- define "matchLabels" -}}
 {{ include "selectorLabels" . }}
 {{- end }}
+
+{{- /* Labels applied to the CustomResourceDefinitions shipped as templates. */}}
+{{- define "crd.labels" -}}
+{{ include "labels" . }}
+{{- end }}
+
+{{- /* Annotations applied to the CustomResourceDefinitions shipped as templates. */}}
+{{- define "crd.annotations" -}}
+{{-   if .Values.crds.keep -}}
+helm.sh/resource-policy: keep
+{{-   end }}
+{{- end }}

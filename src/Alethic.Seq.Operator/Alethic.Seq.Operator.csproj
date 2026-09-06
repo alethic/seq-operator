@@ -14,7 +14,7 @@
     <ItemGroup>
         <ContainerEnvironmentVariable Include="ASPNETCORE_FORWARDEDHEADERS_ENABLED" Value="true" />
         <ContainerEnvironmentVariable Include="ASPNETCORE_ENVIRONMENT" Value="Production" />
-        <ContainerEnvironmentVariable Include="ASPNETCORE_URLS" Value="http://*:8080" />
+        <ContainerEnvironmentVariable Include="ASPNETCORE_HTTP_PORTS" Value="8080" />
     </ItemGroup>
 
     <ItemGroup>
@@ -23,9 +23,7 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="KubeOps.Operator" Version="13.1.0" />
-        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.10" />
         <PackageReference Include="Seq.Api" Version="2025.2.2" />
-        <PackageReference Include="System.Text.Json" Version="10.0.10" />
     </ItemGroup>
 
     <ItemGroup>
