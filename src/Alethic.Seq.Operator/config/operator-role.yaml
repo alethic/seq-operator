@@ -33,6 +33,14 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - apps
   resources:
   - statefulsets
@@ -52,7 +60,13 @@ rules:
   resources:
   - leases
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - seq.k8s.datalust.co
   resources:
@@ -73,6 +87,14 @@ rules:
   - seq.k8s.datalust.co
   resources:
   - retentionpolicys/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces/status
   verbs:
   - get
   - update

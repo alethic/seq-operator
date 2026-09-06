@@ -28,6 +28,11 @@ using Seq.Api.Model.Settings;
 namespace Alethic.Seq.Operator.Instance
 {
 
+    // Namespaces are read, never written: an Instance's permissions can admit entities from every namespace or from
+    // those matching a selector, and both are evaluated against the namespace object itself. Nothing infers this from
+    // the controller's entity types, so without it the generated role omits namespaces and has to be patched by hand
+    // wherever it is copied.
+    [EntityRbac(typeof(V1Namespace), Verbs = RbacVerb.Get | RbacVerb.List | RbacVerb.Watch)]
     [EntityRbac(typeof(V1alpha1Instance), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Service), Verbs = RbacVerb.All)]
@@ -593,7 +598,11 @@ namespace Alethic.Seq.Operator.Instance
             container.VolumeMounts.Clear();
             container.VolumeMounts.Add(new V1VolumeMount("/data", "seq-data"));
 
-            container.LivenessProbe = new V1Probe(
+            // A probe given on the deployment replaces ours outright rather than merging into it. Merging would let a
+            // caller set one field and silently inherit the rest of ours, so the probe they read back would be neither
+            // what they wrote nor what we chose; and it offers no way to clear a field we set. This follows the same
+            // shape as Resources below, which is a straight pass-through of what the caller supplied.
+            container.LivenessProbe = deployment.LivenessProbe ?? new V1Probe(
                 httpGet: new V1HTTPGetAction("ui", path: "/health"),
                 failureThreshold: 3,
                 initialDelaySeconds: 0,
@@ -601,7 +610,7 @@ namespace Alethic.Seq.Operator.Instance
                 successThreshold: 1,
                 timeoutSeconds: 1);
 
-            container.ReadinessProbe = new V1Probe(
+            container.ReadinessProbe = deployment.ReadinessProbe ?? new V1Probe(
                 httpGet: new V1HTTPGetAction("ui", path: "/health"),
                 failureThreshold: 3,
                 initialDelaySeconds: 0,
@@ -609,7 +618,7 @@ namespace Alethic.Seq.Operator.Instance
                 successThreshold: 1,
                 timeoutSeconds: 1);
 
-            container.StartupProbe = new V1Probe(
+            container.StartupProbe = deployment.StartupProbe ?? new V1Probe(
                 httpGet: new V1HTTPGetAction("ui", path: "/health"),
                 failureThreshold: 30,
                 periodSeconds: 10);
