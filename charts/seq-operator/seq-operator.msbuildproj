@@ -115,8 +115,10 @@
             <FileWrites Include="$(IntermediateOutputPath)$(ChartPackage)" />
         </ItemGroup>
     </Target>
+    <!-- Renders the packaged chart and fails the build if it does not. 'helm package' only tars the templates, so
+         without this a CRD rewritten into an unrenderable template would ship and only break at install time. -->
     <Target Name="TestHelm" DependsOnTargets="PackageHelm">
-        <Exec Command="helm template --debug $(IntermediateOutputPath)$(ChartPackage)" ContinueOnError="true" />
+        <Exec Command="helm template --debug $(IntermediateOutputPath)$(ChartPackage)" />
     </Target>
     <Target Name="BuildHelm" BeforeTargets="Build" DependsOnTargets="CollectCrdItems;RewriteCrds;StageHelm;PackageHelm;TestHelm" />
 </Project>
