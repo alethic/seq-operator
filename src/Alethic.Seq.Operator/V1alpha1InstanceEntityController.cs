@@ -8,7 +8,7 @@ using Alethic.Seq.Operator.Options;
 using k8s;
 using k8s.Models;
 
-using KubeOps.Abstractions.Queue;
+using KubeOps.Abstractions.Reconciliation;
 using KubeOps.KubernetesClient;
 
 using Microsoft.Extensions.Caching.Memory;
@@ -33,13 +33,12 @@ namespace Alethic.Seq.Operator
         /// Initializes a new instance.
         /// </summary>
         /// <param name="kube"></param>
-        /// <param name="requeue"></param>
         /// <param name="cache"></param>
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1InstanceEntityController(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
-            base(kube, requeue, cache, lookup, options, logger)
+        public V1alpha1InstanceEntityController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
+            base(kube, cache, lookup, options, logger)
         {
 
         }
@@ -244,7 +243,7 @@ namespace Alethic.Seq.Operator
         protected abstract Task DeleteAsync(V1alpha1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken);
 
         /// <inheritdoc />
-        public override sealed async Task DeletedAsync(TEntity entity, CancellationToken cancellationToken)
+        public override sealed async Task<ReconciliationResult<TEntity>> DeletedAsync(TEntity entity, CancellationToken cancellationToken)
         {
             try
             {
@@ -262,19 +261,20 @@ namespace Alethic.Seq.Operator
                 if (string.IsNullOrWhiteSpace(entity.Status.Id))
                 {
                     Logger.LogWarning("{EntityTypeName} {EntityNamespace}/{EntityName} has no known ID, skipping delete (reason: entity was never successfully created in Seq).", EntityTypeName, entity.Namespace(), entity.Name());
-                    return;
+                    return ReconciliationResult<TEntity>.Success(entity);
                 }
 
                 var self = await GetAsync(entity, api, entity.Status.Id, entity.Namespace(), cancellationToken);
                 if (self is null)
                 {
                     Logger.LogWarning("{EntityTypeName} {EntityNamespace}/{EntityName} with ID {Id} not found in Seq, skipping delete (reason: already deleted externally).", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
-                    return;
+                    return ReconciliationResult<TEntity>.Success(entity);
                 }
 
                 Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} initiating deletion from Seq with ID: {Id} (reason: Kubernetes entity was deleted)", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
                 await DeleteAsync(instance, api, entity.Status.Id, cancellationToken);
                 Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} deletion completed successfully", EntityTypeName, entity.Namespace(), entity.Name());
+                return ReconciliationResult<TEntity>.Success(entity);
             }
             catch (RetryException e)
             {
@@ -290,7 +290,7 @@ namespace Alethic.Seq.Operator
 
                 var interval = Options.Reconciliation.RetryInterval;
                 Logger.LogInformation("Rescheduling delete after {TimeSpan}.", interval);
-                Requeue(entity, interval);
+                return ReconciliationResult<TEntity>.Failure(entity, e.Message, e, interval);
             }
             catch (Exception e)
             {

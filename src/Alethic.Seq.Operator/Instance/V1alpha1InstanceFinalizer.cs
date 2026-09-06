@@ -1,7 +1,8 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 
-using KubeOps.Abstractions.Finalizer;
+using KubeOps.Abstractions.Reconciliation;
+using KubeOps.Abstractions.Reconciliation.Finalizer;
 
 namespace Alethic.Seq.Operator.Instance
 {
@@ -9,9 +10,9 @@ namespace Alethic.Seq.Operator.Instance
     public class V1alpha1InstanceFinalizer : IEntityFinalizer<V1alpha1Instance>
     {
 
-        public Task FinalizeAsync(V1alpha1Instance entity, CancellationToken cancellationToken)
+        public Task<ReconciliationResult<V1alpha1Instance>> FinalizeAsync(V1alpha1Instance entity, CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            return Task.FromResult(ReconciliationResult<V1alpha1Instance>.Success(entity));
         }
 
     }

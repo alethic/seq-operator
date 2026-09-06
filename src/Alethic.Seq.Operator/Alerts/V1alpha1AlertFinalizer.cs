@@ -2,7 +2,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-using KubeOps.Abstractions.Finalizer;
+using KubeOps.Abstractions.Reconciliation;
+using KubeOps.Abstractions.Reconciliation.Finalizer;
 
 namespace Alethic.Seq.Operator.Alerts
 {
@@ -22,9 +23,9 @@ namespace Alethic.Seq.Operator.Alerts
         }
 
         /// <inheritdoc />
-        public async Task FinalizeAsync(V1alpha1Alert entity, CancellationToken cancellationToken)
+        public async Task<ReconciliationResult<V1alpha1Alert>> FinalizeAsync(V1alpha1Alert entity, CancellationToken cancellationToken)
         {
-            await _controller.DeletedAsync(entity, cancellationToken);
+            return await _controller.DeletedAsync(entity, cancellationToken);
         }
 
     }

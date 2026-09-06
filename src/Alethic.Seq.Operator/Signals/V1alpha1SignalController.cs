@@ -11,9 +11,8 @@ using Alethic.Seq.Operator.Shared;
 
 using k8s.Models;
 
-using KubeOps.Abstractions.Controller;
-using KubeOps.Abstractions.Queue;
 using KubeOps.Abstractions.Rbac;
+using KubeOps.Abstractions.Reconciliation.Controller;
 using KubeOps.KubernetesClient;
 
 using Microsoft.Extensions.Caching.Memory;
@@ -41,13 +40,12 @@ namespace Alethic.Seq.Operator.Signals
         /// Initializes a new instance.
         /// </summary>
         /// <param name="kube"></param>
-        /// <param name="requeue"></param>
         /// <param name="cache"></param>
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1SignalController(IKubernetesClient kube, EntityRequeue<V1alpha1Signal> requeue, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1SignalController> logger) :
-            base(kube, requeue, cache, lookup, options, logger)
+        public V1alpha1SignalController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1SignalController> logger) :
+            base(kube, cache, lookup, options, logger)
         {
 
         }

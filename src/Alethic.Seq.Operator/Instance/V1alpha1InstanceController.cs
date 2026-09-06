@@ -12,10 +12,10 @@ using Alethic.Seq.Operator.Options;
 using k8s;
 using k8s.Models;
 
-using KubeOps.Abstractions.Controller;
 using KubeOps.Abstractions.Entities;
-using KubeOps.Abstractions.Queue;
 using KubeOps.Abstractions.Rbac;
+using KubeOps.Abstractions.Reconciliation;
+using KubeOps.Abstractions.Reconciliation.Controller;
 using KubeOps.KubernetesClient;
 
 using Microsoft.Extensions.Caching.Memory;
@@ -70,13 +70,12 @@ namespace Alethic.Seq.Operator.Instance
         /// Initializes a new instance.
         /// </summary>
         /// <param name="kube"></param>
-        /// <param name="requeue"></param>
         /// <param name="cache"></param>
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1InstanceController(IKubernetesClient kube, EntityRequeue<V1alpha1Instance> requeue, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1InstanceController> logger) :
-            base(kube, requeue, cache, lookup, options, logger)
+        public V1alpha1InstanceController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1InstanceController> logger) :
+            base(kube, cache, lookup, options, logger)
         {
 
         }
@@ -156,7 +155,7 @@ namespace Alethic.Seq.Operator.Instance
             {
                 instance.Status.Deployment = new InstanceDeploymentStatus();
                 instance.Status.Deployment.Endpoint = $"http://{service.Name()}.{service.Namespace()}.svc.cluster.local:80/";
-                instance.Status.Deployment.LoginSecretRef = new V1SecretReference(loginSecret.Name(), loginSecret.Namespace());
+                instance.Status.Deployment.LoginSecretRef = new V1SecretReference() { Name = loginSecret.Name(), NamespaceProperty = loginSecret.Namespace() };
                 instance.Status.Deployment.TokenSecretRef = adminApiKey?.Status.SecretRef;
                 instance = await Kube.SaveAsync(instance, cancellationToken);
             }
@@ -182,7 +181,7 @@ namespace Alethic.Seq.Operator.Instance
         async Task<T?> GetRelatedObject<T>(V1alpha1Instance instance, string resource, CancellationToken cancellationToken)
             where T : IKubernetesObject<V1ObjectMeta>
         {
-            var l = await Kube.ListAsync<T>(instance.Namespace(), $"seq.k8s.datalust.co/instance={instance.Name()},seq.k8s.datalust.co/resource={resource}", cancellationToken);
+            var l = await Kube.ListAsync<T>(instance.Namespace(), $"seq.k8s.datalust.co/instance={instance.Name()},seq.k8s.datalust.co/resource={resource}", cancellationToken: cancellationToken);
             return l.FirstOrDefault();
         }
 
@@ -236,7 +235,7 @@ namespace Alethic.Seq.Operator.Instance
                             ApplyDeploymentLoginSecret(
                                 instance,
                                 deployment,
-                                new V1Secret(metadata: new V1ObjectMeta(namespaceProperty: operatorLoginSecretNamespace, name: operatorLoginSecretName)).WithOwnerReference(instance))),
+                                new V1Secret() { Metadata = new V1ObjectMeta() { NamespaceProperty = operatorLoginSecretNamespace, Name = operatorLoginSecretName } }.WithOwnerReference(instance))),
                         cancellationToken);
                 }
 
@@ -328,7 +327,7 @@ namespace Alethic.Seq.Operator.Instance
                             ApplyDeploymentAdminApiKey(
                                 instance,
                                 deployment,
-                                new V1alpha1ApiKey() { Metadata = new V1ObjectMeta(namespaceProperty: operatorTokenApiKeyNamespace, name: operatorTokenApiKeyName) }.WithOwnerReference(instance))),
+                                new V1alpha1ApiKey() { Metadata = new V1ObjectMeta() { NamespaceProperty = operatorTokenApiKeyNamespace, Name = operatorTokenApiKeyName } }.WithOwnerReference(instance))),
                         cancellationToken);
                 }
 
@@ -408,7 +407,7 @@ namespace Alethic.Seq.Operator.Instance
                             instance,
                             deployment,
                             "service-account",
-                            new V1ServiceAccount(metadata: new V1ObjectMeta(namespaceProperty: serviceAccountNamespace, name: serviceAccountName)).WithOwnerReference(instance)),
+                            new V1ServiceAccount() { Metadata = new V1ObjectMeta() { NamespaceProperty = serviceAccountNamespace, Name = serviceAccountName } }.WithOwnerReference(instance)),
                         cancellationToken);
                 }
 
@@ -480,7 +479,7 @@ namespace Alethic.Seq.Operator.Instance
                             ApplyDeploymentStatefulSet(
                                 instance,
                                 deployment,
-                                new V1StatefulSet(metadata: new V1ObjectMeta(namespaceProperty: instance.Namespace(), name: statefulSetName)).WithOwnerReference(instance),
+                                new V1StatefulSet() { Metadata = new V1ObjectMeta() { NamespaceProperty = instance.Namespace(), Name = statefulSetName } }.WithOwnerReference(instance),
                                 adminSecret,
                                 serviceAccount,
                                 service)),
@@ -560,24 +559,24 @@ namespace Alethic.Seq.Operator.Instance
             template.Spec.Containers ??= new List<V1Container>();
             var container = template.Spec.Containers.FirstOrDefault(i => i.Name == "seq");
             if (container is null)
-                template.Spec.Containers.Add(container = new V1Container("seq"));
+                template.Spec.Containers.Add(container = new V1Container() { Name = "seq" });
 
             container.Image = deployment.Image ?? Options.DefaultImage;
             container.ImagePullPolicy = deployment.ImagePullPolicy ?? "IfNotPresent";
 
             container.Env ??= new List<V1EnvVar>();
             container.Env.Clear();
-            container.Env.Add(new V1EnvVar("ACCEPT_EULA", "Y"));
-            container.Env.Add(new V1EnvVar("SEQ_API_CANONICALURI", $"http://{service.Name()}.{service.Namespace()}.svc.cluster.local:80/"));
-            container.Env.Add(new V1EnvVar("SEQ_API_LISTENURIS", "http://localhost:80,http://localhost:5341"));
-            container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINUSERNAME", valueFrom: new V1EnvVarSource(secretKeyRef: new V1SecretKeySelector("username", adminSecret.Name(), false))));
+            container.Env.Add(new V1EnvVar() { Name = "ACCEPT_EULA", Value = "Y" });
+            container.Env.Add(new V1EnvVar() { Name = "SEQ_API_CANONICALURI", Value = $"http://{service.Name()}.{service.Namespace()}.svc.cluster.local:80/" });
+            container.Env.Add(new V1EnvVar() { Name = "SEQ_API_LISTENURIS", Value = "http://localhost:80,http://localhost:5341" });
+            container.Env.Add(new V1EnvVar() { Name = "SEQ_FIRSTRUN_ADMINUSERNAME", ValueFrom = new V1EnvVarSource() { SecretKeyRef = new V1SecretKeySelector() { Key = "username", Name = adminSecret.Name(), Optional = false } } });
 
             adminSecret.StringData ??= new Dictionary<string, string>();
             adminSecret.Data ??= new Dictionary<string, byte[]>();
             if (adminSecret.StringData.TryGetValue("firstRun", out var firstRun))
-                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORDHASH", CalculatePasswordHash(instance, firstRun)));
+                container.Env.Add(new V1EnvVar() { Name = "SEQ_FIRSTRUN_ADMINPASSWORDHASH", Value = CalculatePasswordHash(instance, firstRun) });
             else if (adminSecret.Data.TryGetValue("firstRun", out var firstRunBuf))
-                container.Env.Add(new V1EnvVar("SEQ_FIRSTRUN_ADMINPASSWORDHASH", CalculatePasswordHash(instance, Encoding.UTF8.GetString(firstRunBuf))));
+                container.Env.Add(new V1EnvVar() { Name = "SEQ_FIRSTRUN_ADMINPASSWORDHASH", Value = CalculatePasswordHash(instance, Encoding.UTF8.GetString(firstRunBuf)) });
 
             if (deployment.Env is { Count: > 0 } env)
                 foreach (var i in env)
@@ -589,39 +588,45 @@ namespace Alethic.Seq.Operator.Instance
 
             container.Ports ??= new List<V1ContainerPort>();
             container.Ports.Clear();
-            container.Ports.Add(new V1ContainerPort(5341, name: "ingestion", protocol: "TCP"));
-            container.Ports.Add(new V1ContainerPort(80, name: "ui", protocol: "TCP"));
+            container.Ports.Add(new V1ContainerPort() { ContainerPort = 5341, Name = "ingestion", Protocol = "TCP" });
+            container.Ports.Add(new V1ContainerPort() { ContainerPort = 80, Name = "ui", Protocol = "TCP" });
 
-            container.SecurityContext = new V1SecurityContext(runAsUser: 0, capabilities: new V1Capabilities(add: ["NET_BIND_SERVICE"]));
+            container.SecurityContext = new V1SecurityContext() { RunAsUser = 0, Capabilities = new V1Capabilities() { Add = ["NET_BIND_SERVICE"] } };
 
             container.VolumeMounts ??= new List<V1VolumeMount>(0);
             container.VolumeMounts.Clear();
-            container.VolumeMounts.Add(new V1VolumeMount("/data", "seq-data"));
+            container.VolumeMounts.Add(new V1VolumeMount() { MountPath = "/data", Name = "seq-data" });
 
             // A probe given on the deployment replaces ours outright rather than merging into it. Merging would let a
             // caller set one field and silently inherit the rest of ours, so the probe they read back would be neither
             // what they wrote nor what we chose; and it offers no way to clear a field we set. This follows the same
             // shape as Resources below, which is a straight pass-through of what the caller supplied.
-            container.LivenessProbe = deployment.LivenessProbe ?? new V1Probe(
-                httpGet: new V1HTTPGetAction("ui", path: "/health"),
-                failureThreshold: 3,
-                initialDelaySeconds: 0,
-                periodSeconds: 10,
-                successThreshold: 1,
-                timeoutSeconds: 1);
+            container.LivenessProbe = deployment.LivenessProbe ?? new V1Probe()
+            {
+                HttpGet = new V1HTTPGetAction() { Port = "ui", Path = "/health" },
+                FailureThreshold = 3,
+                InitialDelaySeconds = 0,
+                PeriodSeconds = 10,
+                SuccessThreshold = 1,
+                TimeoutSeconds = 1,
+            };
 
-            container.ReadinessProbe = deployment.ReadinessProbe ?? new V1Probe(
-                httpGet: new V1HTTPGetAction("ui", path: "/health"),
-                failureThreshold: 3,
-                initialDelaySeconds: 0,
-                periodSeconds: 10,
-                successThreshold: 1,
-                timeoutSeconds: 1);
+            container.ReadinessProbe = deployment.ReadinessProbe ?? new V1Probe()
+            {
+                HttpGet = new V1HTTPGetAction() { Port = "ui", Path = "/health" },
+                FailureThreshold = 3,
+                InitialDelaySeconds = 0,
+                PeriodSeconds = 10,
+                SuccessThreshold = 1,
+                TimeoutSeconds = 1,
+            };
 
-            container.StartupProbe = deployment.StartupProbe ?? new V1Probe(
-                httpGet: new V1HTTPGetAction("ui", path: "/health"),
-                failureThreshold: 30,
-                periodSeconds: 10);
+            container.StartupProbe = deployment.StartupProbe ?? new V1Probe()
+            {
+                HttpGet = new V1HTTPGetAction() { Port = "ui", Path = "/health" },
+                FailureThreshold = 30,
+                PeriodSeconds = 10,
+            };
 
             container.Resources ??= new V1ResourceRequirements();
             container.Resources.Claims = deployment.Resources?.Claims;
@@ -680,7 +685,7 @@ namespace Alethic.Seq.Operator.Instance
                             ApplyDeploymentService(
                                 instance,
                                 deployment,
-                                new V1Service(metadata: new V1ObjectMeta(namespaceProperty: instance.Namespace(), name: serviceName)).WithOwnerReference(instance))),
+                                new V1Service() { Metadata = new V1ObjectMeta() { NamespaceProperty = instance.Namespace(), Name = serviceName } }.WithOwnerReference(instance))),
                         cancellationToken);
                 }
 
@@ -723,7 +728,7 @@ namespace Alethic.Seq.Operator.Instance
             service.Spec.Selector["seq.k8s.datalust.co/instance"] = instance.Name();
             service.Spec.Selector["seq.k8s.datalust.co/resource"] = "pod";
 
-            var port = new V1ServicePort(deployment.Service?.Port ?? 80, name: "http");
+            var port = new V1ServicePort() { Port = deployment.Service?.Port ?? 80, Name = "http" };
             if (deployment.Service?.NodePort is int nodePort)
                 port.NodePort = nodePort;
 
@@ -786,10 +791,10 @@ namespace Alethic.Seq.Operator.Instance
         }
 
         /// <inheritdoc />
-        public override Task DeletedAsync(V1alpha1Instance entity, CancellationToken cancellationToken)
+        public override Task<ReconciliationResult<V1alpha1Instance>> DeletedAsync(V1alpha1Instance entity, CancellationToken cancellationToken)
         {
             Logger.LogWarning("Unsupported operation deleting entity {Entity}.", entity);
-            return Task.CompletedTask;
+            return Task.FromResult(ReconciliationResult<V1alpha1Instance>.Success(entity));
         }
 
         /// <summary>

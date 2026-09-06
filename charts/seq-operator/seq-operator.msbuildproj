@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Build.NoTargets">
+<Project Sdk="Microsoft.Build.NoTargets">
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -6,25 +6,43 @@
         <ChartName>seq-operator</ChartName>
         <ChartPackage>$(ChartName)-$(Version).tgz</ChartPackage>
     </PropertyGroup>
+    <!-- The CRDs are generated into the operator's config/ directory and are not committed, so the operator has to
+         build before they can be staged into the chart. -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Alethic.Seq.Operator\Alethic.Seq.Operator.csproj" />
+    </ItemGroup>
     <ItemGroup>
         <ChartItem Include="templates\**\*" TargetPath="templates\%(RecursiveDir)%(Filename)%(Extension)" />
         <ChartItem Include="*.yaml" TargetPath="%(Filename)%(Extension)" />
-        <ChartItem Include="..\..\src\Alethic.Seq.Operator\config\*_seq_k8s_datalust_co.yaml" TargetPath="crds\%(Filename)%(Extension)" />
     </ItemGroup>
-    <ItemGroup>
-        <Folder Include="templates\" />
-    </ItemGroup>
-    <Target Name="PackageHelm" BeforeTargets="BeforeBuild" Inputs="@(ChartItem)" Outputs="$(IntermediateOutputPath)$(ChartPackage)">
+    <Target Name="CollectCrdItems" DependsOnTargets="ResolveProjectReferences">
+        <ItemGroup>
+            <CrdItem Include="..\..\src\Alethic.Seq.Operator\config\*_seq_k8s_datalust_co.yaml" />
+        </ItemGroup>
+        <!-- The CRDs are no longer committed, so an empty match means generation did not run (most often a missing
+             'dotnet tool restore', which leaves the KubeOps CLI unavailable). Fail here rather than shipping a chart
+             with no CRDs in it. -->
+        <Error Condition=" '@(CrdItem)' == '' " Text="No generated CRDs found in src\Alethic.Seq.Operator\config. Run 'dotnet tool restore' and build the operator in Release before packaging the chart." />
+        <ItemGroup>
+            <ChartItem Include="@(CrdItem)" TargetPath="crds\%(Filename)%(Extension)" />
+        </ItemGroup>
+    </Target>
+    <Target Name="StageHelm" DependsOnTargets="CollectCrdItems">
         <RemoveDir Directories="$(IntermediateOutputPath)chart" />
         <Copy SourceFiles="@(ChartItem)" DestinationFiles="@(ChartItem->'$(IntermediateOutputPath)chart\%(TargetPath)')" />
-        <Exec Command="helm package $(IntermediateOutputPath)\chart --version $(Version) --app-version $(Version) -u -d $(IntermediateOutputPath)" />
+        <ItemGroup>
+            <FileWrites Include="@(ChartItem->'$(IntermediateOutputPath)chart\%(TargetPath)')" />
+        </ItemGroup>
+    </Target>
+    <Target Name="PackageHelm" DependsOnTargets="StageHelm" BeforeTargets="AssignTargetPaths">
+        <Exec Command="helm package $(IntermediateOutputPath)chart --version $(Version) --app-version $(Version) -u -d $(IntermediateOutputPath)" />
         <ItemGroup>
             <None Include="$(IntermediateOutputPath)$(ChartPackage)">
                 <TargetPath>$(ChartPackage)</TargetPath>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </None>
-            <FileWrites Include="$(IntermediateOutputPath)chart\**\*" />
             <FileWrites Include="$(IntermediateOutputPath)$(ChartPackage)" />
         </ItemGroup>
     </Target>
+    <Target Name="BuildHelm" BeforeTargets="Build" DependsOnTargets="CollectCrdItems;StageHelm;PackageHelm" />
 </Project>

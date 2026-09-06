@@ -4,7 +4,8 @@ using System.Threading.Tasks;
 
 using Alethic.Seq.Operator.RetentionPolicy;
 
-using KubeOps.Abstractions.Finalizer;
+using KubeOps.Abstractions.Reconciliation;
+using KubeOps.Abstractions.Reconciliation.Finalizer;
 
 namespace Alethic.Seq.Operator.Signals
 {
@@ -24,9 +25,9 @@ namespace Alethic.Seq.Operator.Signals
         }
 
         /// <inheritdoc />
-        public async Task FinalizeAsync(V1alpha1Signal entity, CancellationToken cancellationToken)
+        public async Task<ReconciliationResult<V1alpha1Signal>> FinalizeAsync(V1alpha1Signal entity, CancellationToken cancellationToken)
         {
-            await _controller.DeletedAsync(entity, cancellationToken);
+            return await _controller.DeletedAsync(entity, cancellationToken);
         }
 
     }

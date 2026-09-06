@@ -11,10 +11,10 @@ using Alethic.Seq.Operator.Options;
 using k8s;
 using k8s.Models;
 
-using KubeOps.Abstractions.Controller;
 using KubeOps.Abstractions.Entities;
-using KubeOps.Abstractions.Queue;
 using KubeOps.Abstractions.Rbac;
+using KubeOps.Abstractions.Reconciliation;
+using KubeOps.Abstractions.Reconciliation.Controller;
 using KubeOps.KubernetesClient;
 
 using Microsoft.Extensions.Caching.Memory;
@@ -90,31 +90,24 @@ namespace Alethic.Seq.Operator
         where TInfo : class
     {
 
-        readonly EntityRequeue<TEntity> _requeue;
-
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
         /// <param name="kube"></param>
-        /// <param name="requeue"></param>
         /// <param name="cache"></param>
+        /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1Controller(IKubernetesClient kube, EntityRequeue<TEntity> requeue, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
+        public V1alpha1Controller(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
             base(kube, cache, lookup, options, logger)
         {
-            _requeue = requeue ?? throw new ArgumentNullException(nameof(requeue));
+
         }
 
         /// <summary>
         /// Gets the type name of the entity used in messages.
         /// </summary>
         protected abstract string EntityTypeName { get; }
-
-        /// <summary>
-        /// Gets the requeue function for the entity controller.
-        /// </summary>
-        protected EntityRequeue<TEntity> Requeue => _requeue;
 
         /// <summary>
         /// Tests that the conncetion is able to retrieve server status.
@@ -129,7 +122,7 @@ namespace Alethic.Seq.Operator
                 await connection.Diagnostics.GetServerStatusAsync(cancellationToken);
                 return true;
             }
-            catch (SeqApiException e)
+            catch (SeqApiException)
             {
                 return false;
             }
@@ -430,7 +423,7 @@ namespace Alethic.Seq.Operator
             return connection;
         }
 
-        /// <summary>1
+        /// <summary>
         /// Updates the Reconcile event to a warning.
         /// </summary>
         /// <param name="entity"></param>
@@ -438,16 +431,17 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         protected async Task ReconcileSuccessAsync(TEntity entity, CancellationToken cancellationToken)
         {
-            await Kube.CreateAsync(new Eventsv1Event(
-                    DateTime.Now,
-                    metadata: new V1ObjectMeta(namespaceProperty: entity.Namespace(), generateName: "seq"),
-                    reportingController: "seq.k8s.datalust.co/operator",
-                    reportingInstance: Dns.GetHostName(),
-                    regarding: entity.MakeObjectReference(),
-                    action: "Reconcile",
-                    type: "Normal",
-                    reason: "Success"),
-                cancellationToken);
+            await Kube.CreateAsync(new Eventsv1Event()
+            {
+                EventTime = DateTime.Now,
+                Metadata = new V1ObjectMeta() { NamespaceProperty = entity.Namespace(), GenerateName = "seq" },
+                ReportingController = "seq.k8s.datalust.co/operator",
+                ReportingInstance = Dns.GetHostName(),
+                Regarding = entity.MakeObjectReference(),
+                Action = "Reconcile",
+                Type = "Normal",
+                Reason = "Success",
+            }, cancellationToken);
         }
 
         /// <summary>
@@ -460,17 +454,18 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         protected async Task ReconcileWarningAsync(TEntity entity, string reason, string note, CancellationToken cancellationToken)
         {
-            await Kube.CreateAsync(new Eventsv1Event(
-                    DateTime.Now,
-                    metadata: new V1ObjectMeta(namespaceProperty: entity.Namespace(), generateName: "seq"),
-                    reportingController: "seq.k8s.datalust.co/operator",
-                    reportingInstance: Dns.GetHostName(),
-                    regarding: entity.MakeObjectReference(),
-                    action: "Reconcile",
-                    type: "Warning",
-                    reason: reason,
-                    note: note),
-                cancellationToken);
+            await Kube.CreateAsync(new Eventsv1Event()
+            {
+                EventTime = DateTime.Now,
+                Metadata = new V1ObjectMeta() { NamespaceProperty = entity.Namespace(), GenerateName = "seq" },
+                ReportingController = "seq.k8s.datalust.co/operator",
+                ReportingInstance = Dns.GetHostName(),
+                Regarding = entity.MakeObjectReference(),
+                Action = "Reconcile",
+                Type = "Warning",
+                Reason = reason,
+                Note = note,
+            }, cancellationToken);
         }
 
         /// <summary>
@@ -483,17 +478,18 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         protected async Task DeletingWarningAsync(TEntity entity, string reason, string note, CancellationToken cancellationToken)
         {
-            await Kube.CreateAsync(new Eventsv1Event(
-                    DateTime.Now,
-                    metadata: new V1ObjectMeta(namespaceProperty: entity.Namespace(), generateName: "seq"),
-                    reportingController: "seq.k8s.datalust.co/operator",
-                    reportingInstance: Dns.GetHostName(),
-                    regarding: entity.MakeObjectReference(),
-                    action: "Deleting",
-                    type: "Warning",
-                    reason: reason,
-                    note: note),
-                cancellationToken);
+            await Kube.CreateAsync(new Eventsv1Event()
+            {
+                EventTime = DateTime.Now,
+                Metadata = new V1ObjectMeta() { NamespaceProperty = entity.Namespace(), GenerateName = "seq" },
+                ReportingController = "seq.k8s.datalust.co/operator",
+                ReportingInstance = Dns.GetHostName(),
+                Regarding = entity.MakeObjectReference(),
+                Action = "Deleting",
+                Type = "Warning",
+                Reason = reason,
+                Note = note,
+            }, cancellationToken);
         }
 
         /// <summary>
@@ -504,7 +500,7 @@ namespace Alethic.Seq.Operator
         protected abstract Task<TEntity> Reconcile(TEntity entity, CancellationToken cancellationToken);
 
         /// <inheritdoc />
-        public async Task ReconcileAsync(TEntity entity, CancellationToken cancellationToken)
+        public async Task<ReconciliationResult<TEntity>> ReconcileAsync(TEntity entity, CancellationToken cancellationToken)
         {
             try
             {
@@ -535,7 +531,7 @@ namespace Alethic.Seq.Operator
                 // schedule periodic reconciliation to detect external changes (e.g., manual deletion from Seq)
                 var interval = Options.Reconciliation.Interval;
                 Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} scheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
-                Requeue(entity, interval);
+                return ReconciliationResult<TEntity>.Success(entity, interval);
             }
             catch (SeqApiException e)
             {
@@ -555,7 +551,7 @@ namespace Alethic.Seq.Operator
 
                 var interval = Options.Reconciliation.RetryInterval;
                 Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} rescheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
-                Requeue(entity, interval);
+                return ReconciliationResult<TEntity>.Failure(entity, e.Message, e, interval);
             }
             catch (RetryException e)
             {
@@ -575,7 +571,7 @@ namespace Alethic.Seq.Operator
 
                 var interval = Options.Reconciliation.RetryInterval;
                 Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} rescheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
-                Requeue(entity, interval);
+                return ReconciliationResult<TEntity>.Failure(entity, e.Message, e, interval);
             }
             catch (Exception e)
             {
@@ -595,12 +591,12 @@ namespace Alethic.Seq.Operator
 
                 var interval = Options.Reconciliation.RetryInterval;
                 Logger.LogDebug("{EntityTypeName} {Namespace}/{Name} rescheduling next reconciliation in {IntervalSeconds}s", EntityTypeName, entity.Namespace(), entity.Name(), interval.TotalSeconds);
-                Requeue(entity, interval);
+                return ReconciliationResult<TEntity>.Failure(entity, e.Message, e, interval);
             }
         }
 
         /// <inheritdoc />
-        public abstract Task DeletedAsync(TEntity entity, CancellationToken cancellationToken);
+        public abstract Task<ReconciliationResult<TEntity>> DeletedAsync(TEntity entity, CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates the specified status type.
