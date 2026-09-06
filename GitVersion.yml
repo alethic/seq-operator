@@ -1,3 +1,6 @@
+# This repository carries no version tags, so every version derives from the configured base. GitVersion 6
+# changed that default from 0.1.0 to 0.0.1, which would walk the published version backwards; pin it.
+next-version: 0.1.0
 assembly-file-versioning-format: '{Major}.{Minor}.{Patch}.{WeightedPreReleaseNumber ?? 0}'
 major-version-bump-message: '\+semver:\s?(major)'
 minor-version-bump-message: '\+semver:\s?(minor)'

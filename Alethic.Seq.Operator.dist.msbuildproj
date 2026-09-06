@@ -10,7 +10,7 @@
 
     <!-- Two passes over the operator project before anything is published. The KubeOps generator target only runs
          when the operator assembly actually recompiled or the configuration is Release, so an incremental build can
-         otherwise leave config/ stale -- and since the CRDs are no longer committed, stale means absent. The first
+         otherwise leave config/ stale, and since the CRDs are no longer committed, stale means absent. The first
          pass compiles without generating; the second forces a Release build with generation on. -->
     <ItemGroup>
         <TargetsForPrePrepare Include="$(SolutionFile)">
