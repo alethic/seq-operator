@@ -5,6 +5,14 @@
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
+        <!-- The operator sets SelfContained, and a non self-contained executable cannot reference a self-contained
+             one (NETSDK1150). The tests only need the operator's assembly, so skip that validation rather than
+             changing how the operator itself is published. -->
+        <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
     </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Alethic.Seq.Operator\Alethic.Seq.Operator.csproj" />
+    </ItemGroup>
 
 </Project>
