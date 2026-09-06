@@ -18,7 +18,6 @@ spec:
       openAPIV3Schema:
         properties:
           status:
-            nullable: false
             properties:
               id:
                 nullable: true
@@ -46,11 +45,9 @@ spec:
                       nullable: true
                       type: string
                   type: object
-                nullable: false
                 type: array
             type: object
           spec:
-            nullable: false
             properties:
               instanceRef:
                 nullable: true

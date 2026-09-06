@@ -20,7 +20,7 @@ rules:
   verbs:
   - '*'
 - apiGroups:
-  - ""
+  - ''
   resources:
   - secrets
   - services
@@ -34,13 +34,21 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - ''
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - apps
   resources:
   - statefulsets
   verbs:
   - '*'
 - apiGroups:
-  - ""
+  - ''
   resources:
   - events
   verbs:
@@ -53,7 +61,13 @@ rules:
   resources:
   - leases
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - seq.k8s.datalust.co
   resources:
@@ -79,7 +93,15 @@ rules:
   - update
   - patch
 - apiGroups:
-  - ""
+  - ''
+  resources:
+  - namespaces/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ''
   resources:
   - services/status
   verbs:
@@ -110,15 +132,4 @@ rules:
   - get
   - update
   - patch
-
-
-# Additional not generated
-- apiGroups:
-  - ""
-  resources:
-  - namespaces
-  verbs:
-  - get
-  - list
-  - watch
 ---

@@ -18,7 +18,6 @@ spec:
       openAPIV3Schema:
         properties:
           status:
-            nullable: false
             properties:
               deployment:
                 nullable: true
@@ -30,20 +29,16 @@ spec:
                     nullable: true
                     properties:
                       name:
-                        nullable: false
                         type: string
                       namespace:
-                        nullable: false
                         type: string
                     type: object
                   tokenSecretRef:
                     nullable: true
                     properties:
                       name:
-                        nullable: false
                         type: string
                       namespace:
-                        nullable: false
                         type: string
                     type: object
                 type: object
@@ -94,7 +89,6 @@ spec:
                             type: string
                           scopes:
                             items:
-                              nullable: false
                               type: string
                             nullable: true
                             type: array
@@ -135,31 +129,26 @@ spec:
                     type: integer
                   newUserPreferences:
                     additionalProperties:
-                      nullable: false
                       type: string
                     nullable: true
                     type: object
                   newUserRoleIds:
                     items:
-                      nullable: false
                       type: string
                     nullable: true
                     type: array
                   newUserShowSignalIds:
                     items:
-                      nullable: false
                       type: string
                     nullable: true
                     type: array
                   newUserShowQueryIds:
                     items:
-                      nullable: false
                       type: string
                     nullable: true
                     type: array
                   newUserShowDashboardIds:
                     items:
-                      nullable: false
                       type: string
                     nullable: true
                     type: array
@@ -230,11 +219,9 @@ spec:
                       nullable: true
                       type: string
                   type: object
-                nullable: false
                 type: array
             type: object
           spec:
-            nullable: false
             properties:
               remote:
                 nullable: true
@@ -252,10 +239,8 @@ spec:
                               nullable: true
                               properties:
                                 name:
-                                  nullable: false
                                   type: string
                                 namespace:
-                                  nullable: false
                                   type: string
                               type: object
                           required:
@@ -268,10 +253,8 @@ spec:
                               nullable: true
                               properties:
                                 name:
-                                  nullable: false
                                   type: string
                                 namespace:
-                                  nullable: false
                                   type: string
                               type: object
                           required:
@@ -294,31 +277,25 @@ spec:
                     nullable: true
                     properties:
                       name:
-                        nullable: false
                         type: string
                       namespace:
-                        nullable: false
                         type: string
                     type: object
                   tokenSecretRef:
                     nullable: true
                     properties:
                       name:
-                        nullable: false
                         type: string
                       namespace:
-                        nullable: false
                         type: string
                     type: object
                   annotations:
                     additionalProperties:
-                      nullable: false
                       type: string
                     nullable: true
                     type: object
                   labels:
                     additionalProperties:
-                      nullable: false
                       type: string
                     nullable: true
                     type: object
@@ -326,60 +303,45 @@ spec:
                     nullable: true
                     properties:
                       nodeAffinity:
-                        nullable: false
                         properties:
                           preferredDuringSchedulingIgnoredDuringExecution:
                             items:
                               properties:
                                 preference:
-                                  nullable: false
                                   properties:
                                     matchExpressions:
                                       items:
                                         properties:
                                           key:
-                                            nullable: false
                                             type: string
                                           operator:
-                                            nullable: false
                                             type: string
                                           values:
                                             items:
-                                              nullable: false
                                               type: string
-                                            nullable: false
                                             type: array
                                         type: object
-                                      nullable: false
                                       type: array
                                     matchFields:
                                       items:
                                         properties:
                                           key:
-                                            nullable: false
                                             type: string
                                           operator:
-                                            nullable: false
                                             type: string
                                           values:
                                             items:
-                                              nullable: false
                                               type: string
-                                            nullable: false
                                             type: array
                                         type: object
-                                      nullable: false
                                       type: array
                                   type: object
                                 weight:
                                   format: int32
-                                  nullable: false
                                   type: integer
                               type: object
-                            nullable: false
                             type: array
                           requiredDuringSchedulingIgnoredDuringExecution:
-                            nullable: false
                             properties:
                               nodeSelectorTerms:
                                 items:
@@ -388,403 +350,289 @@ spec:
                                       items:
                                         properties:
                                           key:
-                                            nullable: false
                                             type: string
                                           operator:
-                                            nullable: false
                                             type: string
                                           values:
                                             items:
-                                              nullable: false
                                               type: string
-                                            nullable: false
                                             type: array
                                         type: object
-                                      nullable: false
                                       type: array
                                     matchFields:
                                       items:
                                         properties:
                                           key:
-                                            nullable: false
                                             type: string
                                           operator:
-                                            nullable: false
                                             type: string
                                           values:
                                             items:
-                                              nullable: false
                                               type: string
-                                            nullable: false
                                             type: array
                                         type: object
-                                      nullable: false
                                       type: array
                                   type: object
-                                nullable: false
                                 type: array
                             type: object
                         type: object
                       podAffinity:
-                        nullable: false
                         properties:
                           preferredDuringSchedulingIgnoredDuringExecution:
                             items:
                               properties:
                                 podAffinityTerm:
-                                  nullable: false
                                   properties:
                                     labelSelector:
-                                      nullable: false
                                       properties:
                                         matchExpressions:
                                           items:
                                             properties:
                                               key:
-                                                nullable: false
                                                 type: string
                                               operator:
-                                                nullable: false
                                                 type: string
                                               values:
                                                 items:
-                                                  nullable: false
                                                   type: string
-                                                nullable: false
                                                 type: array
                                             type: object
-                                          nullable: false
                                           type: array
                                         matchLabels:
                                           additionalProperties:
-                                            nullable: false
                                             type: string
-                                          nullable: false
                                           type: object
                                       type: object
                                     matchLabelKeys:
                                       items:
-                                        nullable: false
                                         type: string
-                                      nullable: false
                                       type: array
                                     mismatchLabelKeys:
                                       items:
-                                        nullable: false
                                         type: string
-                                      nullable: false
                                       type: array
                                     namespaceSelector:
-                                      nullable: false
                                       properties:
                                         matchExpressions:
                                           items:
                                             properties:
                                               key:
-                                                nullable: false
                                                 type: string
                                               operator:
-                                                nullable: false
                                                 type: string
                                               values:
                                                 items:
-                                                  nullable: false
                                                   type: string
-                                                nullable: false
                                                 type: array
                                             type: object
-                                          nullable: false
                                           type: array
                                         matchLabels:
                                           additionalProperties:
-                                            nullable: false
                                             type: string
-                                          nullable: false
                                           type: object
                                       type: object
                                     namespaces:
                                       items:
-                                        nullable: false
                                         type: string
-                                      nullable: false
                                       type: array
                                     topologyKey:
-                                      nullable: false
                                       type: string
                                   type: object
                                 weight:
                                   format: int32
-                                  nullable: false
                                   type: integer
                               type: object
-                            nullable: false
                             type: array
                           requiredDuringSchedulingIgnoredDuringExecution:
                             items:
                               properties:
                                 labelSelector:
-                                  nullable: false
                                   properties:
                                     matchExpressions:
                                       items:
                                         properties:
                                           key:
-                                            nullable: false
                                             type: string
                                           operator:
-                                            nullable: false
                                             type: string
                                           values:
                                             items:
-                                              nullable: false
                                               type: string
-                                            nullable: false
                                             type: array
                                         type: object
-                                      nullable: false
                                       type: array
                                     matchLabels:
                                       additionalProperties:
-                                        nullable: false
                                         type: string
-                                      nullable: false
                                       type: object
                                   type: object
                                 matchLabelKeys:
                                   items:
-                                    nullable: false
                                     type: string
-                                  nullable: false
                                   type: array
                                 mismatchLabelKeys:
                                   items:
-                                    nullable: false
                                     type: string
-                                  nullable: false
                                   type: array
                                 namespaceSelector:
-                                  nullable: false
                                   properties:
                                     matchExpressions:
                                       items:
                                         properties:
                                           key:
-                                            nullable: false
                                             type: string
                                           operator:
-                                            nullable: false
                                             type: string
                                           values:
                                             items:
-                                              nullable: false
                                               type: string
-                                            nullable: false
                                             type: array
                                         type: object
-                                      nullable: false
                                       type: array
                                     matchLabels:
                                       additionalProperties:
-                                        nullable: false
                                         type: string
-                                      nullable: false
                                       type: object
                                   type: object
                                 namespaces:
                                   items:
-                                    nullable: false
                                     type: string
-                                  nullable: false
                                   type: array
                                 topologyKey:
-                                  nullable: false
                                   type: string
                               type: object
-                            nullable: false
                             type: array
                         type: object
                       podAntiAffinity:
-                        nullable: false
                         properties:
                           preferredDuringSchedulingIgnoredDuringExecution:
                             items:
                               properties:
                                 podAffinityTerm:
-                                  nullable: false
                                   properties:
                                     labelSelector:
-                                      nullable: false
                                       properties:
                                         matchExpressions:
                                           items:
                                             properties:
                                               key:
-                                                nullable: false
                                                 type: string
                                               operator:
-                                                nullable: false
                                                 type: string
                                               values:
                                                 items:
-                                                  nullable: false
                                                   type: string
-                                                nullable: false
                                                 type: array
                                             type: object
-                                          nullable: false
                                           type: array
                                         matchLabels:
                                           additionalProperties:
-                                            nullable: false
                                             type: string
-                                          nullable: false
                                           type: object
                                       type: object
                                     matchLabelKeys:
                                       items:
-                                        nullable: false
                                         type: string
-                                      nullable: false
                                       type: array
                                     mismatchLabelKeys:
                                       items:
-                                        nullable: false
                                         type: string
-                                      nullable: false
                                       type: array
                                     namespaceSelector:
-                                      nullable: false
                                       properties:
                                         matchExpressions:
                                           items:
                                             properties:
                                               key:
-                                                nullable: false
                                                 type: string
                                               operator:
-                                                nullable: false
                                                 type: string
                                               values:
                                                 items:
-                                                  nullable: false
                                                   type: string
-                                                nullable: false
                                                 type: array
                                             type: object
-                                          nullable: false
                                           type: array
                                         matchLabels:
                                           additionalProperties:
-                                            nullable: false
                                             type: string
-                                          nullable: false
                                           type: object
                                       type: object
                                     namespaces:
                                       items:
-                                        nullable: false
                                         type: string
-                                      nullable: false
                                       type: array
                                     topologyKey:
-                                      nullable: false
                                       type: string
                                   type: object
                                 weight:
                                   format: int32
-                                  nullable: false
                                   type: integer
                               type: object
-                            nullable: false
                             type: array
                           requiredDuringSchedulingIgnoredDuringExecution:
                             items:
                               properties:
                                 labelSelector:
-                                  nullable: false
                                   properties:
                                     matchExpressions:
                                       items:
                                         properties:
                                           key:
-                                            nullable: false
                                             type: string
                                           operator:
-                                            nullable: false
                                             type: string
                                           values:
                                             items:
-                                              nullable: false
                                               type: string
-                                            nullable: false
                                             type: array
                                         type: object
-                                      nullable: false
                                       type: array
                                     matchLabels:
                                       additionalProperties:
-                                        nullable: false
                                         type: string
-                                      nullable: false
                                       type: object
                                   type: object
                                 matchLabelKeys:
                                   items:
-                                    nullable: false
                                     type: string
-                                  nullable: false
                                   type: array
                                 mismatchLabelKeys:
                                   items:
-                                    nullable: false
                                     type: string
-                                  nullable: false
                                   type: array
                                 namespaceSelector:
-                                  nullable: false
                                   properties:
                                     matchExpressions:
                                       items:
                                         properties:
                                           key:
-                                            nullable: false
                                             type: string
                                           operator:
-                                            nullable: false
                                             type: string
                                           values:
                                             items:
-                                              nullable: false
                                               type: string
-                                            nullable: false
                                             type: array
                                         type: object
-                                      nullable: false
                                       type: array
                                     matchLabels:
                                       additionalProperties:
-                                        nullable: false
                                         type: string
-                                      nullable: false
                                       type: object
                                   type: object
                                 namespaces:
                                   items:
-                                    nullable: false
                                     type: string
-                                  nullable: false
                                   type: array
                                 topologyKey:
-                                  nullable: false
                                   type: string
                               type: object
-                            nullable: false
                             type: array
                         type: object
                     type: object
                   nodeSelector:
                     additionalProperties:
-                      nullable: false
                       type: string
                     nullable: true
                     type: object
@@ -795,45 +643,18 @@ spec:
                         items:
                           properties:
                             name:
-                              nullable: false
                               type: string
                             request:
-                              nullable: false
                               type: string
                           type: object
-                        nullable: false
                         type: array
                       limits:
                         additionalProperties:
-                          properties:
-                            format:
-                              enum:
-                              - DecimalExponent
-                              - BinarySI
-                              - DecimalSI
-                              nullable: false
-                              type: string
-                            value:
-                              nullable: false
-                              type: string
-                          type: object
-                        nullable: false
+                          type: string
                         type: object
                       requests:
                         additionalProperties:
-                          properties:
-                            format:
-                              enum:
-                              - DecimalExponent
-                              - BinarySI
-                              - DecimalSI
-                              nullable: false
-                              type: string
-                            value:
-                              nullable: false
-                              type: string
-                          type: object
-                        nullable: false
+                          type: string
                         type: object
                     type: object
                   restartPolicy:
@@ -850,20 +671,16 @@ spec:
                     items:
                       properties:
                         effect:
-                          nullable: false
                           type: string
                         key:
-                          nullable: false
                           type: string
                         operator:
-                          nullable: false
                           type: string
                         tolerationSeconds:
                           format: int64
                           nullable: true
                           type: integer
                         value:
-                          nullable: false
                           type: string
                       type: object
                     nullable: true
@@ -872,58 +689,43 @@ spec:
                     items:
                       properties:
                         labelSelector:
-                          nullable: false
                           properties:
                             matchExpressions:
                               items:
                                 properties:
                                   key:
-                                    nullable: false
                                     type: string
                                   operator:
-                                    nullable: false
                                     type: string
                                   values:
                                     items:
-                                      nullable: false
                                       type: string
-                                    nullable: false
                                     type: array
                                 type: object
-                              nullable: false
                               type: array
                             matchLabels:
                               additionalProperties:
-                                nullable: false
                                 type: string
-                              nullable: false
                               type: object
                           type: object
                         matchLabelKeys:
                           items:
-                            nullable: false
                             type: string
-                          nullable: false
                           type: array
                         maxSkew:
                           format: int32
-                          nullable: false
                           type: integer
                         minDomains:
                           format: int32
                           nullable: true
                           type: integer
                         nodeAffinityPolicy:
-                          nullable: false
                           type: string
                         nodeTaintsPolicy:
-                          nullable: false
                           type: string
                         topologyKey:
-                          nullable: false
                           type: string
                         whenUnsatisfiable:
-                          nullable: false
                           type: string
                       type: object
                     nullable: true
@@ -932,7 +734,6 @@ spec:
                     items:
                       properties:
                         name:
-                          nullable: false
                           type: string
                       type: object
                     nullable: true
@@ -941,69 +742,42 @@ spec:
                     items:
                       properties:
                         name:
-                          nullable: false
                           type: string
                         value:
-                          nullable: false
                           type: string
                         valueFrom:
-                          nullable: false
                           properties:
                             configMapKeyRef:
-                              nullable: false
                               properties:
                                 key:
-                                  nullable: false
                                   type: string
                                 name:
-                                  nullable: false
                                   type: string
                                 optional:
                                   nullable: true
                                   type: boolean
                               type: object
                             fieldRef:
-                              nullable: false
                               properties:
                                 apiVersion:
-                                  nullable: false
                                   type: string
                                 fieldPath:
-                                  nullable: false
                                   type: string
                               type: object
                             resourceFieldRef:
-                              nullable: false
                               properties:
                                 containerName:
-                                  nullable: false
                                   type: string
                                 divisor:
-                                  nullable: false
-                                  properties:
-                                    format:
-                                      enum:
-                                      - DecimalExponent
-                                      - BinarySI
-                                      - DecimalSI
-                                      nullable: false
-                                      type: string
-                                    value:
-                                      nullable: false
-                                      type: string
-                                  type: object
+                                  type: string
                                 resource:
-                                  nullable: false
                                   type: string
                               type: object
                             secretKeyRef:
-                              nullable: false
                               properties:
                                 key:
-                                  nullable: false
                                   type: string
                                 name:
-                                  nullable: false
                                   type: string
                                 optional:
                                   nullable: true
@@ -1017,23 +791,18 @@ spec:
                     items:
                       properties:
                         configMapRef:
-                          nullable: false
                           properties:
                             name:
-                              nullable: false
                               type: string
                             optional:
                               nullable: true
                               type: boolean
                           type: object
                         prefix:
-                          nullable: false
                           type: string
                         secretRef:
-                          nullable: false
                           properties:
                             name:
-                              nullable: false
                               type: string
                             optional:
                               nullable: true
@@ -1048,6 +817,216 @@ spec:
                   imagePullPolicy:
                     nullable: true
                     type: string
+                  livenessProbe:
+                    nullable: true
+                    properties:
+                      exec:
+                        properties:
+                          command:
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      failureThreshold:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      grpc:
+                        properties:
+                          port:
+                            format: int32
+                            type: integer
+                          service:
+                            type: string
+                        type: object
+                      httpGet:
+                        properties:
+                          host:
+                            type: string
+                          httpHeaders:
+                            items:
+                              properties:
+                                name:
+                                  type: string
+                                value:
+                                  type: string
+                              type: object
+                            type: array
+                          path:
+                            type: string
+                          port:
+                            x-kubernetes-int-or-string: true
+                          scheme:
+                            type: string
+                        type: object
+                      initialDelaySeconds:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      periodSeconds:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      successThreshold:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      tcpSocket:
+                        properties:
+                          host:
+                            type: string
+                          port:
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      terminationGracePeriodSeconds:
+                        format: int64
+                        nullable: true
+                        type: integer
+                      timeoutSeconds:
+                        format: int32
+                        nullable: true
+                        type: integer
+                    type: object
+                  readinessProbe:
+                    nullable: true
+                    properties:
+                      exec:
+                        properties:
+                          command:
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      failureThreshold:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      grpc:
+                        properties:
+                          port:
+                            format: int32
+                            type: integer
+                          service:
+                            type: string
+                        type: object
+                      httpGet:
+                        properties:
+                          host:
+                            type: string
+                          httpHeaders:
+                            items:
+                              properties:
+                                name:
+                                  type: string
+                                value:
+                                  type: string
+                              type: object
+                            type: array
+                          path:
+                            type: string
+                          port:
+                            x-kubernetes-int-or-string: true
+                          scheme:
+                            type: string
+                        type: object
+                      initialDelaySeconds:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      periodSeconds:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      successThreshold:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      tcpSocket:
+                        properties:
+                          host:
+                            type: string
+                          port:
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      terminationGracePeriodSeconds:
+                        format: int64
+                        nullable: true
+                        type: integer
+                      timeoutSeconds:
+                        format: int32
+                        nullable: true
+                        type: integer
+                    type: object
+                  startupProbe:
+                    nullable: true
+                    properties:
+                      exec:
+                        properties:
+                          command:
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      failureThreshold:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      grpc:
+                        properties:
+                          port:
+                            format: int32
+                            type: integer
+                          service:
+                            type: string
+                        type: object
+                      httpGet:
+                        properties:
+                          host:
+                            type: string
+                          httpHeaders:
+                            items:
+                              properties:
+                                name:
+                                  type: string
+                                value:
+                                  type: string
+                              type: object
+                            type: array
+                          path:
+                            type: string
+                          port:
+                            x-kubernetes-int-or-string: true
+                          scheme:
+                            type: string
+                        type: object
+                      initialDelaySeconds:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      periodSeconds:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      successThreshold:
+                        format: int32
+                        nullable: true
+                        type: integer
+                      tcpSocket:
+                        properties:
+                          host:
+                            type: string
+                          port:
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      terminationGracePeriodSeconds:
+                        format: int64
+                        nullable: true
+                        type: integer
+                      timeoutSeconds:
+                        format: int32
+                        nullable: true
+                        type: integer
+                    type: object
                   service:
                     nullable: true
                     properties:
@@ -1056,13 +1035,11 @@ spec:
                         type: string
                       annotations:
                         additionalProperties:
-                          nullable: false
                           type: string
                         nullable: true
                         type: object
                       labels:
                         additionalProperties:
-                          nullable: false
                           type: string
                         nullable: true
                         type: object
@@ -1074,13 +1051,11 @@ spec:
                         type: string
                       clusterIPs:
                         items:
-                          nullable: false
                           type: string
                         nullable: true
                         type: array
                       externalIPs:
                         items:
-                          nullable: false
                           type: string
                         nullable: true
                         type: array
@@ -1095,7 +1070,6 @@ spec:
                         type: string
                       ipFamilies:
                         items:
-                          nullable: false
                           type: string
                         nullable: true
                         type: array
@@ -1110,7 +1084,6 @@ spec:
                         type: string
                       loadBalancerSourceRanges:
                         items:
-                          nullable: false
                           type: string
                         nullable: true
                         type: array
@@ -1124,7 +1097,6 @@ spec:
                         nullable: true
                         properties:
                           clientIP:
-                            nullable: false
                             properties:
                               timeoutSeconds:
                                 format: int32
@@ -1176,25 +1148,18 @@ spec:
                               items:
                                 properties:
                                   key:
-                                    nullable: false
                                     type: string
                                   operator:
-                                    nullable: false
                                     type: string
                                   values:
                                     items:
-                                      nullable: false
                                       type: string
-                                    nullable: false
                                     type: array
                                 type: object
-                              nullable: false
                               type: array
                             matchLabels:
                               additionalProperties:
-                                nullable: false
                                 type: string
-                              nullable: false
                               type: object
                           type: object
                       type: object
@@ -1312,7 +1277,6 @@ spec:
                             type: string
                           scopes:
                             items:
-                              nullable: false
                               type: string
                             nullable: true
                             type: array
@@ -1376,10 +1340,8 @@ spec:
                         nullable: true
                         properties:
                           key:
-                            nullable: false
                             type: string
                           name:
-                            nullable: false
                             type: string
                           optional:
                             nullable: true

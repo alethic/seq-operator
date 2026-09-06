@@ -1,7 +1,9 @@
 namespace: alethic.seq.operator-system
 namePrefix: alethic.seq.operator-
-commonLabels:
-  operator: alethic.seq.operator
+labels:
+- includeSelectors: true
+  pairs:
+    operator: alethic.seq.operator
 resources:
 - operator-role.yaml
 - operator-role-binding.yaml
