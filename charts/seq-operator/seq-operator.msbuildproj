@@ -118,7 +118,9 @@
     <!-- Renders the packaged chart and fails the build if it does not. 'helm package' only tars the templates, so
          without this a CRD rewritten into an unrenderable template would ship and only break at install time. -->
     <Target Name="TestHelm" DependsOnTargets="PackageHelm">
-        <Exec Command="helm template --debug $(IntermediateOutputPath)$(ChartPackage)" />
+        <!-- IgnoreStandardErrorWarningFormat because helm writes progress to stderr, which Exec would otherwise
+             report as MSB3077 even on a successful render. A non-zero exit from helm still fails the task. -->
+        <Exec Command="helm template $(IntermediateOutputPath)$(ChartPackage)" IgnoreStandardErrorWarningFormat="true" />
     </Target>
     <Target Name="BuildHelm" BeforeTargets="Build" DependsOnTargets="CollectCrdItems;RewriteCrds;StageHelm;PackageHelm;TestHelm" />
 </Project>
