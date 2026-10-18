@@ -230,7 +230,7 @@ namespace Alethic.Seq.Operator.ApiKey
             // entity specifies an existing secret, this may be a token source
             if (entity.Spec.SecretRef is not null)
             {
-                var secret = await Lookup.ResolveSecretRefAsync(entity.Spec.SecretRef, entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, cancellationToken);
+                var secret = await Lookup.ResolveSecretRefAsync(entity.Spec.SecretRef, entity.Namespace(), cancellationToken);
                 if (secret is not null)
                     if (secret.Data.TryGetValue(SECRET_TOKEN_KEY_NAME, out var tokenBuf))
                         create.Token = Encoding.UTF8.GetString(tokenBuf);
@@ -239,8 +239,17 @@ namespace Alethic.Seq.Operator.ApiKey
             // submit the new key to the API
             var self = await api.ApiKeys.AddAsync(create, cancellationToken);
 
-            // update the secret with the endpoint and the token which may be from the server
-            await ApplySecretAsync(entity, api.Client.ServerUrl, EmptyToNull(self.Token) ?? EmptyToNull(create.Token), defaultNamespace, cancellationToken);
+            // update the secret with the endpoint and the token which may be from the server; Seq only returns the token
+            // now, so a key whose token could not be stored is useless and is removed rather than left to be duplicated
+            try
+            {
+                await ApplySecretAsync(entity, api.Client.ServerUrl, EmptyToNull(self.Token) ?? EmptyToNull(create.Token), defaultNamespace, cancellationToken);
+            }
+            catch (Exception e)
+            {
+                await DeleteOrphanAsync(instance, entity, api, self.Id, e, cancellationToken);
+                throw;
+            }
 
             // newly created ID
             return self.Id;

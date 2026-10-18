@@ -131,6 +131,31 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         protected abstract Task UpdateAsync(V1alpha1Instance instance, TEntity entity, SeqConnection api, string id, TInfo? info, TConf? conf, string defaultNamespace, CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Removes an object just created in Seq whose ID could not be recorded, so that the retry does not leave it
+        /// behind as a duplicate. Failure to remove it is logged and swallowed, so the original error is what surfaces.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="entity"></param>
+        /// <param name="api"></param>
+        /// <param name="id"></param>
+        /// <param name="cause"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        protected async Task DeleteOrphanAsync(V1alpha1Instance instance, TEntity entity, SeqConnection api, string id, Exception cause, CancellationToken cancellationToken)
+        {
+            Logger.LogWarning(cause, "{EntityTypeName} {Namespace}/{Name} created {Id} in Seq but could not record it; removing it so the retry does not create a duplicate.", EntityTypeName, entity.Namespace(), entity.Name(), id);
+
+            try
+            {
+                await DeleteAsync(instance, api, id, cancellationToken);
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "{EntityTypeName} {Namespace}/{Name} could not remove {Id} from Seq; it is now orphaned and must be removed by hand.", EntityTypeName, entity.Namespace(), entity.Name(), id);
+            }
+        }
+
         /// <inheritdoc />
         protected override async Task<TEntity> Reconcile(TEntity entity, CancellationToken cancellationToken)
         {
@@ -169,8 +194,21 @@ namespace Alethic.Seq.Operator
                         throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} is invalid: {msg}");
 
                     // create new entity and associate
-                    entity.Status.Id = await CreateAsync(instance, entity, api, entity.Spec.Conf, entity.Namespace(), cancellationToken);
-                    Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} created with {Id}", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
+                    var id = await CreateAsync(instance, entity, api, entity.Spec.Conf, entity.Namespace(), cancellationToken);
+                    Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} created with {Id}", EntityTypeName, entity.Namespace(), entity.Name(), id);
+
+                    // the ID is the only link to what was just created, and most kinds cannot be found again without it,
+                    // so save it now; if that fails, remove the object rather than let the retry create a second one
+                    entity.Status.Id = id;
+                    try
+                    {
+                        entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
+                    }
+                    catch (Exception e)
+                    {
+                        await DeleteOrphanAsync(instance, entity, api, id, e, cancellationToken);
+                        throw;
+                    }
                 }
                 else
                 {
@@ -179,10 +217,10 @@ namespace Alethic.Seq.Operator
 
                     entity.Status.Id = entityId;
                     Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} found with {Id}", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
-                }
 
-                // save the status
-                entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
+                    // save the status
+                    entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
+                }
             }
 
             // at this point we must have a reference to an entity
@@ -245,24 +283,38 @@ namespace Alethic.Seq.Operator
         /// <inheritdoc />
         public override sealed async Task<ReconciliationResult<TEntity>> DeletedAsync(TEntity entity, CancellationToken cancellationToken)
         {
+            // whether the Instance is itself being deleted, in which case removing the object from Seq is best effort
+            var instanceDeleting = false;
+
             try
             {
-                if (entity.Spec.InstanceRef is null)
-                    throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} missing a Seq instance reference.");
-
-                var instance = await Lookup.ResolveInstanceRefAsync(entity.Spec.InstanceRef, entity.Namespace(), cancellationToken);
-                if (instance is null)
-                    throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} could not resolve Seq instance.");
-
-                var api = await GetInstanceConnectionAsync(instance, cancellationToken);
-                if (api is null)
-                    throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} failed to retrieve API client.");
-
                 if (string.IsNullOrWhiteSpace(entity.Status.Id))
                 {
                     Logger.LogWarning("{EntityTypeName} {EntityNamespace}/{EntityName} has no known ID, skipping delete (reason: entity was never successfully created in Seq).", EntityTypeName, entity.Namespace(), entity.Name());
                     return ReconciliationResult<TEntity>.Success(entity);
                 }
+
+                if (entity.Spec.InstanceRef is not { Name: { } instanceName } instanceRef)
+                {
+                    Logger.LogWarning("{EntityTypeName} {EntityNamespace}/{EntityName} has no Seq instance reference, skipping delete of {Id}.", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
+                    return ReconciliationResult<TEntity>.Success(entity);
+                }
+
+                // read past the lookup cache: a cached Instance may already be gone, or not yet show it is being deleted
+                var instance = await Kube.GetAsync<V1alpha1Instance>(instanceName, instanceRef.Namespace ?? entity.Namespace(), cancellationToken: cancellationToken);
+                if (instance is null)
+                {
+                    // without the Instance there are no credentials to reach Seq with; holding the finalizer would
+                    // only block the delete (and any namespace containing it) forever
+                    Logger.LogWarning("{EntityTypeName} {EntityNamespace}/{EntityName} references Seq instance {InstanceName} which no longer exists, skipping delete of {Id} (it is left in Seq).", EntityTypeName, entity.Namespace(), entity.Name(), instanceName, entity.Status.Id);
+                    return ReconciliationResult<TEntity>.Success(entity);
+                }
+
+                instanceDeleting = instance.Metadata.DeletionTimestamp is not null;
+
+                var api = await GetInstanceConnectionAsync(instance, cancellationToken);
+                if (api is null)
+                    throw new InvalidOperationException($"{EntityTypeName} {entity.Namespace()}/{entity.Name()} failed to retrieve API client.");
 
                 var self = await GetAsync(entity, api, entity.Status.Id, entity.Namespace(), cancellationToken);
                 if (self is null)
@@ -274,6 +326,13 @@ namespace Alethic.Seq.Operator
                 Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} initiating deletion from Seq with ID: {Id} (reason: Kubernetes entity was deleted)", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
                 await DeleteAsync(instance, api, entity.Status.Id, cancellationToken);
                 Logger.LogInformation("{EntityTypeName} {Namespace}/{Name} deletion completed successfully", EntityTypeName, entity.Namespace(), entity.Name());
+                return ReconciliationResult<TEntity>.Success(entity);
+            }
+            catch (Exception e) when (instanceDeleting)
+            {
+                // the Instance is going too, and a deployed one takes its Seq server with it; an unreachable Seq is no
+                // reason to hold this entity, or the namespace both are in, in Terminating
+                Logger.LogWarning(e, "{EntityTypeName} {EntityNamespace}/{EntityName} could not remove {Id} from Seq while its Seq instance is being deleted, skipping delete (it is left in Seq).", EntityTypeName, entity.Namespace(), entity.Name(), entity.Status.Id);
                 return ReconciliationResult<TEntity>.Success(entity);
             }
             catch (RetryException e)

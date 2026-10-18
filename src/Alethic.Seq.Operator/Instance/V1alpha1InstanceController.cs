@@ -592,6 +592,8 @@ namespace Alethic.Seq.Operator.Instance
                 foreach (var i in env)
                     container.Env.Add(i);
 
+            container.EnvFrom ??= new List<V1EnvFromSource>();
+            container.EnvFrom.Clear();
             if (deployment.EnvFrom is { Count: > 0 } envFrom)
                 foreach (var i in envFrom)
                     container.EnvFrom.Add(i);

@@ -253,9 +253,6 @@ env:
 
 ### Signals and retention policies
 
-The Instance must grant `signals` permission for a Signal to attach; see
-[Which namespaces may use an Instance](#which-namespaces-may-use-an-instance).
-
 ```yaml
 apiVersion: seq.k8s.datalust.co/v1alpha1
 kind: Signal
@@ -292,9 +289,8 @@ spec:
 
 ### Which namespaces may use an Instance
 
-By default an Instance only accepts ApiKeys, RetentionPolicies and Alerts from its own namespace. Signals are not
-in the defaults: an Instance accepts them only with an explicit `signals` permission. To change any of this, set
-`spec.permissions`.
+By default an Instance accepts ApiKeys, Signals, RetentionPolicies and Alerts from its own namespace only. To change
+this, set `spec.permissions`.
 
 `spec.permissions` is a list of entries. For each resource, the first entry whose `namespaces` matches the
 resource's namespace decides what it may do. `from` is one of `Same` (the default), `All`, `Selector` or `None`.
@@ -357,8 +353,12 @@ take that away.
 ### Deletion
 
 Each resource carries a finalizer. Deleting an ApiKey, Signal, RetentionPolicy or Alert deletes the matching
-object in Seq, provided the operator can still reach the Instance. If it can't, the resource stays in
-`Terminating` until the Instance is reachable again or the finalizer is removed by hand.
+object in Seq. If Seq can't be reached, the operator keeps retrying, so a brief outage doesn't leave objects
+behind in Seq.
+
+If the Instance itself is gone or being deleted, the operator tries once and then lets the resource go, leaving the
+object in Seq. Without the Instance it has no way to reach Seq, and holding on would leave the resource, and any
+namespace being deleted with it, stuck in `Terminating`. A deployed Instance takes its Seq server with it anyway.
 
 ## Upgrading
 
@@ -371,6 +371,13 @@ ApiKeys could assign any Seq permission. They're now enforced as described in
 Before upgrading, find ApiKeys that ask for more than `Ingest` or `Public` from outside their Instance's namespace,
 and grant what they need in the Instance's `spec.permissions`. Otherwise they will be refused from then on. Their
 keys in Seq keep working; they just stop being updated. Instances without `spec.permissions` are unaffected.
+
+### Secret references must stay in their own namespace
+
+A Secret reference with a `namespace` other than the resource's own is now refused. This covers an Instance's
+`remote.auth[].login.secretRef` and `remote.auth[].token.secretRef`, and an ApiKey's `secretRef`. Previously the
+operator followed them using its cluster-wide access. Copy any such Secret into the resource's namespace before
+upgrading.
 
 ### SSO secrets move to Secrets
 
@@ -416,8 +423,6 @@ Fresh installs don't need this.
   doesn't allow a StatefulSet's volume claims to change.
 - **Namespace selectors** support `matchLabels` but not `matchExpressions`.
 - **Restricting the operator to one namespace** is not supported yet; it always watches the whole cluster.
-- **Secrets in other namespaces**: an Instance's `remote.auth` can name a Secret in any namespace. In a
-  multi-tenant cluster, restrict who can create Instances.
 
 ## Building
 

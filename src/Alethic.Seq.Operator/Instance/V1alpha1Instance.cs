@@ -52,7 +52,12 @@ namespace Alethic.Seq.Operator.Instance
             {
                 Attach = true,
                 Create = true,
-            }
+            },
+            Signals = new InstanceSignalPermissions()
+            {
+                Attach = true,
+                Create = true,
+            },
         };
 
         /// <summary>
