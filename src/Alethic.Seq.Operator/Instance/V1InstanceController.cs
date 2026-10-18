@@ -206,7 +206,7 @@ namespace Alethic.Seq.Operator.Instance
             var operatorLoginSecret = await GetRelatedObject<V1Secret>(instance, "operator-login", cancellationToken);
 
             // no deployment, we have an existing admin secret owned by us, delete
-            if (deployment is null && operatorLoginSecret is not null && operatorLoginSecret.IsOwnedBy(instance))
+            if (deployment is null && operatorLoginSecret is not null && operatorLoginSecret.IsOwnedByEntity(instance))
             {
                 await Kube.DeleteAsync(operatorLoginSecret, cancellationToken);
                 operatorLoginSecret = null;
@@ -221,7 +221,7 @@ namespace Alethic.Seq.Operator.Instance
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: LoginSecret must be in same namespace as Instance.");
 
                 // we have an existing secret, owned by us
-                if (operatorLoginSecret is not null && operatorLoginSecret.IsOwnedBy(instance))
+                if (operatorLoginSecret is not null && operatorLoginSecret.IsOwnedByEntity(instance))
                 {
                     // existing secret does not match our specification
                     if (operatorLoginSecret.Name() != operatorLoginSecretName || operatorLoginSecret.Namespace() != operatorLoginSecretNamespace)
@@ -248,7 +248,7 @@ namespace Alethic.Seq.Operator.Instance
                 }
 
                 // we have a secret at this point, and it is owned by us, we can ensure the login information is set to defaults
-                if (operatorLoginSecret.IsOwnedBy(instance))
+                if (operatorLoginSecret.IsOwnedByEntity(instance))
                 {
                     ApplyDeploymentLoginSecret(instance, deployment, operatorLoginSecret);
                     ApplyDeploymentResource(instance, deployment, "operator-login", operatorLoginSecret);
@@ -298,7 +298,7 @@ namespace Alethic.Seq.Operator.Instance
             var operatorTokenApiKey = await GetRelatedObject<V1ApiKey>(instance, "operator-token", cancellationToken);
 
             // no deployment, we have an existing operator apikey owned by us, delete
-            if (deployment is null && operatorTokenApiKey is not null && operatorTokenApiKey.IsOwnedBy(instance))
+            if (deployment is null && operatorTokenApiKey is not null && operatorTokenApiKey.IsOwnedByEntity(instance))
             {
                 await Kube.DeleteAsync(operatorTokenApiKey, cancellationToken);
                 operatorTokenApiKey = null;
@@ -313,7 +313,7 @@ namespace Alethic.Seq.Operator.Instance
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: ApiKey must be in same namespace as Instance.");
 
                 // we have an existing secret, owned by us
-                if (operatorTokenApiKey is not null && operatorTokenApiKey.IsOwnedBy(instance))
+                if (operatorTokenApiKey is not null && operatorTokenApiKey.IsOwnedByEntity(instance))
                 {
                     // existing apikey does not match our specification
                     if (operatorTokenApiKey.Name() != operatorTokenApiKeyName || operatorTokenApiKey.Namespace() != operatorTokenApiKeyNamespace)
@@ -340,7 +340,7 @@ namespace Alethic.Seq.Operator.Instance
                 }
 
                 // we have a apikey at this point, and it is owned by us, we can ensure the login information is set to defaults
-                if (operatorTokenApiKey.IsOwnedBy(instance))
+                if (operatorTokenApiKey.IsOwnedByEntity(instance))
                 {
                     ApplyDeploymentAdminApiKey(instance, deployment, operatorTokenApiKey);
                     ApplyDeploymentResource(instance, deployment, "operator-token", operatorTokenApiKey);
@@ -381,7 +381,7 @@ namespace Alethic.Seq.Operator.Instance
             var serviceAccount = await GetRelatedObject<V1ServiceAccount>(instance, "service-account", cancellationToken);
 
             // no deployment, we have an existing service account owned by us, delete
-            if (deployment is null && serviceAccount is not null && serviceAccount.IsOwnedBy(instance))
+            if (deployment is null && serviceAccount is not null && serviceAccount.IsOwnedByEntity(instance))
             {
                 await Kube.DeleteAsync(serviceAccount, cancellationToken);
                 serviceAccount = null;
@@ -396,7 +396,7 @@ namespace Alethic.Seq.Operator.Instance
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: ServiceAccount must be in same namespace as Instance.");
 
                 // we have an existing service account, owned by us
-                if (serviceAccount is not null && serviceAccount.IsOwnedBy(instance))
+                if (serviceAccount is not null && serviceAccount.IsOwnedByEntity(instance))
                 {
                     // existing service account does not match our specification
                     if (serviceAccount.Name() != serviceAccountName || serviceAccount.Namespace() != serviceAccountNamespace)
@@ -420,7 +420,7 @@ namespace Alethic.Seq.Operator.Instance
                 }
 
                 // we have a secret at this point, and it is owned by us, we can ensure the login information is set to defaults
-                if (serviceAccount.IsOwnedBy(instance))
+                if (serviceAccount.IsOwnedByEntity(instance))
                 {
                     ApplyDeploymentResource(instance, deployment, "service-account", serviceAccount);
                     serviceAccount = await Kube.UpdateAsync(serviceAccount, cancellationToken);
@@ -443,7 +443,7 @@ namespace Alethic.Seq.Operator.Instance
             var statefulSet = await GetRelatedObject<V1StatefulSet>(instance, "stateful-set", cancellationToken);
 
             // no deployment, we have an existing stateful set owned by us, delete
-            if (deployment is null && statefulSet is not null && statefulSet.IsOwnedBy(instance))
+            if (deployment is null && statefulSet is not null && statefulSet.IsOwnedByEntity(instance))
             {
                 await Kube.DeleteAsync(statefulSet, cancellationToken);
                 statefulSet = null;
@@ -465,7 +465,7 @@ namespace Alethic.Seq.Operator.Instance
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: StatefulSet must be in same namespace as Instance.");
 
                 // we have an existing stateful set, owned by us
-                if (statefulSet is not null && statefulSet.IsOwnedBy(instance))
+                if (statefulSet is not null && statefulSet.IsOwnedByEntity(instance))
                 {
                     // existing stateful set does not match our specification
                     if (statefulSet.Name() != statefulSetName || statefulSet.Namespace() != statefulSetNamespace)
@@ -495,7 +495,7 @@ namespace Alethic.Seq.Operator.Instance
                 }
 
                 // we have a stateful set at this point, and it must be owned by us
-                if (statefulSet.IsOwnedBy(instance) == false)
+                if (statefulSet.IsOwnedByEntity(instance) == false)
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: StatefulSet conflict. Set is not owned by instance.");
 
                 // update object if required
@@ -660,7 +660,7 @@ namespace Alethic.Seq.Operator.Instance
             var service = await GetRelatedObject<V1Service>(instance, "service", cancellationToken);
 
             // no deployment, we have an existing service owned by us, delete
-            if (deployment is null && service is not null && service.IsOwnedBy(instance))
+            if (deployment is null && service is not null && service.IsOwnedByEntity(instance))
             {
                 await Kube.DeleteAsync(service, cancellationToken);
                 service = null;
@@ -675,7 +675,7 @@ namespace Alethic.Seq.Operator.Instance
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: Service must be in same namespace as Instance.");
 
                 // we have an existing service, owned by us
-                if (service is not null && service.IsOwnedBy(instance))
+                if (service is not null && service.IsOwnedByEntity(instance))
                 {
                     // existing service does not match our specification
                     if (service.Name() != serviceName || service.Namespace() != serviceNamespace)
@@ -702,7 +702,7 @@ namespace Alethic.Seq.Operator.Instance
                 }
 
                 // we have a service at this point, and it must be owned by us
-                if (service.IsOwnedBy(instance) == false)
+                if (service.IsOwnedByEntity(instance) == false)
                     throw new RetryException($"Instance {instance.Namespace()}/{instance.Name()} could not deploy: Service conflict. Set is not owned by instance.");
 
                 // update object if required
@@ -798,6 +798,9 @@ namespace Alethic.Seq.Operator.Instance
             // apply component labels
             l["seq.k8s.datalust.co/instance"] = instance.Name();
             l["seq.k8s.datalust.co/resource"] = resource;
+
+            // objects created before v1 reference the Instance as v1alpha1
+            entity.RefreshOwnerReference(instance);
 
             return entity;
         }

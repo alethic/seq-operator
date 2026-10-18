@@ -301,7 +301,7 @@ namespace Alethic.Seq.Operator.ApiKey
             var secret = await FindRelatedAsync<V1Secret>(entity, cancellationToken);
 
             // we have an existing secret, owned by us
-            if (secret is not null && secret.IsOwnedBy(entity))
+            if (secret is not null && secret.IsOwnedByEntity(entity))
             {
                 // existing secret does not match our specification
                 if (secret.Name() != secretName || secret.Namespace() != secretNamespace)
@@ -329,9 +329,10 @@ namespace Alethic.Seq.Operator.ApiKey
             }
 
             // only apply actual values if we are the owner
-            if (secret.IsOwnedBy(entity))
+            if (secret.IsOwnedByEntity(entity))
             {
                 Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName}: updating.", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
+                secret.RefreshOwnerReference(entity);
                 secret.StringData ??= new Dictionary<string, string>();
 
                 // ensure the endpoint exists, possible empty, if we're retrieving an existing ApiKey
