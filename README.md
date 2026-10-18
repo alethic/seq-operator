@@ -1,10 +1,24 @@
-# Kubernetes operator for Seq
+# Seq Operator for Kubernetes
 
-## About The Project
+A Kubernetes operator for [Seq](https://datalust.co/seq). Describe Seq servers and their configuration as
+Kubernetes resources, and the operator keeps the server in step with them.
 
-This Seq Kubernetes Operator is responsible for managing the lifecycle of Seq resources in a Kubernetes cluster.
+It can:
 
-### Installation
+- **Deploy Seq** into the cluster as a StatefulSet with persistent storage, bootstrap its admin account and
+  issue itself a management API key.
+- **Manage an existing Seq server**, inside or outside the cluster, given a login or an API key.
+- **Configure Seq declaratively**: server settings, authentication providers, licensing, API keys, signals and
+  retention policies.
+- **Hand API keys to workloads** as Kubernetes Secrets containing the Seq endpoint and token.
+
+> [!NOTE]
+> The resources are at `v1alpha1`. They work and are in use, but their shape may still change between releases.
+> See [Limitations](#limitations).
+
+## Installation
+
+The operator is published as a Helm chart and container image on GitHub Container Registry.
 
 ```bash
 helm install seq-operator oci://ghcr.io/alethic/seq-operator/seq-operator \
@@ -12,86 +26,301 @@ helm install seq-operator oci://ghcr.io/alethic/seq-operator/seq-operator \
   --create-namespace
 ```
 
-## Usage
+Without `--version`, Helm installs the latest stable release. Builds from `main` are published as prereleases
+(for example `0.1.0-pre.145`); install one with `--version <version>`, or with `--devel` for the newest.
 
-This is an example for connecting to and bootstrapping an existing Seq instance deployed with a SEQ_FIRSTRUN_ADMINPASSWORDHASH setting.
+### Chart values
 
-```
+| value | default | description |
+| --- | --- | --- |
+| `operator.image.repository` | `ghcr.io/alethic/seq-operator/seq-operator-image` | Operator image. |
+| `operator.image.tag` | chart `appVersion` | Operator image tag. `operator.image.digest` takes precedence if set. |
+| `operator.resources` | 50m CPU, 64Mi requested | Operator pod resources. |
+| `options.logLevel` | `Information` | Operator log level. |
+| `options.defaultImage` | `datalust/seq:latest` | Seq image used by deployed Instances that don't set `deployment.image`. |
+| `options.reconciliation.interval` | `00:05:00` | Time between periodic reconciliations. |
+| `options.reconciliation.retryInterval` | `00:00:30` | Time before retrying a failed reconciliation. |
+| `crds.enabled` | `true` | Install and upgrade the CRDs with the chart. Set `false` to manage them yourself. |
+| `crds.keep` | `false` | Annotate the CRDs with `helm.sh/resource-policy: keep` so they survive `helm uninstall`. |
 
-apiVersion: v1
-kind: Secret
-metadata:
-  name: seqlogin
-  namespace: default
-type: Opaque
-stringData:
-  username: "admin"
-  password: "newpassword"
-  firstRun: "1234"
----
+See [`values.yaml`](charts/seq-operator/values.yaml) for scheduling, security context and other pod settings.
 
+## Resources
+
+All resources are in the `seq.k8s.datalust.co/v1alpha1` API group.
+
+| kind | short name | manages |
+| --- | --- | --- |
+| `Instance` | `seqinstance` | A Seq server: deployed by the operator, or an existing one it connects to. Holds server settings. |
+| `ApiKey` | `seqapikey` | A Seq API key, published to a Kubernetes Secret. |
+| `Signal` | `seqsignal` | A shared Seq signal. |
+| `RetentionPolicy` | | A Seq retention policy. |
+| `Alert` | | A Seq alert (title only; see [Limitations](#limitations)). |
+
+Everything other than `Instance` points at an Instance with `spec.instanceRef`, and puts the settings it
+manages under `spec.conf`.
+
+### Deploying Seq
+
+An Instance without a `remote` section is deployed by the operator. This is the smallest one:
+
+```yaml
 apiVersion: seq.k8s.datalust.co/v1alpha1
 kind: Instance
 metadata:
-  name: seqinstance
-  namespace: default
-spec:
-  remote:
-    endpoint: http://localhost:5341
-    auth:
-    - token:
-        secretRef:
-          name: seqtoken
-    - login:
-        secretRef:
-          name: seqlogin
----
-
-apiVersion: seq.k8s.datalust.co/v1alpha1
-kind: ApiKey
-metadata:
-  name: seqtoken
-  namespace: default
-spec:
-  instanceRef:
-    name: seqinstance
-  secretRef:
-    name: seqtoken
-  conf:
-    title: ManagementKey
-    permissions:
-    - System
-    - Project
-    - Write
-    - Organization
-    - Read
----
-
-```
-
-This is an example for deploying a new Seq instance. Simply don't specify the `remote` section.
-
-```
-apiVersion: seq.k8s.datalust.co/v1alpha1
-kind: Instance
-metadata:
-  name: seqinstance
-  namespace: default
+  name: seq
+  namespace: logging
 spec: {}
 ```
 
-This will generate a secret for the 'admin' login, with a randomlly generated first-run password and user password. It will bring up the instance. Once up, it will authenticate as the first-run password, change the password to the real-password, then generate an ApiToken which it will use for management purposes from that point forward.
+The operator then:
+
+1. Creates a Secret, `seq-operator-login`, with an `admin` username, a generated password and a separate
+   generated first-run password.
+2. Creates a StatefulSet running Seq with a 32Gi volume, and a Service named after the Instance. Seq is reachable
+   in the cluster at `http://seq.logging.svc.cluster.local`.
+3. Logs in with the first-run password and changes it to the real one.
+4. Creates an ApiKey, `seq-operator`, and uses that key to manage the server from then on.
+
+The admin login is in the `seq-operator-login` Secret.
+
+The `deployment` section adjusts the deployment. It accepts the usual pod settings: `image`, `resources`,
+`env`, `affinity`, `nodeSelector`, `tolerations`, `topologySpreadConstraints`, `imagePullSecrets`, the three
+probe types, `annotations` and `labels`. It also takes `persistence` and `service`:
+
+```yaml
+apiVersion: seq.k8s.datalust.co/v1alpha1
+kind: Instance
+metadata:
+  name: seq
+  namespace: logging
+spec:
+  deployment:
+    image: datalust/seq:2025.2
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+    persistence:
+      storageClassName: fast-ssd
+      capacity: 100Gi
+    service:
+      type: LoadBalancer
+```
+
+Pin `image` to a specific Seq version. The default, `datalust/seq:latest`, can upgrade Seq whenever the pod is
+rescheduled.
+
+### Connecting to an existing Seq server
+
+Give an Instance a `remote` section to manage a server the operator didn't deploy. `remote.auth` lists the
+ways to authenticate, tried in order:
+
+- `token` reads a Secret with a `token` key holding a Seq API key.
+- `login` reads a Secret with `username` and `password` keys. If the password is rejected and the Secret also
+  has a `firstRun` key, the operator logs in with that instead and changes the password to `password`.
+
+That second case bootstraps a fresh server. Start Seq with `SEQ_FIRSTRUN_ADMINPASSWORDHASH` set to the hash of
+the first-run password, and let the operator create its own API key:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: seq-login
+  namespace: logging
+type: Opaque
+stringData:
+  username: admin
+  password: "<the password the operator should set>"
+  firstRun: "<the password Seq was first started with>"
+---
+apiVersion: seq.k8s.datalust.co/v1alpha1
+kind: Instance
+metadata:
+  name: seq
+  namespace: logging
+spec:
+  remote:
+    endpoint: http://seq.example.com
+    auth:
+    # Prefer the API key once the ApiKey below has created it...
+    - token:
+        secretRef:
+          name: seq-management
+    # ...and fall back to the login until then.
+    - login:
+        secretRef:
+          name: seq-login
+---
+apiVersion: seq.k8s.datalust.co/v1alpha1
+kind: ApiKey
+metadata:
+  name: seq-management
+  namespace: logging
+spec:
+  instanceRef:
+    name: seq
+  secretRef:
+    name: seq-management
+  conf:
+    title: Kubernetes operator
+    permissions:
+    - Read
+    - Write
+    - Project
+    - System
+    - Organization
+```
+
+### Server settings
+
+`spec.conf` on an Instance sets Seq server settings. Anything left out is not changed.
+
+```yaml
+spec:
+  conf:
+    instanceTitle: Production
+    requireApiKeyForWritingEvents: true
+    minimumFreeStorageSpace: 10737418240
+    backupLocation: /data/backups
+    backupsToKeep: 7
+    backupUtcTimeOfDay: "02:00:00"
+    license:
+      secretKeyRef:
+        name: seq-license
+        key: license
+      automaticallyRefresh: true
+    auth:
+      oidc:
+        authority: https://login.example.com
+        clientId: seq
+        clientSecret: "<secret>"
+        scopes: [openid, profile, email]
+      automaticallyProvisionAuthenticatedUsers: true
+```
+
+`auth` accepts one of `local`, `activeDirectory`, `entra` or `oidc`.
+
+### API keys
+
+An ApiKey creates a Seq API key and writes it to a Secret with two keys: `endpoint`, the Seq server's URL, and
+`token`, the API key. The Secret is named by `secretRef`, or `<name>-seq-apikey` if that's omitted, and must be in
+the ApiKey's namespace.
+
+```yaml
+apiVersion: seq.k8s.datalust.co/v1alpha1
+kind: ApiKey
+metadata:
+  name: orders
+  namespace: orders
+spec:
+  instanceRef:
+    name: seq
+    namespace: logging
+  conf:
+    title: Orders service
+    permissions:
+    - Ingest
+    inputSettings:
+      minimumLevel: Information
+      appliedProperties:
+        Application: orders
+```
+
+A workload can then take its Seq settings straight from the Secret:
+
+```yaml
+env:
+- name: SEQ_SERVER_URL
+  valueFrom:
+    secretKeyRef:
+      name: orders-seq-apikey
+      key: endpoint
+- name: SEQ_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: orders-seq-apikey
+      key: token
+```
+
+### Signals and retention policies
+
+The Instance must grant `signals` permission for a Signal to attach; see
+[Which namespaces may use an Instance](#which-namespaces-may-use-an-instance).
+
+```yaml
+apiVersion: seq.k8s.datalust.co/v1alpha1
+kind: Signal
+metadata:
+  name: errors
+  namespace: logging
+spec:
+  instanceRef:
+    name: seq
+  conf:
+    title: Errors
+    description: Events at Error level or above
+    grouping: Explicit
+    explicitGroupName: Levels
+    filters:
+    - description: Errors
+      filter: "@Level in ['Error', 'Fatal']"
+    columns:
+    - expression: Application
+---
+apiVersion: seq.k8s.datalust.co/v1alpha1
+kind: RetentionPolicy
+metadata:
+  name: thirty-days
+  namespace: logging
+spec:
+  instanceRef:
+    name: seq
+  conf:
+    retentionTime: "30.00:00:00"
+```
+
+`retentionTime` is a .NET `TimeSpan`, written `d.hh:mm:ss`.
+
+### Which namespaces may use an Instance
+
+By default an Instance only accepts ApiKeys, RetentionPolicies and Alerts from its own namespace. Signals are not
+in the defaults: an Instance accepts them only with an explicit `signals` permission. To change any of this, set
+`spec.permissions`. This lets any namespace labelled `seq-access: "true"` create and attach
+ingest-only API keys:
+
+```yaml
+spec:
+  permissions:
+  - namespaces:
+      from: Selector
+      selector:
+        matchLabels:
+          seq-access: "true"
+    apiKeys:
+      create: true
+      attach: true
+      setTitle: true
+      setIngest: true
+```
+
+`from` is one of `Same` (the default), `All`, `Selector` or `None`. Each permission entry also takes `alerts`,
+`signals` and `retentionPolicies`, with the same `create` and `attach` flags. Setting `spec.permissions` replaces
+the defaults entirely.
+
+### Deletion
+
+Each resource carries a finalizer. Deleting an ApiKey, Signal, RetentionPolicy or Alert deletes the matching
+object in Seq, provided the operator can still reach the Instance. If it can't, the resource stays in
+`Terminating` until the Instance is reachable again or the finalizer is removed by hand.
 
 ## Upgrading
 
 ### Adopting the CustomResourceDefinitions (one time)
 
-The chart now ships its CRDs as templates rather than from the chart's `crds/` directory, so that
-`helm upgrade` applies schema changes. Helm installs `crds/` exactly once and never updates it, which
-previously meant applying CRD changes by hand.
-
-Releases installed before this change own their CRDs outside of Helm, and Helm refuses to take over a
-resource it does not own:
+The chart installs its CRDs as ordinary templates, so `helm upgrade` keeps them up to date. Releases installed
+before this change own their CRDs outside of Helm, and the first upgrade fails with:
 
 ```
 Error: UPGRADE FAILED: rendered manifests contain a resource that already exists.
@@ -99,8 +328,7 @@ Unable to continue with update: CustomResourceDefinition "instances.seq.k8s.data
 invalid ownership metadata
 ```
 
-Helm checks the metadata on the live object, so this cannot be fixed from inside the chart. Label and
-annotate the existing CRDs once, before the first upgrade, substituting your release name and namespace:
+Hand the existing CRDs to the release once, before upgrading:
 
 ```bash
 RELEASE=seq-operator
@@ -115,11 +343,48 @@ for c in alerts apikeys instances retentionpolicys signals; do
 done
 ```
 
-Fresh installations need none of this.
+Fresh installs don't need this.
 
-Two chart values control CRD handling:
+## Limitations
 
-| value | default | effect |
-| --- | --- | --- |
-| `crds.enabled` | `true` | Install and upgrade the CRDs with the chart. Set `false` to manage them out of band. |
-| `crds.keep` | `false` | When `true`, annotates the CRDs with `helm.sh/resource-policy: keep` so they survive `helm uninstall`. |
+- **Alerts** only manage the alert's title. Conditions, notifications and the rest have to be set in Seq.
+- **Signals**: filters and columns removed from the spec are not removed from Seq.
+- **Persistence** (`deployment.persistence`) can't be changed once an Instance is deployed, since Kubernetes
+  doesn't allow a StatefulSet's volume claims to change.
+- **Namespace selectors** support `matchLabels` but not `matchExpressions`.
+- **Restricting the operator to one namespace** is not supported yet; it always watches the whole cluster.
+- **SSO client secrets** (`entra.clientKey`, `oidc.clientSecret`) are written in plain text in the Instance spec,
+  and appear in its status.
+- **Secrets in other namespaces**: an Instance's `remote.auth` can name a Secret in any namespace. In a
+  multi-tenant cluster, restrict who can create Instances.
+
+## Building
+
+Requires the .NET 10 SDK and Helm.
+
+```bash
+dotnet tool restore
+dotnet msbuild Alethic.Seq.Operator.dist.msbuildproj
+```
+
+This builds the operator, generates the CRDs and writes the container image, Helm chart and tests to `dist/`.
+Run the tests with:
+
+```bash
+dotnet exec dist/tests/Alethic.Seq.Operator.Tests/net10.0/Alethic.Seq.Operator.Tests.dll
+```
+
+## Releasing
+
+Versions come from [GitVersion](https://gitversion.net), configured in [`GitVersion.yml`](GitVersion.yml); no
+version is written anywhere in the source. Every push to `main` builds and publishes a prerelease, such as
+`0.1.0-pre.145`, to GitHub Container Registry.
+
+To release a stable version, create a GitHub Release on `main` with a new tag named for the version, such as
+`0.1.0`. GitVersion takes the version from the tag. The workflow then attaches the image and chart to the
+release and pushes both to the registry. Prereleases that follow carry the next patch version. To bump the minor
+or major version instead, include `+semver: minor` or `+semver: major` in a commit message.
+
+## License
+
+[MIT](LICENSE)

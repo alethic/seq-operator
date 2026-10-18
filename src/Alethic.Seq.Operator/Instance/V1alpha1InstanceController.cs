@@ -44,26 +44,33 @@ namespace Alethic.Seq.Operator.Instance
         IEntityController<V1alpha1Instance>
     {
 
+        const string PasswordLowerChars = "abcdefghijkmnopqrstuvwxyz";
+        const string PasswordUpperChars = "ABCDEFGHJKLMNOPQRSTUVWXYZ";
+        const string PasswordDigitChars = "0123456789";
+        const string PasswordSpecialChars = @"!#$%&'()*+,-./:;<=>?@[\]_";
+        const string PasswordChars = PasswordLowerChars + PasswordUpperChars + PasswordDigitChars + PasswordSpecialChars;
+
         /// <summary>
-        /// Generates a new random password.
+        /// Generates a new random password from a cryptographically secure source, containing at least one lowercase
+        /// letter, uppercase letter, digit and special character.
         /// </summary>
         /// <returns></returns>
-        static string GeneratePassword(int length)
+        internal static string GeneratePassword(int length)
         {
-            const string allowedChars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ0123456789";
-            const string specialCharacters = @"!#$%&'()*+,-./:;<=>?@[\]_";
+            if (length < 4)
+                throw new ArgumentOutOfRangeException(nameof(length), "Password must allow one character of each class.");
 
-            var chars = (Span<char>)stackalloc char[length];
-
-            for (var i = 0; i < length; i++)
+            // draw uniformly from the whole set and reject the rare result missing a class, rather than placing one of
+            // each at fixed positions, which would make those positions guessable
+            while (true)
             {
-                if (i % Random.Shared.Next(3, length) == 0)
-                    chars[i] = specialCharacters[Random.Shared.Next(0, specialCharacters.Length)];
-                else
-                    chars[i] = allowedChars[Random.Shared.Next(0, allowedChars.Length)];
+                var password = RandomNumberGenerator.GetString(PasswordChars, length);
+                if (password.AsSpan().IndexOfAny(PasswordLowerChars) >= 0 &&
+                    password.AsSpan().IndexOfAny(PasswordUpperChars) >= 0 &&
+                    password.AsSpan().IndexOfAny(PasswordDigitChars) >= 0 &&
+                    password.AsSpan().IndexOfAny(PasswordSpecialChars) >= 0)
+                    return password;
             }
-
-            return new string(chars);
         }
 
         /// <summary>
@@ -510,7 +517,9 @@ namespace Alethic.Seq.Operator.Instance
         V1StatefulSet ApplyDeploymentStatefulSet(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1StatefulSet statefulSet, V1Secret adminSecret, V1ServiceAccount serviceAccount, V1Service service)
         {
             statefulSet.Spec ??= new();
-            statefulSet.Spec.ServiceName = serviceAccount.Name();
+            // spec.serviceName cannot be changed once the StatefulSet exists, so it is only set on creation. Sets created
+            // by earlier versions name the ServiceAccount instead of the Service; they keep it, which only costs per-pod DNS.
+            statefulSet.Spec.ServiceName ??= service.Name();
             statefulSet.Spec.PodManagementPolicy = "OrderedReady";
             statefulSet.Spec.Replicas = 1;
             statefulSet.Spec.UpdateStrategy ??= new V1StatefulSetUpdateStrategy();

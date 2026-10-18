@@ -35,4 +35,8 @@
         <Folder Include="config\" />
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="Alethic.Seq.Operator.Tests" />
+    </ItemGroup>
+
 </Project>
