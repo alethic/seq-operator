@@ -135,8 +135,9 @@ namespace Alethic.Seq.Operator.Instance
                 info = await GetInfoAsync(api, cancellationToken);
             }
 
-            // retrieve and copy applied settings to status
-            instance.Status.Info = info;
+            // retrieve and copy applied settings to status; comparisons above use what Seq returns, never status, so
+            // secrets can be redacted here without causing them to be rewritten on every reconcile
+            instance.Status.Info = RedactSecrets(info);
             instance = await Kube.UpdateStatusAsync(instance, cancellationToken);
             return instance;
         }
@@ -936,6 +937,49 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="value"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
+        /// <summary>
+        /// Resolves a secret setting given either in plain text or as a reference to a Secret in the Instance's namespace.
+        /// Returns <c>null</c> when neither is given, or the referenced Secret is optional and missing.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        /// <param name="valueRef"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        async Task<string?> ResolveSecretSettingAsync(V1alpha1Instance instance, string name, string? value, V1SecretKeySelector? valueRef, CancellationToken cancellationToken)
+        {
+            if (value is not null && valueRef is not null)
+                throw new InvalidOperationException($"{EntityTypeName} {instance.Namespace()}/{instance.Name()} is invalid: set only one of {name} and {name}Ref.");
+
+            if (valueRef is null)
+                return value;
+
+            return await Lookup.ResolveSecretKeySelectorAsync(valueRef, instance.Namespace(), cancellationToken) is { } buf ? Encoding.UTF8.GetString(buf) : null;
+        }
+
+        /// <summary>
+        /// Value shown in status in place of a secret setting that is set.
+        /// </summary>
+        internal const string RedactedValue = "<set>";
+
+        /// <summary>
+        /// Replaces the secret settings read back from Seq with <see cref="RedactedValue"/>, so that status shows whether
+        /// they are set without exposing them to anyone who can read the Instance.
+        /// </summary>
+        /// <param name="info"></param>
+        /// <returns></returns>
+        internal static InstanceInfo RedactSecrets(InstanceInfo info)
+        {
+            if (info.Auth?.Entra is { ClientKey: { Length: > 0 } } entra)
+                entra.ClientKey = RedactedValue;
+
+            if (info.Auth?.Oidc is { ClientSecret: { Length: > 0 } } oidc)
+                oidc.ClientSecret = RedactedValue;
+
+            return info;
+        }
+
         async Task PutSettingValueAsync<T>(V1alpha1Instance instance, SeqConnection api, SettingName name, T? value, CancellationToken cancellationToken)
         {
             Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} putting Seq setting {SettingName}.", EntityTypeName, instance.Namespace(), instance.Name(), name);
@@ -1128,9 +1172,9 @@ namespace Alethic.Seq.Operator.Instance
                     if (info?.Entra?.ClientId != entra.ClientId)
                         await PutSettingValueAsync(instance, api, SettingName.EntraIDClientId, entra.ClientId, cancellationToken);
 
-                if (entra.ClientKey is not null)
-                    if (info?.Entra?.ClientKey != entra.ClientKey)
-                        await PutSettingValueAsync(instance, api, SettingName.EntraIDClientKey, entra.ClientKey, cancellationToken);
+                if (await ResolveSecretSettingAsync(instance, "entra.clientKey", entra.ClientKey, entra.ClientKeyRef, cancellationToken) is { } clientKey)
+                    if (info?.Entra?.ClientKey != clientKey)
+                        await PutSettingValueAsync(instance, api, SettingName.EntraIDClientKey, clientKey, cancellationToken);
 
                 if (conf.AutomaticallyProvisionAuthenticatedUsers is not null)
                     if (info?.AutomaticallyProvisionAuthenticatedUsers != conf.AutomaticallyProvisionAuthenticatedUsers)
@@ -1155,9 +1199,9 @@ namespace Alethic.Seq.Operator.Instance
                     if (info?.Oidc?.ClientId != oidc.ClientId)
                         await PutSettingValueAsync(instance, api, SettingName.OpenIdConnectClientId, oidc.ClientId, cancellationToken);
 
-                if (oidc.ClientSecret is not null)
-                    if (info?.Oidc?.ClientSecret != oidc.ClientSecret)
-                        await PutSettingValueAsync(instance, api, SettingName.OpenIdConnectClientSecret, oidc.ClientSecret, cancellationToken);
+                if (await ResolveSecretSettingAsync(instance, "oidc.clientSecret", oidc.ClientSecret, oidc.ClientSecretRef, cancellationToken) is { } clientSecret)
+                    if (info?.Oidc?.ClientSecret != clientSecret)
+                        await PutSettingValueAsync(instance, api, SettingName.OpenIdConnectClientSecret, clientSecret, cancellationToken);
 
                 if (oidc.MetadataAddress is not null)
                     if (info?.Oidc?.MetadataAddress != oidc.MetadataAddress)

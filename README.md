@@ -195,12 +195,19 @@ spec:
       oidc:
         authority: https://login.example.com
         clientId: seq
-        clientSecret: "<secret>"
+        clientSecretRef:
+          name: seq-oidc
+          key: clientSecret
         scopes: [openid, profile, email]
       automaticallyProvisionAuthenticatedUsers: true
 ```
 
 `auth` accepts one of `local`, `activeDirectory`, `entra` or `oidc`.
+
+Give the OIDC client secret as `clientSecretRef`, and the Entra client key as `clientKeyRef`. Each is a key of a
+Secret in the Instance's namespace. The plain-text `clientSecret` and `clientKey` fields still work but are
+deprecated, since anyone who can read the Instance can read them; set one form or the other, not both. Either way,
+the Instance's status shows `<set>` in place of the value.
 
 ### API keys
 
@@ -365,6 +372,14 @@ Before upgrading, find ApiKeys that ask for more than `Ingest` or `Public` from 
 and grant what they need in the Instance's `spec.permissions`. Otherwise they will be refused from then on. Their
 keys in Seq keep working; they just stop being updated. Instances without `spec.permissions` are unaffected.
 
+### SSO secrets move to Secrets
+
+Earlier versions copied the OIDC client secret and Entra client key into each Instance's status, where anyone with
+the view role could read them. Status now shows `<set>` instead, and existing statuses are rewritten on the next
+reconcile. To take the secret out of the spec too, move it into a Secret and replace `clientSecret` with
+`clientSecretRef` (or `clientKey` with `clientKeyRef`). Remove the plain-text field when you do: setting both is
+refused.
+
 ### Adopting the CustomResourceDefinitions (one time)
 
 The chart installs its CRDs as ordinary templates, so `helm upgrade` keeps them up to date. Releases installed
@@ -401,8 +416,6 @@ Fresh installs don't need this.
   doesn't allow a StatefulSet's volume claims to change.
 - **Namespace selectors** support `matchLabels` but not `matchExpressions`.
 - **Restricting the operator to one namespace** is not supported yet; it always watches the whole cluster.
-- **SSO client secrets** (`entra.clientKey`, `oidc.clientSecret`) are written in plain text in the Instance spec,
-  and appear in its status.
 - **Secrets in other namespaces**: an Instance's `remote.auth` can name a Secret in any namespace. In a
   multi-tenant cluster, restrict who can create Instances.
 

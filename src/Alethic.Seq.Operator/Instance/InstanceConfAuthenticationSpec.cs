@@ -1,5 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 
+using k8s.Models;
+
 namespace Alethic.Seq.Operator.Instance
 {
 
@@ -33,9 +35,20 @@ namespace Alethic.Seq.Operator.Instance
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string? ClientId { get; set; }
 
+            /// <summary>
+            /// The client key in plain text. Deprecated: anyone who can read the Instance can read it. Use
+            /// <see cref="ClientKeyRef"/>.
+            /// </summary>
             [JsonPropertyName("clientKey")]
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string? ClientKey { get; set; }
+
+            /// <summary>
+            /// A key of a Secret in the Instance's namespace holding the client key.
+            /// </summary>
+            [JsonPropertyName("clientKeyRef")]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public V1SecretKeySelector? ClientKeyRef { get; set; }
 
             [JsonPropertyName("tenantId")]
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -54,9 +67,20 @@ namespace Alethic.Seq.Operator.Instance
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string? ClientId { get; set; }
 
+            /// <summary>
+            /// The client secret in plain text. Deprecated: anyone who can read the Instance can read it. Use
+            /// <see cref="ClientSecretRef"/>.
+            /// </summary>
             [JsonPropertyName("clientSecret")]
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string? ClientSecret { get; set; }
+
+            /// <summary>
+            /// A key of a Secret in the Instance's namespace holding the client secret.
+            /// </summary>
+            [JsonPropertyName("clientSecretRef")]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public V1SecretKeySelector? ClientSecretRef { get; set; }
 
             [JsonPropertyName("scopes")]
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
