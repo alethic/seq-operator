@@ -5,12 +5,12 @@ using KubeOps.Abstractions.Entities.Attributes;
 namespace Alethic.Seq.Operator.RetentionPolicy
 {
 
-    public class V1alpha1RetentionPolicySpec : V1alpha1InstanceEntitySpec<RetentionPolicyConf>
+    public class V1RetentionPolicySpec : V1InstanceEntitySpec<RetentionPolicyConf>
     {
 
         [JsonPropertyName("instanceRef")]
         [Required]
-        public V1alpha1InstanceReference? InstanceRef { get; set; }
+        public V1InstanceReference? InstanceRef { get; set; }
 
         [JsonPropertyName("conf")]
         [Required]

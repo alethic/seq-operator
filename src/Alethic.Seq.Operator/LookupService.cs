@@ -69,13 +69,14 @@ namespace Alethic.Seq.Operator
         }
 
         /// <summary>
-        /// Attempts to resolve the secret document referenced by the secret reference.
+        /// Attempts to resolve the secret document referenced by the secret reference, which must be in the namespace of
+        /// the resource holding the reference.
         /// </summary>
         /// <param name="secretRef"></param>
-        /// <param name="defaultNamespace"></param>
+        /// <param name="ownerNamespace">The namespace of the resource holding the reference.</param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<V1Secret?> ResolveSecretRefAsync(V1SecretReference? secretRef, string defaultNamespace, CancellationToken cancellationToken)
+        public async Task<V1Secret?> ResolveSecretRefAsync(V1SecretReference? secretRef, string ownerNamespace, CancellationToken cancellationToken)
         {
             if (secretRef is null)
                 return null;
@@ -83,11 +84,26 @@ namespace Alethic.Seq.Operator
             if (string.IsNullOrWhiteSpace(secretRef.Name))
                 throw new InvalidOperationException($"Secret reference {secretRef} has no name.");
 
-            var ns = secretRef.NamespaceProperty ?? defaultNamespace;
-            if (string.IsNullOrWhiteSpace(ns))
+            if (string.IsNullOrWhiteSpace(ownerNamespace))
                 throw new InvalidOperationException($"Secret reference {secretRef} has no discovered namespace.");
 
-            return await ResolveSecretAsync(secretRef.Name, ns, cancellationToken);
+            // The operator can read Secrets in every namespace, so following a reference into another namespace would let
+            // anyone able to create a resource here read any Secret in the cluster through it.
+            if (IsCrossNamespace(secretRef, ownerNamespace))
+                throw new InvalidOperationException($"Secret reference {secretRef.Name} names namespace {secretRef.NamespaceProperty}, but Secrets must be in the namespace of the resource referencing them, {ownerNamespace}.");
+
+            return await ResolveSecretAsync(secretRef.Name, ownerNamespace, cancellationToken);
+        }
+
+        /// <summary>
+        /// Returns whether the secret reference names a namespace other than <paramref name="ownerNamespace"/>.
+        /// </summary>
+        /// <param name="secretRef"></param>
+        /// <param name="ownerNamespace"></param>
+        /// <returns></returns>
+        internal static bool IsCrossNamespace(V1SecretReference secretRef, string ownerNamespace)
+        {
+            return string.IsNullOrEmpty(secretRef.NamespaceProperty) == false && secretRef.NamespaceProperty != ownerNamespace;
         }
 
         /// <summary>
@@ -136,11 +152,11 @@ namespace Alethic.Seq.Operator
         /// <param name="namespaceName"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<V1alpha1Instance?> ResolveInstanceAsync(string name, string namespaceName, CancellationToken cancellationToken)
+        public async Task<V1Instance?> ResolveInstanceAsync(string name, string namespaceName, CancellationToken cancellationToken)
         {
             return await _cache.GetOrCreateAsync((typeof(LookupService), nameof(ResolveInstanceAsync), name, namespaceName), async entry =>
             {
-                var ns = await _kube.GetAsync<V1alpha1Instance>(name, namespaceName, cancellationToken: cancellationToken);
+                var ns = await _kube.GetAsync<V1Instance>(name, namespaceName, cancellationToken: cancellationToken);
                 entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
                 return ns;
             });
@@ -153,7 +169,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<V1alpha1Instance?> ResolveInstanceRefAsync(V1alpha1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
+        public async Task<V1Instance?> ResolveInstanceRefAsync(V1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
         {
             if (instanceRef is null)
                 return null;

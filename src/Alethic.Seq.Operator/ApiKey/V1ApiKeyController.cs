@@ -31,13 +31,13 @@ using Seq.Api.Model.Shared;
 namespace Alethic.Seq.Operator.ApiKey
 {
 
-    [EntityRbac(typeof(V1alpha1Instance), Verbs = RbacVerb.List | RbacVerb.Get)]
-    [EntityRbac(typeof(V1alpha1ApiKey), Verbs = RbacVerb.All)]
+    [EntityRbac(typeof(V1Instance), Verbs = RbacVerb.List | RbacVerb.Get)]
+    [EntityRbac(typeof(V1ApiKey), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(Eventsv1Event), Verbs = RbacVerb.All)]
-    public partial class V1alpha1ApiKeyController :
-        V1alpha1InstanceEntityController<V1alpha1ApiKey, V1alpha1ApiKeySpec, V1alpha1ApiKeyStatus, ApiKeyConf, ApiKeyInfo>,
-        IEntityController<V1alpha1ApiKey>
+    public partial class V1ApiKeyController :
+        V1InstanceEntityController<V1ApiKey, V1ApiKeySpec, V1ApiKeyStatus, ApiKeyConf, ApiKeyInfo>,
+        IEntityController<V1ApiKey>
     {
 
         static string? EmptyToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
@@ -53,7 +53,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1ApiKeyController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1ApiKeyController> logger) :
+        public V1ApiKeyController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1ApiKeyController> logger) :
             base(kube, cache, lookup, options, logger)
         {
 
@@ -66,26 +66,71 @@ namespace Alethic.Seq.Operator.ApiKey
         /// Returns <c>true</c> if this ApiKey is the deployment token which has automatic permissions. This token has all permissions always.
         /// </summary>
         /// <returns></returns>
-        bool IsDeploymentToken(V1alpha1Instance instance, V1alpha1ApiKey entity)
+        bool IsDeploymentToken(V1Instance instance, V1ApiKey entity)
         {
             // remote instance can never have an admin token
             if (instance.Spec.Remote is not null)
                 return false;
 
-            // match to expected admin entity name/namespace
-            var adminApiKeyNamespace = instance.Spec.Deployment?.TokenSecretRef?.NamespaceProperty ?? instance.Namespace();
-            var adminApiKeyName = instance.Name();
-            return entity.Namespace() == adminApiKeyNamespace && entity.Name() == adminApiKeyName;
+            // match to the ApiKey the Instance controller creates for itself, which is always in the Instance's namespace
+            return entity.Namespace() == instance.Namespace() && entity.Name() == instance.Name() + "-operator";
+        }
+
+        /// <summary>
+        /// Returns whether the given <see cref="InstanceApiKeyPermissions"/> allow an ApiKey to be assigned the specified
+        /// Seq permission, or <c>null</c> if they do not say.
+        /// </summary>
+        /// <param name="permissions"></param>
+        /// <param name="permission"></param>
+        /// <returns></returns>
+        internal static bool? IsPermissionGranted(InstanceApiKeyPermissions? permissions, ApiKeyPermission permission) => permission switch
+        {
+            ApiKeyPermission.Public => permissions?.SetPublic,
+            ApiKeyPermission.Ingest => permissions?.SetIngest,
+            ApiKeyPermission.Read => permissions?.SetRead,
+            ApiKeyPermission.Write => permissions?.SetWrite,
+            ApiKeyPermission.Project => permissions?.SetProject,
+            ApiKeyPermission.System => permissions?.SetSystem,
+            ApiKeyPermission.Organization => permissions?.SetOrganization,
+#pragma warning disable CS0618
+            // Setup was split into Project and System, so it requires both
+            ApiKeyPermission.Setup => permissions?.SetProject is true && permissions?.SetSystem is true,
+#pragma warning restore CS0618
+            _ => false,
+        };
+
+        /// <summary>
+        /// Returns whether a Seq permission may be assigned when the Instance's permissions do not say. Public and Ingest
+        /// only allow sending events, so they are allowed unless denied; anything that reads or changes Seq must be granted.
+        /// </summary>
+        /// <param name="permission"></param>
+        /// <returns></returns>
+        internal static bool IsPermissionGrantedByDefault(ApiKeyPermission permission) => permission is ApiKeyPermission.Public or ApiKeyPermission.Ingest;
+
+        /// <summary>
+        /// Returns the Seq permissions in <paramref name="permissions"/> that the Instance does not permit an ApiKey in the
+        /// specified namespace to assign.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="ns"></param>
+        /// <param name="permissions"></param>
+        /// <returns></returns>
+        internal static List<ApiKeyPermission> GetDeniedPermissions(V1Instance instance, V1Namespace ns, IEnumerable<ApiKeyPermission> permissions)
+        {
+            return permissions
+                .Distinct()
+                .Where(permission => instance.CheckPermission(ns, IsPermissionGrantedByDefault(permission), p => IsPermissionGranted(p.ApiKeys, permission)) == false)
+                .ToList();
         }
 
         /// <inheritdoc />
-        protected override async Task<bool> CanAttachFromAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, CancellationToken cancellationToken)
+        protected override async Task<bool> CanAttachFromAsync(V1Instance instance, V1ApiKey entity, CancellationToken cancellationToken)
         {
             return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(Lookup, entity, false, p => p.ApiKeys?.Attach, cancellationToken);
         }
 
         /// <inheritdoc />
-        protected override async Task<bool> CanCreateFromAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, CancellationToken cancellationToken)
+        protected override async Task<bool> CanCreateFromAsync(V1Instance instance, V1ApiKey entity, CancellationToken cancellationToken)
         {
             return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(Lookup, entity, false, p => p.ApiKeys?.Create, cancellationToken);
         }
@@ -96,7 +141,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="instance"></param>
         /// <param name="ns"></param>
         /// <returns></returns>
-        async Task<bool> CanSetTitleAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, CancellationToken cancellationToken)
+        async Task<bool> CanSetTitleAsync(V1Instance instance, V1ApiKey entity, CancellationToken cancellationToken)
         {
             return IsDeploymentToken(instance, entity) || await instance.CheckPermissionAsync(Lookup, entity, false, p => p.ApiKeys?.SetTitle, cancellationToken);
         }
@@ -110,7 +155,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<string?> FindByTitleAsync(V1alpha1ApiKey entity, SeqConnection api, string title, string defaultNamespace, CancellationToken cancellationToken)
+        async Task<string?> FindByTitleAsync(V1ApiKey entity, SeqConnection api, string title, string defaultNamespace, CancellationToken cancellationToken)
         {
             try
             {
@@ -133,7 +178,7 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <inheritdoc />
-        protected override async Task<string?> FindAsync(V1alpha1ApiKey entity, SeqConnection api, V1alpha1ApiKeySpec spec, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string?> FindAsync(V1ApiKey entity, SeqConnection api, V1ApiKeySpec spec, string defaultNamespace, CancellationToken cancellationToken)
         {
             // no manually specified title
             // this would result in an auto generated title, which we can search on safely
@@ -144,7 +189,7 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <inheritdoc />
-        protected override async Task<ApiKeyInfo?> GetAsync(V1alpha1ApiKey entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<ApiKeyInfo?> GetAsync(V1ApiKey entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
         {
             try
             {
@@ -157,7 +202,7 @@ namespace Alethic.Seq.Operator.ApiKey
         }
 
         /// <inheritdoc />
-        protected override async Task<string?> ValidateUpdateAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, ApiKeyConf? conf, CancellationToken cancellationToken)
+        protected override async Task<string?> ValidateUpdateAsync(V1Instance instance, V1ApiKey entity, ApiKeyConf? conf, CancellationToken cancellationToken)
         {
             var ns = await Lookup.ResolveNamespaceAsync(entity.Namespace(), cancellationToken);
             if (ns is null)
@@ -167,11 +212,16 @@ namespace Alethic.Seq.Operator.ApiKey
             if (setTitle == false && conf?.Title != null)
                 return "title cannot be set explicitly";
 
+            // refused outright rather than assigned partially, so the key in Seq is left as it was
+            if (conf?.Permissions is { Length: > 0 } permissions && IsDeploymentToken(instance, entity) == false)
+                if (GetDeniedPermissions(instance, ns, permissions) is { Count: > 0 } denied)
+                    return $"referenced Seq instance does not permit assigning {string.Join(", ", denied)} from this namespace";
+
             return null;
         }
 
         /// <inheritdoc />
-        protected override async Task<string> CreateAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, SeqConnection api, ApiKeyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string> CreateAsync(V1Instance instance, V1ApiKey entity, SeqConnection api, ApiKeyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             // create a new entity
             var create = new ApiKeyEntity();
@@ -180,7 +230,7 @@ namespace Alethic.Seq.Operator.ApiKey
             // entity specifies an existing secret, this may be a token source
             if (entity.Spec.SecretRef is not null)
             {
-                var secret = await Lookup.ResolveSecretRefAsync(entity.Spec.SecretRef, entity.Spec.SecretRef.NamespaceProperty ?? defaultNamespace, cancellationToken);
+                var secret = await Lookup.ResolveSecretRefAsync(entity.Spec.SecretRef, entity.Namespace(), cancellationToken);
                 if (secret is not null)
                     if (secret.Data.TryGetValue(SECRET_TOKEN_KEY_NAME, out var tokenBuf))
                         create.Token = Encoding.UTF8.GetString(tokenBuf);
@@ -189,22 +239,31 @@ namespace Alethic.Seq.Operator.ApiKey
             // submit the new key to the API
             var self = await api.ApiKeys.AddAsync(create, cancellationToken);
 
-            // update the secret with the endpoint and the token which may be from the server
-            await ApplySecretAsync(entity, api.Client.ServerUrl, EmptyToNull(self.Token) ?? EmptyToNull(create.Token), defaultNamespace, cancellationToken);
+            // update the secret with the endpoint and the token which may be from the server; Seq only returns the token
+            // now, so a key whose token could not be stored is useless and is removed rather than left to be duplicated
+            try
+            {
+                await ApplySecretAsync(entity, api.Client.ServerUrl, EmptyToNull(self.Token) ?? EmptyToNull(create.Token), defaultNamespace, cancellationToken);
+            }
+            catch (Exception e)
+            {
+                await DeleteOrphanAsync(instance, entity, api, self.Id, e, cancellationToken);
+                throw;
+            }
 
             // newly created ID
             return self.Id;
         }
 
         /// <inheritdoc />
-        protected override async Task UpdateAsync(V1alpha1Instance instance, V1alpha1ApiKey entity, SeqConnection api, string id, ApiKeyInfo? info, ApiKeyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task UpdateAsync(V1Instance instance, V1ApiKey entity, SeqConnection api, string id, ApiKeyInfo? info, ApiKeyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             await ApplySecretAsync(entity, api.Client.ServerUrl, null, defaultNamespace, cancellationToken);
             await api.ApiKeys.UpdateAsync(ApplyToApi(entity, await api.ApiKeys.FindAsync(id, cancellationToken), conf), cancellationToken);
         }
 
         /// <inheritdoc />
-        protected override async Task DeleteAsync(V1alpha1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken)
+        protected override async Task DeleteAsync(V1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken)
         {
             await api.ApiKeys.RemoveAsync(await api.ApiKeys.FindAsync(id, cancellationToken), cancellationToken);
         }
@@ -216,7 +275,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="apikey"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<T?> FindRelatedAsync<T>(V1alpha1ApiKey apikey, CancellationToken cancellationToken)
+        async Task<T?> FindRelatedAsync<T>(V1ApiKey apikey, CancellationToken cancellationToken)
             where T : k8s.IKubernetesObject<V1ObjectMeta>
         {
             var l = await Kube.ListAsync<T>(apikey.Namespace(), $"seq.k8s.datalust.co/apikey={apikey.Name()}", cancellationToken: cancellationToken);
@@ -231,7 +290,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task ApplySecretAsync(V1alpha1ApiKey entity, string? endpoint, string? token, string defaultNamespace, CancellationToken cancellationToken)
+        async Task ApplySecretAsync(V1ApiKey entity, string? endpoint, string? token, string defaultNamespace, CancellationToken cancellationToken)
         {
             var secretName = entity.Spec.SecretRef?.Name ?? entity.Name() + "-seq-apikey";
             var secretNamespace = entity.Spec.SecretRef?.NamespaceProperty ?? entity.Namespace();
@@ -242,7 +301,7 @@ namespace Alethic.Seq.Operator.ApiKey
             var secret = await FindRelatedAsync<V1Secret>(entity, cancellationToken);
 
             // we have an existing secret, owned by us
-            if (secret is not null && secret.IsOwnedBy(entity))
+            if (secret is not null && secret.IsOwnedByEntity(entity))
             {
                 // existing secret does not match our specification
                 if (secret.Name() != secretName || secret.Namespace() != secretNamespace)
@@ -270,9 +329,10 @@ namespace Alethic.Seq.Operator.ApiKey
             }
 
             // only apply actual values if we are the owner
-            if (secret.IsOwnedBy(entity))
+            if (secret.IsOwnedByEntity(entity))
             {
                 Logger.LogInformation("{EntityTypeName} {EntityNamespace}/{EntityName} referenced secret {SecretName}: updating.", EntityTypeName, entity.Namespace(), entity.Name(), secret.Name());
+                secret.RefreshOwnerReference(entity);
                 secret.StringData ??= new Dictionary<string, string>();
 
                 // ensure the endpoint exists, possible empty, if we're retrieving an existing ApiKey
@@ -393,7 +453,7 @@ namespace Alethic.Seq.Operator.ApiKey
         /// <param name="conf"></param>
         /// <param name="info"></param>
         /// <returns></returns>
-        ApiKeyEntity ApplyToApi(V1alpha1ApiKey entity, ApiKeyEntity target, ApiKeyConf? conf)
+        ApiKeyEntity ApplyToApi(V1ApiKey entity, ApiKeyEntity target, ApiKeyConf? conf)
         {
             var title = conf?.Title ?? "SeqOperatorApiKey_" + entity.Uid();
             if (title is not null)

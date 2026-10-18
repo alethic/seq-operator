@@ -17,16 +17,16 @@ namespace Alethic.Seq.Operator.Finalizers.Legacy
 
     /// <summary>
     /// Drains <c>seq.k8s.datalust.co/v1alpha1alertfinalizer</c>, the identifier written for
-    /// <see cref="V1alpha1Alert"/> while the finalizer class was named <c>V1alpha1AlertFinalizer</c>.
+    /// <see cref="V1Alert"/> while the finalizer class was named <c>V1alpha1AlertFinalizer</c>.
     /// </summary>
-    public class V1alpha1AlertFinalizer : EntityFinalizerBase<V1alpha1Alert>
+    public class V1alpha1AlertFinalizer : EntityFinalizerBase<V1Alert>
     {
 
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
         /// <param name="controller"></param>
-        public V1alpha1AlertFinalizer(IEntityController<V1alpha1Alert> controller) :
+        public V1alpha1AlertFinalizer(IEntityController<V1Alert> controller) :
             base(controller)
         {
 
@@ -36,16 +36,16 @@ namespace Alethic.Seq.Operator.Finalizers.Legacy
 
     /// <summary>
     /// Drains <c>seq.k8s.datalust.co/v1alpha1apikeyfinalizer</c>, the identifier written for
-    /// <see cref="V1alpha1ApiKey"/> while the finalizer class was named <c>V1alpha1ApiKeyFinalizer</c>.
+    /// <see cref="V1ApiKey"/> while the finalizer class was named <c>V1alpha1ApiKeyFinalizer</c>.
     /// </summary>
-    public class V1alpha1ApiKeyFinalizer : EntityFinalizerBase<V1alpha1ApiKey>
+    public class V1alpha1ApiKeyFinalizer : EntityFinalizerBase<V1ApiKey>
     {
 
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
         /// <param name="controller"></param>
-        public V1alpha1ApiKeyFinalizer(IEntityController<V1alpha1ApiKey> controller) :
+        public V1alpha1ApiKeyFinalizer(IEntityController<V1ApiKey> controller) :
             base(controller)
         {
 
@@ -55,16 +55,16 @@ namespace Alethic.Seq.Operator.Finalizers.Legacy
 
     /// <summary>
     /// Drains <c>seq.k8s.datalust.co/v1alpha1instancefinalizer</c>, the identifier written for
-    /// <see cref="V1alpha1Instance"/> while the finalizer class was named <c>V1alpha1InstanceFinalizer</c>.
+    /// <see cref="V1Instance"/> while the finalizer class was named <c>V1alpha1InstanceFinalizer</c>.
     /// </summary>
-    public class V1alpha1InstanceFinalizer : EntityFinalizerBase<V1alpha1Instance>
+    public class V1alpha1InstanceFinalizer : EntityFinalizerBase<V1Instance>
     {
 
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
         /// <param name="controller"></param>
-        public V1alpha1InstanceFinalizer(IEntityController<V1alpha1Instance> controller) :
+        public V1alpha1InstanceFinalizer(IEntityController<V1Instance> controller) :
             base(controller)
         {
 
@@ -74,16 +74,16 @@ namespace Alethic.Seq.Operator.Finalizers.Legacy
 
     /// <summary>
     /// Drains <c>seq.k8s.datalust.co/v1alpha1retentionpolicyfinalizer</c>, the identifier written for
-    /// <see cref="V1alpha1RetentionPolicy"/> while the finalizer class was named <c>V1alpha1RetentionPolicyFinalizer</c>.
+    /// <see cref="V1RetentionPolicy"/> while the finalizer class was named <c>V1alpha1RetentionPolicyFinalizer</c>.
     /// </summary>
-    public class V1alpha1RetentionPolicyFinalizer : EntityFinalizerBase<V1alpha1RetentionPolicy>
+    public class V1alpha1RetentionPolicyFinalizer : EntityFinalizerBase<V1RetentionPolicy>
     {
 
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
         /// <param name="controller"></param>
-        public V1alpha1RetentionPolicyFinalizer(IEntityController<V1alpha1RetentionPolicy> controller) :
+        public V1alpha1RetentionPolicyFinalizer(IEntityController<V1RetentionPolicy> controller) :
             base(controller)
         {
 
@@ -93,16 +93,16 @@ namespace Alethic.Seq.Operator.Finalizers.Legacy
 
     /// <summary>
     /// Drains <c>seq.k8s.datalust.co/v1alpha1signalfinalizer</c>, the identifier written for
-    /// <see cref="V1alpha1Signal"/> while the finalizer class was named <c>V1alpha1SignalFinalizer</c>.
+    /// <see cref="V1Signal"/> while the finalizer class was named <c>V1alpha1SignalFinalizer</c>.
     /// </summary>
-    public class V1alpha1SignalFinalizer : EntityFinalizerBase<V1alpha1Signal>
+    public class V1alpha1SignalFinalizer : EntityFinalizerBase<V1Signal>
     {
 
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
         /// <param name="controller"></param>
-        public V1alpha1SignalFinalizer(IEntityController<V1alpha1Signal> controller) :
+        public V1alpha1SignalFinalizer(IEntityController<V1Signal> controller) :
             base(controller)
         {
 

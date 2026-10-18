@@ -27,13 +27,13 @@ using Seq.Api.Model.Signals;
 namespace Alethic.Seq.Operator.Signals
 {
 
-    [EntityRbac(typeof(V1alpha1Instance), Verbs = RbacVerb.List | RbacVerb.Get)]
-    [EntityRbac(typeof(V1alpha1Signal), Verbs = RbacVerb.All)]
+    [EntityRbac(typeof(V1Instance), Verbs = RbacVerb.List | RbacVerb.Get)]
+    [EntityRbac(typeof(V1Signal), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(Eventsv1Event), Verbs = RbacVerb.All)]
-    public partial class V1alpha1SignalController :
-        V1alpha1InstanceEntityController<V1alpha1Signal, V1alpha1SignalSpec, V1alpha1SignalStatus, SignalConf, SignalInfo>,
-        IEntityController<V1alpha1Signal>
+    public partial class V1SignalController :
+        V1InstanceEntityController<V1Signal, V1SignalSpec, V1SignalStatus, SignalConf, SignalInfo>,
+        IEntityController<V1Signal>
     {
 
         /// <summary>
@@ -44,7 +44,7 @@ namespace Alethic.Seq.Operator.Signals
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1SignalController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1SignalController> logger) :
+        public V1SignalController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1SignalController> logger) :
             base(kube, cache, lookup, options, logger)
         {
 
@@ -54,19 +54,19 @@ namespace Alethic.Seq.Operator.Signals
         protected override string EntityTypeName => "Signal";
 
         /// <inheritdoc />
-        protected override Task<bool> CanAttachFromAsync(V1alpha1Instance instance, V1alpha1Signal entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.Signals?.Attach, cancellationToken);
+        protected override Task<bool> CanAttachFromAsync(V1Instance instance, V1Signal entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.Signals?.Attach, cancellationToken);
 
         /// <inheritdoc />
-        protected override Task<bool> CanCreateFromAsync(V1alpha1Instance instance, V1alpha1Signal entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.Signals?.Create, cancellationToken);
+        protected override Task<bool> CanCreateFromAsync(V1Instance instance, V1Signal entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.Signals?.Create, cancellationToken);
 
         /// <inheritdoc />
-        protected override async Task<string?> FindAsync(V1alpha1Signal entity, SeqConnection api, V1alpha1SignalSpec spec, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string?> FindAsync(V1Signal entity, SeqConnection api, V1SignalSpec spec, string defaultNamespace, CancellationToken cancellationToken)
         {
             return null;
         }
 
         /// <inheritdoc />
-        protected override async Task<SignalInfo?> GetAsync(V1alpha1Signal entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<SignalInfo?> GetAsync(V1Signal entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
         {
             try
             {
@@ -79,13 +79,13 @@ namespace Alethic.Seq.Operator.Signals
         }
 
         /// <inheritdoc />
-        protected override async Task<string?> ValidateUpdateAsync(V1alpha1Instance instance, V1alpha1Signal entity, SignalConf? conf, CancellationToken cancellationToken)
+        protected override async Task<string?> ValidateUpdateAsync(V1Instance instance, V1Signal entity, SignalConf? conf, CancellationToken cancellationToken)
         {
             return null;
         }
 
         /// <inheritdoc />
-        protected override async Task<string> CreateAsync(V1alpha1Instance instance, V1alpha1Signal entity, SeqConnection api, SignalConf? conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string> CreateAsync(V1Instance instance, V1Signal entity, SeqConnection api, SignalConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} creating Signal in Seq.", EntityTypeName);
 
@@ -99,7 +99,7 @@ namespace Alethic.Seq.Operator.Signals
         }
 
         /// <inheritdoc />
-        protected override async Task UpdateAsync(V1alpha1Instance instance, V1alpha1Signal entity, SeqConnection api, string id, SignalInfo? info, SignalConf? conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task UpdateAsync(V1Instance instance, V1Signal entity, SeqConnection api, string id, SignalInfo? info, SignalConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} updating Signal in Seq with id: {Id}", EntityTypeName, id);
 
@@ -111,7 +111,7 @@ namespace Alethic.Seq.Operator.Signals
         }
 
         /// <inheritdoc />
-        protected override async Task DeleteAsync(V1alpha1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken)
+        protected override async Task DeleteAsync(V1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} deleting Signal from Seq with ID: {Id} (reason: Kubernetes entity deleted)", EntityTypeName, id);
             await api.Signals.RemoveAsync(await api.Signals.FindAsync(id, cancellationToken), cancellationToken);

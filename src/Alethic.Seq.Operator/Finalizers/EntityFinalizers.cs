@@ -32,7 +32,7 @@ namespace Alethic.Seq.Operator.Finalizers
     /// without removing it when no finalizer is registered under that identifier, so an entity whose first finalizer
     /// belongs to a retired release can never finish deleting. The retired identifiers therefore stay registered --
     /// via the shim classes in <see cref="Legacy"/> -- so entities already carrying them drain, and
-    /// <see cref="V1alpha1Controller{TEntity, TSpec, TStatus, TConf, TInfo}"/> strips them from live entities so they
+    /// <see cref="V1Controller{TEntity, TSpec, TStatus, TConf, TInfo}"/> strips them from live entities so they
     /// are not carried forward. Current finalizer names are version-free and must not change again.
     /// </para>
     /// </remarks>
@@ -62,15 +62,15 @@ namespace Alethic.Seq.Operator.Finalizers
         /// </summary>
         static readonly Dictionary<Type, Registration> _registrations = new()
         {
-            [typeof(V1alpha1Alert)] = Register<AlertFinalizer>(
+            [typeof(V1Alert)] = Register<AlertFinalizer>(
                 Identifier<Legacy.V1alpha1AlertFinalizer>()),
-            [typeof(V1alpha1ApiKey)] = Register<ApiKeyFinalizer>(
+            [typeof(V1ApiKey)] = Register<ApiKeyFinalizer>(
                 Identifier<Legacy.V1alpha1ApiKeyFinalizer>()),
-            [typeof(V1alpha1Instance)] = Register<InstanceFinalizer>(
+            [typeof(V1Instance)] = Register<InstanceFinalizer>(
                 Identifier<Legacy.V1alpha1InstanceFinalizer>()),
-            [typeof(V1alpha1RetentionPolicy)] = Register<RetentionPolicyFinalizer>(
+            [typeof(V1RetentionPolicy)] = Register<RetentionPolicyFinalizer>(
                 Identifier<Legacy.V1alpha1RetentionPolicyFinalizer>()),
-            [typeof(V1alpha1Signal)] = Register<SignalFinalizer>(
+            [typeof(V1Signal)] = Register<SignalFinalizer>(
                 Identifier<Legacy.V1alpha1SignalFinalizer>()),
         };
 

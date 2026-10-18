@@ -1,7 +1,7 @@
 ﻿namespace Alethic.Seq.Operator
 {
 
-    public interface V1alpha1EntitySpec<TConf>
+    public interface V1EntitySpec<TConf>
         where TConf : class
     {
 

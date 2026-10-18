@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Alethic.Seq.Operator.Instance
 {
 
-    public class V1alpha1InstanceStatus : V1alpha1EntityStatus<InstanceInfo>
+    public class V1InstanceStatus : V1EntityStatus<InstanceInfo>
     {
 
         /// <summary>
@@ -17,7 +17,7 @@ namespace Alethic.Seq.Operator.Instance
         public InstanceInfo? Info { get; set; }
 
         [JsonPropertyName("conditions")]
-        public IList<V1alpha1Condition> Conditions { get; set; } = new List<V1alpha1Condition>();
+        public IList<V1EntityCondition> Conditions { get; set; } = new List<V1EntityCondition>();
 
     }
 

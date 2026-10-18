@@ -3,7 +3,7 @@
 namespace Alethic.Seq.Operator.Instance
 {
 
-    public partial class V1alpha1InstanceSpec : V1alpha1EntitySpec<InstanceConf>
+    public partial class V1InstanceSpec : V1EntitySpec<InstanceConf>
     {
 
         /// <summary>

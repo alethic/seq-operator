@@ -63,6 +63,28 @@
                             metadataMapping.Children[new YamlScalarNode("labels")] = new YamlScalarNode(@"{{- include ""crd.labels"" . | nindent 4 }}") { Style = ScalarStyle.ForcePlain };
                             metadataMapping.Children[new YamlScalarNode("annotations")] = new YamlScalarNode(@"{{- include ""crd.annotations"" . | nindent 4 }}") { Style = ScalarStyle.ForcePlain };
                         }
+
+                        // every version other than the storage version is still served for existing clients but
+                        // deprecated, so the API server warns whoever uses it; KubeOps has no attribute for this
+                        if (rootMapping.Children.TryGetValue(new YamlScalarNode("spec"), out var spec) && spec is YamlMappingNode specMapping &&
+                            specMapping.Children.TryGetValue(new YamlScalarNode("versions"), out var versions) && versions is YamlSequenceNode versionsSequence)
+                        {
+                            var group = specMapping.Children.TryGetValue(new YamlScalarNode("group"), out var g) ? g.ToString() : "";
+                            var kind = specMapping.Children.TryGetValue(new YamlScalarNode("names"), out var n) && n is YamlMappingNode nm && nm.Children.TryGetValue(new YamlScalarNode("kind"), out var k) ? k.ToString() : "";
+                            var storage = "";
+                            foreach (var v in versionsSequence.Children)
+                                if (v is YamlMappingNode vm && vm.Children.TryGetValue(new YamlScalarNode("storage"), out var s) && s.ToString() == "true")
+                                    storage = vm.Children[new YamlScalarNode("name")].ToString();
+
+                            foreach (var v in versionsSequence.Children)
+                            {
+                                if (v is YamlMappingNode vm && vm.Children[new YamlScalarNode("name")].ToString() is var name && name != storage)
+                                {
+                                    vm.Children[new YamlScalarNode("deprecated")] = new YamlScalarNode("true") { Style = ScalarStyle.Plain };
+                                    vm.Children[new YamlScalarNode("deprecationWarning")] = new YamlScalarNode($"{group}/{name} {kind} is deprecated; use {group}/{storage} {kind}") { Style = ScalarStyle.DoubleQuoted };
+                                }
+                            }
+                        }
                     }
                 }
 
