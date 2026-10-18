@@ -72,10 +72,55 @@ namespace Alethic.Seq.Operator.ApiKey
             if (instance.Spec.Remote is not null)
                 return false;
 
-            // match to expected admin entity name/namespace
-            var adminApiKeyNamespace = instance.Spec.Deployment?.TokenSecretRef?.NamespaceProperty ?? instance.Namespace();
-            var adminApiKeyName = instance.Name();
-            return entity.Namespace() == adminApiKeyNamespace && entity.Name() == adminApiKeyName;
+            // match to the ApiKey the Instance controller creates for itself, which is always in the Instance's namespace
+            return entity.Namespace() == instance.Namespace() && entity.Name() == instance.Name() + "-operator";
+        }
+
+        /// <summary>
+        /// Returns whether the given <see cref="InstanceApiKeyPermissions"/> allow an ApiKey to be assigned the specified
+        /// Seq permission, or <c>null</c> if they do not say.
+        /// </summary>
+        /// <param name="permissions"></param>
+        /// <param name="permission"></param>
+        /// <returns></returns>
+        internal static bool? IsPermissionGranted(InstanceApiKeyPermissions? permissions, ApiKeyPermission permission) => permission switch
+        {
+            ApiKeyPermission.Public => permissions?.SetPublic,
+            ApiKeyPermission.Ingest => permissions?.SetIngest,
+            ApiKeyPermission.Read => permissions?.SetRead,
+            ApiKeyPermission.Write => permissions?.SetWrite,
+            ApiKeyPermission.Project => permissions?.SetProject,
+            ApiKeyPermission.System => permissions?.SetSystem,
+            ApiKeyPermission.Organization => permissions?.SetOrganization,
+#pragma warning disable CS0618
+            // Setup was split into Project and System, so it requires both
+            ApiKeyPermission.Setup => permissions?.SetProject is true && permissions?.SetSystem is true,
+#pragma warning restore CS0618
+            _ => false,
+        };
+
+        /// <summary>
+        /// Returns whether a Seq permission may be assigned when the Instance's permissions do not say. Public and Ingest
+        /// only allow sending events, so they are allowed unless denied; anything that reads or changes Seq must be granted.
+        /// </summary>
+        /// <param name="permission"></param>
+        /// <returns></returns>
+        internal static bool IsPermissionGrantedByDefault(ApiKeyPermission permission) => permission is ApiKeyPermission.Public or ApiKeyPermission.Ingest;
+
+        /// <summary>
+        /// Returns the Seq permissions in <paramref name="permissions"/> that the Instance does not permit an ApiKey in the
+        /// specified namespace to assign.
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="ns"></param>
+        /// <param name="permissions"></param>
+        /// <returns></returns>
+        internal static List<ApiKeyPermission> GetDeniedPermissions(V1alpha1Instance instance, V1Namespace ns, IEnumerable<ApiKeyPermission> permissions)
+        {
+            return permissions
+                .Distinct()
+                .Where(permission => instance.CheckPermission(ns, IsPermissionGrantedByDefault(permission), p => IsPermissionGranted(p.ApiKeys, permission)) == false)
+                .ToList();
         }
 
         /// <inheritdoc />
@@ -166,6 +211,11 @@ namespace Alethic.Seq.Operator.ApiKey
             var setTitle = await CanSetTitleAsync(instance, entity, cancellationToken);
             if (setTitle == false && conf?.Title != null)
                 return "title cannot be set explicitly";
+
+            // refused outright rather than assigned partially, so the key in Seq is left as it was
+            if (conf?.Permissions is { Length: > 0 } permissions && IsDeploymentToken(instance, entity) == false)
+                if (GetDeniedPermissions(instance, ns, permissions) is { Count: > 0 } denied)
+                    return $"referenced Seq instance does not permit assigning {string.Join(", ", denied)} from this namespace";
 
             return null;
         }

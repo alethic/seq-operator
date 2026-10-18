@@ -287,27 +287,65 @@ spec:
 
 By default an Instance only accepts ApiKeys, RetentionPolicies and Alerts from its own namespace. Signals are not
 in the defaults: an Instance accepts them only with an explicit `signals` permission. To change any of this, set
-`spec.permissions`. This lets any namespace labelled `seq-access: "true"` create and attach
-ingest-only API keys:
+`spec.permissions`.
+
+`spec.permissions` is a list of entries. For each resource, the first entry whose `namespaces` matches the
+resource's namespace decides what it may do. `from` is one of `Same` (the default), `All`, `Selector` or `None`.
+Setting `spec.permissions` replaces the defaults entirely.
+
+Each entry takes `apiKeys`, `alerts`, `signals` and `retentionPolicies`, each with `create` (create new objects in
+Seq) and `attach` (adopt existing ones). `apiKeys` also controls what a key may be:
+
+| flag | controls | when not set |
+| --- | --- | --- |
+| `setTitle` | setting `conf.title` | denied |
+| `setIngest` | assigning `Ingest` | **allowed** |
+| `setPublic` | assigning `Public` | **allowed** |
+| `setRead` | assigning `Read` | denied |
+| `setWrite` | assigning `Write` | denied |
+| `setProject` | assigning `Project` | denied |
+| `setSystem` | assigning `System` | denied |
+| `setOrganization` | assigning `Organization` | denied |
+
+`Ingest` and `Public` only let a key send events, so they're allowed unless an entry sets the flag to `false`.
+Everything that reads or changes Seq has to be granted. An ApiKey asking for a permission it isn't allowed is
+refused as a whole, with the reason in its status, rather than created with fewer permissions. If the key already
+exists in Seq, it's left as it was.
+
+This lets any namespace create ingest-only keys, while namespaces labelled `seq-access: read` may also create keys
+that read:
 
 ```yaml
 spec:
   permissions:
   - namespaces:
+      from: Same
+    apiKeys:
+      create: true
+      setTitle: true
+      setRead: true
+      setWrite: true
+      setProject: true
+      setSystem: true
+      setOrganization: true
+  - namespaces:
       from: Selector
       selector:
         matchLabels:
-          seq-access: "true"
+          seq-access: read
     apiKeys:
       create: true
-      attach: true
       setTitle: true
-      setIngest: true
+      setRead: true
+  - namespaces:
+      from: All
+    apiKeys:
+      create: true
+      setTitle: true
 ```
 
-`from` is one of `Same` (the default), `All`, `Selector` or `None`. Each permission entry also takes `alerts`,
-`signals` and `retentionPolicies`, with the same `create` and `attach` flags. Setting `spec.permissions` replaces
-the defaults entirely.
+The first entry keeps the Instance's own namespace fully privileged. Without it, listing other namespaces would
+take that away.
 
 ### Deletion
 
@@ -316,6 +354,16 @@ object in Seq, provided the operator can still reach the Instance. If it can't, 
 `Terminating` until the Instance is reachable again or the finalizer is removed by hand.
 
 ## Upgrading
+
+### ApiKey permission flags are enforced
+
+Earlier versions accepted the `apiKeys.set*` flags but never checked them, so any namespace allowed to create
+ApiKeys could assign any Seq permission. They're now enforced as described in
+[Which namespaces may use an Instance](#which-namespaces-may-use-an-instance).
+
+Before upgrading, find ApiKeys that ask for more than `Ingest` or `Public` from outside their Instance's namespace,
+and grant what they need in the Instance's `spec.permissions`. Otherwise they will be refused from then on. Their
+keys in Seq keep working; they just stop being updated. Instances without `spec.permissions` are unaffected.
 
 ### Adopting the CustomResourceDefinitions (one time)
 
