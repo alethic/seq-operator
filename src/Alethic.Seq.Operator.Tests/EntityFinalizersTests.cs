@@ -43,11 +43,11 @@ namespace Alethic.Seq.Operator.Tests
         /// </summary>
         static IEnumerable<(Type Entity, string Identifier)> CurrentIdentifiers()
         {
-            yield return (typeof(V1alpha1Alert), "seq.k8s.datalust.co/alertfinalizer");
-            yield return (typeof(V1alpha1ApiKey), "seq.k8s.datalust.co/apikeyfinalizer");
-            yield return (typeof(V1alpha1Instance), "seq.k8s.datalust.co/instancefinalizer");
-            yield return (typeof(V1alpha1RetentionPolicy), "seq.k8s.datalust.co/retentionpolicyfinalizer");
-            yield return (typeof(V1alpha1Signal), "seq.k8s.datalust.co/signalfinalizer");
+            yield return (typeof(V1Alert), "seq.k8s.datalust.co/alertfinalizer");
+            yield return (typeof(V1ApiKey), "seq.k8s.datalust.co/apikeyfinalizer");
+            yield return (typeof(V1Instance), "seq.k8s.datalust.co/instancefinalizer");
+            yield return (typeof(V1RetentionPolicy), "seq.k8s.datalust.co/retentionpolicyfinalizer");
+            yield return (typeof(V1Signal), "seq.k8s.datalust.co/signalfinalizer");
         }
 
         /// <summary>
@@ -56,11 +56,11 @@ namespace Alethic.Seq.Operator.Tests
         /// </summary>
         static IEnumerable<(Type Entity, string Identifier)> RetiredIdentifiers()
         {
-            yield return (typeof(V1alpha1Alert), "seq.k8s.datalust.co/v1alpha1alertfinalizer");
-            yield return (typeof(V1alpha1ApiKey), "seq.k8s.datalust.co/v1alpha1apikeyfinalizer");
-            yield return (typeof(V1alpha1Instance), "seq.k8s.datalust.co/v1alpha1instancefinalizer");
-            yield return (typeof(V1alpha1RetentionPolicy), "seq.k8s.datalust.co/v1alpha1retentionpolicyfinalizer");
-            yield return (typeof(V1alpha1Signal), "seq.k8s.datalust.co/v1alpha1signalfinalizer");
+            yield return (typeof(V1Alert), "seq.k8s.datalust.co/v1alpha1alertfinalizer");
+            yield return (typeof(V1ApiKey), "seq.k8s.datalust.co/v1alpha1apikeyfinalizer");
+            yield return (typeof(V1Instance), "seq.k8s.datalust.co/v1alpha1instancefinalizer");
+            yield return (typeof(V1RetentionPolicy), "seq.k8s.datalust.co/v1alpha1retentionpolicyfinalizer");
+            yield return (typeof(V1Signal), "seq.k8s.datalust.co/v1alpha1signalfinalizer");
         }
 
         /// <summary>

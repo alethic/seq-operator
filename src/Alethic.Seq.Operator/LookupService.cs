@@ -152,11 +152,11 @@ namespace Alethic.Seq.Operator
         /// <param name="namespaceName"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<V1alpha1Instance?> ResolveInstanceAsync(string name, string namespaceName, CancellationToken cancellationToken)
+        public async Task<V1Instance?> ResolveInstanceAsync(string name, string namespaceName, CancellationToken cancellationToken)
         {
             return await _cache.GetOrCreateAsync((typeof(LookupService), nameof(ResolveInstanceAsync), name, namespaceName), async entry =>
             {
-                var ns = await _kube.GetAsync<V1alpha1Instance>(name, namespaceName, cancellationToken: cancellationToken);
+                var ns = await _kube.GetAsync<V1Instance>(name, namespaceName, cancellationToken: cancellationToken);
                 entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
                 return ns;
             });
@@ -169,7 +169,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<V1alpha1Instance?> ResolveInstanceRefAsync(V1alpha1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
+        public async Task<V1Instance?> ResolveInstanceRefAsync(V1InstanceReference? instanceRef, string defaultNamespace, CancellationToken cancellationToken)
         {
             if (instanceRef is null)
                 return null;

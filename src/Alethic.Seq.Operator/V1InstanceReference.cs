@@ -5,7 +5,7 @@ using KubeOps.Abstractions.Entities.Attributes;
 namespace Alethic.Seq.Operator
 {
 
-    public class V1alpha1InstanceReference
+    public class V1InstanceReference
     {
 
         [JsonPropertyName("namespace")]

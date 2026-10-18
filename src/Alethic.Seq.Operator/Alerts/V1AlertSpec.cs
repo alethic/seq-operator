@@ -5,12 +5,12 @@ using KubeOps.Abstractions.Entities.Attributes;
 namespace Alethic.Seq.Operator.Alerts
 {
 
-    public class V1alpha1AlertSpec : V1alpha1InstanceEntitySpec<AlertConf>
+    public class V1AlertSpec : V1InstanceEntitySpec<AlertConf>
     {
 
         [JsonPropertyName("instanceRef")]
         [Required]
-        public V1alpha1InstanceReference? InstanceRef { get; set; }
+        public V1InstanceReference? InstanceRef { get; set; }
 
         [JsonPropertyName("conf")]
         [Required]

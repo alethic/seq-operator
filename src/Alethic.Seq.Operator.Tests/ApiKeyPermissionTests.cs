@@ -28,10 +28,10 @@ namespace Alethic.Seq.Operator.Tests
             ApiKeyPermission.Organization,
         ];
 
-        static V1alpha1Instance Instance(params InstancePermission[]? permissions) => new()
+        static V1Instance Instance(params InstancePermission[]? permissions) => new()
         {
             Metadata = new V1ObjectMeta() { NamespaceProperty = "seq", Name = "seq" },
-            Spec = new V1alpha1InstanceSpec() { Permissions = permissions },
+            Spec = new V1InstanceSpec() { Permissions = permissions },
         };
 
         static V1Namespace Namespace(string name, IDictionary<string, string>? labels = null) => new()
@@ -45,8 +45,8 @@ namespace Alethic.Seq.Operator.Tests
             ApiKeys = apiKeys,
         };
 
-        static List<ApiKeyPermission> Denied(V1alpha1Instance instance, string ns, params ApiKeyPermission[] permissions) =>
-            V1alpha1ApiKeyController.GetDeniedPermissions(instance, Namespace(ns), permissions);
+        static List<ApiKeyPermission> Denied(V1Instance instance, string ns, params ApiKeyPermission[] permissions) =>
+            V1ApiKeyController.GetDeniedPermissions(instance, Namespace(ns), permissions);
 
         [TestMethod]
         public void IngestAndPublicAreAllowedWhenNotMentioned()
@@ -109,7 +109,7 @@ namespace Alethic.Seq.Operator.Tests
                 ApiKeys = new InstanceApiKeyPermissions() { Create = true, SetRead = true },
             });
 
-            var labelled = V1alpha1ApiKeyController.GetDeniedPermissions(instance, Namespace("ops", new Dictionary<string, string>() { ["seq-read"] = "true" }), [ApiKeyPermission.Read]);
+            var labelled = V1ApiKeyController.GetDeniedPermissions(instance, Namespace("ops", new Dictionary<string, string>() { ["seq-read"] = "true" }), [ApiKeyPermission.Read]);
             CollectionAssert.AreEqual(Array.Empty<ApiKeyPermission>(), labelled);
             CollectionAssert.AreEqual(new[] { ApiKeyPermission.Read }, Denied(instance, "app", ApiKeyPermission.Read));
         }
@@ -135,8 +135,8 @@ namespace Alethic.Seq.Operator.Tests
         [TestMethod]
         public void SetupRequiresProjectAndSystem()
         {
-            Assert.IsFalse(V1alpha1ApiKeyController.IsPermissionGranted(new InstanceApiKeyPermissions() { SetProject = true }, ApiKeyPermission.Setup));
-            Assert.IsTrue(V1alpha1ApiKeyController.IsPermissionGranted(new InstanceApiKeyPermissions() { SetProject = true, SetSystem = true }, ApiKeyPermission.Setup));
+            Assert.IsFalse(V1ApiKeyController.IsPermissionGranted(new InstanceApiKeyPermissions() { SetProject = true }, ApiKeyPermission.Setup));
+            Assert.IsTrue(V1ApiKeyController.IsPermissionGranted(new InstanceApiKeyPermissions() { SetProject = true, SetSystem = true }, ApiKeyPermission.Setup));
         }
 #pragma warning restore CS0618
 

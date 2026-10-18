@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Alethic.Seq.Operator.RetentionPolicy
 {
 
-    public class V1alpha1RetentionPolicyStatus : V1alpha1InstanceEntityStatus<RetentionPolicyInfo>
+    public class V1RetentionPolicyStatus : V1InstanceEntityStatus<RetentionPolicyInfo>
     {
 
         [JsonPropertyName("id")]
@@ -14,7 +14,7 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         public RetentionPolicyInfo? Info { get; set; }
 
         [JsonPropertyName("conditions")]
-        public IList<V1alpha1Condition> Conditions { get; set; } = new List<V1alpha1Condition>();
+        public IList<V1EntityCondition> Conditions { get; set; } = new List<V1EntityCondition>();
 
     }
 

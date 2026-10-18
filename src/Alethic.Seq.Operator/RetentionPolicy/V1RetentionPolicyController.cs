@@ -23,13 +23,13 @@ using Seq.Api.Model.Retention;
 namespace Alethic.Seq.Operator.RetentionPolicy
 {
 
-    [EntityRbac(typeof(V1alpha1Instance), Verbs = RbacVerb.List | RbacVerb.Get)]
-    [EntityRbac(typeof(V1alpha1RetentionPolicy), Verbs = RbacVerb.All)]
+    [EntityRbac(typeof(V1Instance), Verbs = RbacVerb.List | RbacVerb.Get)]
+    [EntityRbac(typeof(V1RetentionPolicy), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(Eventsv1Event), Verbs = RbacVerb.All)]
-    public partial class V1alpha1RetentionPolicyController :
-        V1alpha1InstanceEntityController<V1alpha1RetentionPolicy, V1alpha1RetentionPolicySpec, V1alpha1RetentionPolicyStatus, RetentionPolicyConf, RetentionPolicyInfo>,
-        IEntityController<V1alpha1RetentionPolicy>
+    public partial class V1RetentionPolicyController :
+        V1InstanceEntityController<V1RetentionPolicy, V1RetentionPolicySpec, V1RetentionPolicyStatus, RetentionPolicyConf, RetentionPolicyInfo>,
+        IEntityController<V1RetentionPolicy>
     {
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         /// <param name="cache"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1RetentionPolicyController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1RetentionPolicyController> logger) :
+        public V1RetentionPolicyController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1RetentionPolicyController> logger) :
             base(kube, cache, lookup, options, logger)
         {
 
@@ -49,13 +49,13 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         protected override string EntityTypeName => "RetentionPolicy";
 
         /// <inheritdoc />
-        protected override Task<bool> CanAttachFromAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.RetentionPolicies?.Attach, cancellationToken);
+        protected override Task<bool> CanAttachFromAsync(V1Instance instance, V1RetentionPolicy entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.RetentionPolicies?.Attach, cancellationToken);
 
         /// <inheritdoc />
-        protected override Task<bool> CanCreateFromAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.RetentionPolicies?.Create, cancellationToken);
+        protected override Task<bool> CanCreateFromAsync(V1Instance instance, V1RetentionPolicy entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.RetentionPolicies?.Create, cancellationToken);
 
         /// <inheritdoc />
-        protected override async Task<RetentionPolicyInfo?> GetAsync(V1alpha1RetentionPolicy entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<RetentionPolicyInfo?> GetAsync(V1RetentionPolicy entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
         {
             try
             {
@@ -68,13 +68,13 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         }
 
         /// <inheritdoc />
-        protected override async Task<string?> ValidateUpdateAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, RetentionPolicyConf? conf, CancellationToken cancellationToken)
+        protected override async Task<string?> ValidateUpdateAsync(V1Instance instance, V1RetentionPolicy entity, RetentionPolicyConf? conf, CancellationToken cancellationToken)
         {
             return null;
         }
 
         /// <inheritdoc />
-        protected override async Task<string> CreateAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, SeqConnection api, RetentionPolicyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string> CreateAsync(V1Instance instance, V1RetentionPolicy entity, SeqConnection api, RetentionPolicyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} creating RetentionPolicy in Seq.", EntityTypeName);
             var self = await api.RetentionPolicies.AddAsync(ApplyToApi(new RetentionPolicyEntity(), conf, null), cancellationToken);
@@ -83,7 +83,7 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         }
 
         /// <inheritdoc />
-        protected override async Task UpdateAsync(V1alpha1Instance instance, V1alpha1RetentionPolicy entity, SeqConnection api, string id, RetentionPolicyInfo? info, RetentionPolicyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task UpdateAsync(V1Instance instance, V1RetentionPolicy entity, SeqConnection api, string id, RetentionPolicyInfo? info, RetentionPolicyConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} updating RetentionPolicy in Seq with id: {Id}", EntityTypeName, id);
             await api.RetentionPolicies.UpdateAsync(ApplyToApi(await api.RetentionPolicies.FindAsync(id, cancellationToken), conf, info), cancellationToken);
@@ -91,7 +91,7 @@ namespace Alethic.Seq.Operator.RetentionPolicy
         }
 
         /// <inheritdoc />
-        protected override async Task DeleteAsync(V1alpha1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken)
+        protected override async Task DeleteAsync(V1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} deleting RetentionPolicy from Seq with ID: {Id} (reason: Kubernetes entity deleted)", EntityTypeName, id);
             await api.RetentionPolicies.RemoveAsync(await api.RetentionPolicies.FindAsync(id, cancellationToken), cancellationToken);

@@ -6,7 +6,7 @@ using k8s.Models;
 namespace Alethic.Seq.Operator.ApiKey
 {
 
-    public class V1alpha1ApiKeyStatus : V1alpha1InstanceEntityStatus<ApiKeyInfo>
+    public class V1ApiKeyStatus : V1InstanceEntityStatus<ApiKeyInfo>
     {
 
         [JsonPropertyName("id")]
@@ -19,7 +19,7 @@ namespace Alethic.Seq.Operator.ApiKey
         public ApiKeyInfo? Info { get; set; }
 
         [JsonPropertyName("conditions")]
-        public IList<V1alpha1Condition> Conditions { get; set; } = new List<V1alpha1Condition>();
+        public IList<V1EntityCondition> Conditions { get; set; } = new List<V1EntityCondition>();
 
     }
 

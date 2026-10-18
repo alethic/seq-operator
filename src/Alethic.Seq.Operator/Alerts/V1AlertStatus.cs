@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Alethic.Seq.Operator.Alerts
 {
 
-    public class V1alpha1AlertStatus : V1alpha1InstanceEntityStatus<AlertInfo>
+    public class V1AlertStatus : V1InstanceEntityStatus<AlertInfo>
     {
 
         [JsonPropertyName("id")]
@@ -14,7 +14,7 @@ namespace Alethic.Seq.Operator.Alerts
         public AlertInfo? Info { get; set; }
 
         [JsonPropertyName("conditions")]
-        public IList<V1alpha1Condition> Conditions { get; set; } = new List<V1alpha1Condition>();
+        public IList<V1EntityCondition> Conditions { get; set; } = new List<V1EntityCondition>();
 
     }
 

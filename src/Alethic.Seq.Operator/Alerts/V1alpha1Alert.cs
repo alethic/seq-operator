@@ -6,12 +6,20 @@ using KubeOps.Abstractions.Entities.Attributes;
 namespace Alethic.Seq.Operator.Alerts
 {
 
+    /// <summary>
+    /// The deprecated <c>v1alpha1</c> version of <see cref="V1Alert"/>. It shares the spec and status types, so the two
+    /// schemas are identical and the API server converts between them by relabelling <c>apiVersion</c> alone; no
+    /// conversion webhook is needed. Exists only so the CustomResourceDefinition keeps serving <c>v1alpha1</c> to
+    /// existing clients: the operator works with <see cref="V1Alert"/>, which is also the storage version.
+    /// </summary>
+    /// <remarks>
+    /// Never give this type properties or attributes that change its schema. A schema that differs from v1 would
+    /// need a conversion webhook, and objects written through one version would lose fields when read through the other.
+    /// </remarks>
     [EntityScope(EntityScope.Namespaced)]
     [KubernetesEntity(Group = "seq.k8s.datalust.co", ApiVersion = "v1alpha1", Kind = "Alert")]
     [KubernetesEntityShortNames("seqalert")]
-    public partial class V1alpha1Alert :
-        CustomKubernetesEntity<V1alpha1AlertSpec, V1alpha1AlertStatus>,
-        V1alpha1InstanceEntity<V1alpha1AlertSpec, V1alpha1AlertStatus, AlertConf, AlertInfo>
+    public class V1alpha1Alert : CustomKubernetesEntity<V1AlertSpec, V1AlertStatus>
     {
 
     }

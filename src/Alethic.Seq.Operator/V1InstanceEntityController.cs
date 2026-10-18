@@ -20,11 +20,11 @@ using Seq.Api;
 namespace Alethic.Seq.Operator
 {
 
-    public abstract class V1alpha1InstanceEntityController<TEntity, TSpec, TStatus, TConf, TInfo> :
-        V1alpha1Controller<TEntity, TSpec, TStatus, TConf, TInfo>
-        where TEntity : IKubernetesObject<V1ObjectMeta>, V1alpha1InstanceEntity<TSpec, TStatus, TConf, TInfo>
-        where TSpec : V1alpha1InstanceEntitySpec<TConf>
-        where TStatus : V1alpha1InstanceEntityStatus<TInfo>
+    public abstract class V1InstanceEntityController<TEntity, TSpec, TStatus, TConf, TInfo> :
+        V1Controller<TEntity, TSpec, TStatus, TConf, TInfo>
+        where TEntity : IKubernetesObject<V1ObjectMeta>, V1InstanceEntity<TSpec, TStatus, TConf, TInfo>
+        where TSpec : V1InstanceEntitySpec<TConf>
+        where TStatus : V1InstanceEntityStatus<TInfo>
         where TConf : class
         where TInfo : class
     {
@@ -37,7 +37,7 @@ namespace Alethic.Seq.Operator
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1InstanceEntityController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
+        public V1InstanceEntityController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
             base(kube, cache, lookup, options, logger)
         {
 
@@ -49,7 +49,7 @@ namespace Alethic.Seq.Operator
         /// <param name="instance"></param>
         /// <param name="entity"></param>
         /// <returns></returns>
-        protected abstract Task<bool> CanAttachFromAsync(V1alpha1Instance instance, TEntity entity, CancellationToken cancellationToken);
+        protected abstract Task<bool> CanAttachFromAsync(V1Instance instance, TEntity entity, CancellationToken cancellationToken);
 
         /// <summary>
         /// Returns <c>true</c> if the given entity can create new Seq objects in the given instance.
@@ -57,7 +57,7 @@ namespace Alethic.Seq.Operator
         /// <param name="instance"></param>
         /// <param name="entity"></param>
         /// <returns></returns>
-        protected abstract Task<bool> CanCreateFromAsync(V1alpha1Instance instance, TEntity entity, CancellationToken cancellationToken);
+        protected abstract Task<bool> CanCreateFromAsync(V1Instance instance, TEntity entity, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the <typeparamref name="TInfo"/> for the entity with the given <paramref name="id"/> or returns <c>null</c>.
@@ -91,7 +91,7 @@ namespace Alethic.Seq.Operator
         /// <param name="entity"></param>
         /// <param name="conf"></param>
         /// <returns></returns>
-        protected virtual async Task<string?> ValidateCreateAsync(V1alpha1Instance instance, TEntity entity, TConf? conf, CancellationToken cancellationToken)
+        protected virtual async Task<string?> ValidateCreateAsync(V1Instance instance, TEntity entity, TConf? conf, CancellationToken cancellationToken)
         {
             return await ValidateUpdateAsync(instance, entity, conf, cancellationToken);
         }
@@ -103,7 +103,7 @@ namespace Alethic.Seq.Operator
         /// <param name="entity"></param>
         /// <param name="conf"></param>
         /// <returns></returns>
-        protected abstract Task<string?> ValidateUpdateAsync(V1alpha1Instance instance, TEntity entity, TConf? conf, CancellationToken cancellationToken);
+        protected abstract Task<string?> ValidateUpdateAsync(V1Instance instance, TEntity entity, TConf? conf, CancellationToken cancellationToken);
 
         /// <summary>
         /// Attempts to perform a creation through the API. If successful returns the new ID value.
@@ -115,7 +115,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task<string> CreateAsync(V1alpha1Instance instance, TEntity entity, SeqConnection api, TConf? conf, string defaultNamespace, CancellationToken cancellationToken);
+        protected abstract Task<string> CreateAsync(V1Instance instance, TEntity entity, SeqConnection api, TConf? conf, string defaultNamespace, CancellationToken cancellationToken);
 
         /// <summary>
         /// Attempts to perform an update through the API.
@@ -129,7 +129,7 @@ namespace Alethic.Seq.Operator
         /// <param name="defaultNamespace"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task UpdateAsync(V1alpha1Instance instance, TEntity entity, SeqConnection api, string id, TInfo? info, TConf? conf, string defaultNamespace, CancellationToken cancellationToken);
+        protected abstract Task UpdateAsync(V1Instance instance, TEntity entity, SeqConnection api, string id, TInfo? info, TConf? conf, string defaultNamespace, CancellationToken cancellationToken);
 
         /// <summary>
         /// Removes an object just created in Seq whose ID could not be recorded, so that the retry does not leave it
@@ -142,7 +142,7 @@ namespace Alethic.Seq.Operator
         /// <param name="cause"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected async Task DeleteOrphanAsync(V1alpha1Instance instance, TEntity entity, SeqConnection api, string id, Exception cause, CancellationToken cancellationToken)
+        protected async Task DeleteOrphanAsync(V1Instance instance, TEntity entity, SeqConnection api, string id, Exception cause, CancellationToken cancellationToken)
         {
             Logger.LogWarning(cause, "{EntityTypeName} {Namespace}/{Name} created {Id} in Seq but could not record it; removing it so the retry does not create a duplicate.", EntityTypeName, entity.Namespace(), entity.Name(), id);
 
@@ -278,7 +278,7 @@ namespace Alethic.Seq.Operator
         /// <param name="id"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected abstract Task DeleteAsync(V1alpha1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken);
+        protected abstract Task DeleteAsync(V1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken);
 
         /// <inheritdoc />
         public override sealed async Task<ReconciliationResult<TEntity>> DeletedAsync(TEntity entity, CancellationToken cancellationToken)
@@ -301,7 +301,7 @@ namespace Alethic.Seq.Operator
                 }
 
                 // read past the lookup cache: a cached Instance may already be gone, or not yet show it is being deleted
-                var instance = await Kube.GetAsync<V1alpha1Instance>(instanceName, instanceRef.Namespace ?? entity.Namespace(), cancellationToken: cancellationToken);
+                var instance = await Kube.GetAsync<V1Instance>(instanceName, instanceRef.Namespace ?? entity.Namespace(), cancellationToken: cancellationToken);
                 if (instance is null)
                 {
                     // without the Instance there are no credentials to reach Seq with; holding the finalizer would

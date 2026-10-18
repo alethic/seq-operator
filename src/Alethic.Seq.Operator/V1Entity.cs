@@ -1,9 +1,9 @@
 ﻿namespace Alethic.Seq.Operator
 {
 
-    public interface V1alpha1Entity<TSpec, TStatus, TConf, TInfo>
-        where TSpec : V1alpha1EntitySpec<TConf>
-        where TStatus : V1alpha1EntityStatus<TInfo>
+    public interface V1Entity<TSpec, TStatus, TConf, TInfo>
+        where TSpec : V1EntitySpec<TConf>
+        where TStatus : V1EntityStatus<TInfo>
         where TConf : class
         where TInfo : class
     {

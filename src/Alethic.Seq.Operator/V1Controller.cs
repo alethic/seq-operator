@@ -28,7 +28,7 @@ using Seq.Api.Client;
 namespace Alethic.Seq.Operator
 {
 
-    public abstract class V1alpha1Controller
+    public abstract class V1Controller
     {
 
         readonly IKubernetesClient _kube;
@@ -44,7 +44,7 @@ namespace Alethic.Seq.Operator
         /// <param name="cache"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1Controller(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger)
+        public V1Controller(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger)
         {
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _lookup = lookup ?? throw new ArgumentNullException(nameof(lookup));
@@ -83,10 +83,10 @@ namespace Alethic.Seq.Operator
     [EntityRbac(typeof(V1Namespace), Verbs = RbacVerb.List | RbacVerb.Get | RbacVerb.Watch)]
     [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.List | RbacVerb.Get | RbacVerb.Watch)]
     [EntityRbac(typeof(Eventsv1Event), Verbs = RbacVerb.Create)]
-    public abstract class V1alpha1Controller<TEntity, TSpec, TStatus, TConf, TInfo> : V1alpha1Controller, IEntityController<TEntity>
-        where TEntity : IKubernetesObject<V1ObjectMeta>, V1alpha1Entity<TSpec, TStatus, TConf, TInfo>
-        where TSpec : V1alpha1EntitySpec<TConf>
-        where TStatus : V1alpha1EntityStatus<TInfo>
+    public abstract class V1Controller<TEntity, TSpec, TStatus, TConf, TInfo> : V1Controller, IEntityController<TEntity>
+        where TEntity : IKubernetesObject<V1ObjectMeta>, V1Entity<TSpec, TStatus, TConf, TInfo>
+        where TSpec : V1EntitySpec<TConf>
+        where TStatus : V1EntityStatus<TInfo>
         where TConf : class
         where TInfo : class
     {
@@ -99,7 +99,7 @@ namespace Alethic.Seq.Operator
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1Controller(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
+        public V1Controller(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger logger) :
             base(kube, cache, lookup, options, logger)
         {
 
@@ -139,7 +139,7 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqLoginConnectionAsync(V1alpha1Instance instance, string endpoint, V1SecretReference secretRef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqLoginConnectionAsync(V1Instance instance, string endpoint, V1SecretReference secretRef, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(secretRef.Name))
             {
@@ -247,7 +247,7 @@ namespace Alethic.Seq.Operator
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqLoginConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceLoginRemoteAuthenticationSpec loginDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqLoginConnectionAsync(V1Instance instance, string endpoint, InstanceLoginRemoteAuthenticationSpec loginDef, CancellationToken cancellationToken)
         {
             var secretRef = loginDef.SecretRef;
             if (secretRef == null)
@@ -268,7 +268,7 @@ namespace Alethic.Seq.Operator
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqTokenConnectionAsync(V1alpha1Instance instance, string endpoint, V1SecretReference secretRef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqTokenConnectionAsync(V1Instance instance, string endpoint, V1SecretReference secretRef, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(secretRef.Name))
             {
@@ -311,7 +311,7 @@ namespace Alethic.Seq.Operator
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="RetryException"></exception>
-        async Task<SeqConnection?> CreateSeqTokenConnectionAsync(V1alpha1Instance instance, string endpoint, InstanceTokenRemoteAuthenticationSpec tokenDef, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqTokenConnectionAsync(V1Instance instance, string endpoint, InstanceTokenRemoteAuthenticationSpec tokenDef, CancellationToken cancellationToken)
         {
             var secretRef = tokenDef.SecretRef;
             if (secretRef is null)
@@ -330,7 +330,7 @@ namespace Alethic.Seq.Operator
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        async Task<SeqConnection?> CreateSeqConnectionAsync(V1alpha1Instance instance, InstanceRemoteSpec remote, CancellationToken cancellationToken)
+        async Task<SeqConnection?> CreateSeqConnectionAsync(V1Instance instance, InstanceRemoteSpec remote, CancellationToken cancellationToken)
         {
             var endpoint = remote.Endpoint;
             if (string.IsNullOrWhiteSpace(endpoint))
@@ -368,9 +368,9 @@ namespace Alethic.Seq.Operator
         /// <param name="instance"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected async Task<SeqConnection> GetInstanceConnectionAsync(V1alpha1Instance instance, CancellationToken cancellationToken)
+        protected async Task<SeqConnection> GetInstanceConnectionAsync(V1Instance instance, CancellationToken cancellationToken)
         {
-            var connection = await Cache.GetOrCreateAsync((typeof(V1alpha1Controller<,,,,>), nameof(GetInstanceConnectionAsync), instance.Namespace(), instance.Name()), async entry =>
+            var connection = await Cache.GetOrCreateAsync((typeof(V1Controller<,,,,>), nameof(GetInstanceConnectionAsync), instance.Namespace(), instance.Name()), async entry =>
             {
                 // use specified remote connection(s) if present
                 if (instance.Spec.Remote is not null)
@@ -544,7 +544,7 @@ namespace Alethic.Seq.Operator
                 var ready = entity.Status.Conditions.FirstOrDefault(i => i.Type == "Ready");
                 if (ready is null)
                 {
-                    entity.Status.Conditions.Add(ready = new V1alpha1Condition() { Type = "Ready", Status = "False" });
+                    entity.Status.Conditions.Add(ready = new V1EntityCondition() { Type = "Ready", Status = "False" });
                     entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
                 }
 
@@ -552,7 +552,7 @@ namespace Alethic.Seq.Operator
                 var healthy = entity.Status.Conditions.FirstOrDefault(i => i.Type == "Healthy");
                 if (healthy is null)
                 {
-                    entity.Status.Conditions.Add(healthy = new V1alpha1Condition() { Type = "Healthy", Status = "False" });
+                    entity.Status.Conditions.Add(healthy = new V1EntityCondition() { Type = "Healthy", Status = "False" });
                     entity = await Kube.UpdateStatusAsync(entity, cancellationToken);
                 }
 
@@ -646,7 +646,7 @@ namespace Alethic.Seq.Operator
         {
             var condition = entity.Status.Conditions.FirstOrDefault(i => i.Type == type);
             if (condition is null)
-                entity.Status.Conditions.Add(condition = new V1alpha1Condition());
+                entity.Status.Conditions.Add(condition = new V1EntityCondition());
 
             condition.Type = type;
             condition.Status = status;

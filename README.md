@@ -13,8 +13,8 @@ It can:
 - **Hand API keys to workloads** as Kubernetes Secrets containing the Seq endpoint and token.
 
 > [!NOTE]
-> The resources are at `v1alpha1`. They work and are in use, but their shape may still change between releases.
-> See [Limitations](#limitations).
+> The resources are at `v1`, and their shape is now stable. `v1alpha1` is still served, with the same schema, for
+> existing manifests; see [Moving to v1](#moving-to-v1).
 
 ## Installation
 
@@ -47,15 +47,15 @@ See [`values.yaml`](charts/seq-operator/values.yaml) for scheduling, security co
 
 ## Resources
 
-All resources are in the `seq.k8s.datalust.co/v1alpha1` API group.
+All resources are in the `seq.k8s.datalust.co/v1` API group.
 
 | kind | short name | manages |
 | --- | --- | --- |
 | `Instance` | `seqinstance` | A Seq server: deployed by the operator, or an existing one it connects to. Holds server settings. |
 | `ApiKey` | `seqapikey` | A Seq API key, published to a Kubernetes Secret. |
 | `Signal` | `seqsignal` | A shared Seq signal. |
-| `RetentionPolicy` | | A Seq retention policy. |
-| `Alert` | | A Seq alert (title only; see [Limitations](#limitations)). |
+| `RetentionPolicy` | `seqretentionpolicy` | A Seq retention policy. |
+| `Alert` | `seqalert` | A Seq alert (title only; see [Limitations](#limitations)). |
 
 Everything other than `Instance` points at an Instance with `spec.instanceRef`, and puts the settings it
 manages under `spec.conf`.
@@ -65,7 +65,7 @@ manages under `spec.conf`.
 An Instance without a `remote` section is deployed by the operator. This is the smallest one:
 
 ```yaml
-apiVersion: seq.k8s.datalust.co/v1alpha1
+apiVersion: seq.k8s.datalust.co/v1
 kind: Instance
 metadata:
   name: seq
@@ -89,7 +89,7 @@ The `deployment` section adjusts the deployment. It accepts the usual pod settin
 probe types, `annotations` and `labels`. It also takes `persistence` and `service`:
 
 ```yaml
-apiVersion: seq.k8s.datalust.co/v1alpha1
+apiVersion: seq.k8s.datalust.co/v1
 kind: Instance
 metadata:
   name: seq
@@ -135,7 +135,7 @@ stringData:
   password: "<the password the operator should set>"
   firstRun: "<the password Seq was first started with>"
 ---
-apiVersion: seq.k8s.datalust.co/v1alpha1
+apiVersion: seq.k8s.datalust.co/v1
 kind: Instance
 metadata:
   name: seq
@@ -153,7 +153,7 @@ spec:
         secretRef:
           name: seq-login
 ---
-apiVersion: seq.k8s.datalust.co/v1alpha1
+apiVersion: seq.k8s.datalust.co/v1
 kind: ApiKey
 metadata:
   name: seq-management
@@ -216,7 +216,7 @@ An ApiKey creates a Seq API key and writes it to a Secret with two keys: `endpoi
 the ApiKey's namespace.
 
 ```yaml
-apiVersion: seq.k8s.datalust.co/v1alpha1
+apiVersion: seq.k8s.datalust.co/v1
 kind: ApiKey
 metadata:
   name: orders
@@ -254,7 +254,7 @@ env:
 ### Signals and retention policies
 
 ```yaml
-apiVersion: seq.k8s.datalust.co/v1alpha1
+apiVersion: seq.k8s.datalust.co/v1
 kind: Signal
 metadata:
   name: errors
@@ -273,7 +273,7 @@ spec:
     columns:
     - expression: Application
 ---
-apiVersion: seq.k8s.datalust.co/v1alpha1
+apiVersion: seq.k8s.datalust.co/v1
 kind: RetentionPolicy
 metadata:
   name: thirty-days
@@ -361,6 +361,22 @@ object in Seq. Without the Instance it has no way to reach Seq, and holding on w
 namespace being deleted with it, stuck in `Terminating`. A deployed Instance takes its Seq server with it anyway.
 
 ## Upgrading
+
+### Moving to v1
+
+The resources are now at `seq.k8s.datalust.co/v1`. `v1` has exactly the same schema as `v1alpha1`, so nothing about
+a resource changes except its `apiVersion`:
+
+- Both versions are served. Existing `v1alpha1` manifests keep working, and every object can be read and written
+  through either version. The Kubernetes API server converts between them itself; there is no conversion webhook.
+- `v1` is the storage version. Objects are stored as `v1` the next time they are written. Objects stored before
+  stay as `v1alpha1` until then, which is harmless.
+- `v1alpha1` is deprecated. `kubectl` prints a warning whenever it's used. Change `apiVersion` in your manifests to
+  `seq.k8s.datalust.co/v1` at your convenience.
+
+Before `v1alpha1` can ever be removed, every object still stored as `v1alpha1` will have to be rewritten as `v1`,
+for example with `kubectl get <kind> -A -o yaml | kubectl replace -f -`, so that the CRDs can stop listing it
+among their stored versions.
 
 ### ApiKey permission flags are enforced
 

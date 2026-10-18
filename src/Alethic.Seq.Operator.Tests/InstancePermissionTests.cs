@@ -14,10 +14,10 @@ namespace Alethic.Seq.Operator.Tests
     public class InstancePermissionTests
     {
 
-        static readonly V1alpha1Instance Instance = new()
+        static readonly V1Instance Instance = new()
         {
             Metadata = new V1ObjectMeta() { NamespaceProperty = "seq", Name = "seq" },
-            Spec = new V1alpha1InstanceSpec(),
+            Spec = new V1InstanceSpec(),
         };
 
         static V1Namespace Namespace(string name) => new() { Metadata = new V1ObjectMeta() { Name = name } };

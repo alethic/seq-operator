@@ -3,7 +3,7 @@
 namespace Alethic.Seq.Operator
 {
 
-    public class V1alpha1Condition
+    public class V1EntityCondition
     {
 
         /// <summary>

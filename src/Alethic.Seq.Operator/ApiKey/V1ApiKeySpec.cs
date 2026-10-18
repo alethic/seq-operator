@@ -7,12 +7,12 @@ using KubeOps.Abstractions.Entities.Attributes;
 namespace Alethic.Seq.Operator.ApiKey
 {
 
-    public class V1alpha1ApiKeySpec : V1alpha1InstanceEntitySpec<ApiKeyConf>
+    public class V1ApiKeySpec : V1InstanceEntitySpec<ApiKeyConf>
     {
 
         [JsonPropertyName("instanceRef")]
         [Required]
-        public V1alpha1InstanceReference? InstanceRef { get; set; }
+        public V1InstanceReference? InstanceRef { get; set; }
 
         /// <summary>
         /// Reference to secret where the ApiKey will be read from or stored to.

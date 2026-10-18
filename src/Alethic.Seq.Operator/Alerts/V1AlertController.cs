@@ -24,13 +24,13 @@ using Seq.Api.Model.Alerting;
 namespace Alethic.Seq.Operator.Alerts
 {
 
-    [EntityRbac(typeof(V1alpha1Instance), Verbs = RbacVerb.List | RbacVerb.Get)]
-    [EntityRbac(typeof(V1alpha1Alert), Verbs = RbacVerb.All)]
+    [EntityRbac(typeof(V1Instance), Verbs = RbacVerb.List | RbacVerb.Get)]
+    [EntityRbac(typeof(V1Alert), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(Eventsv1Event), Verbs = RbacVerb.All)]
-    public partial class V1alpha1AlertController :
-        V1alpha1InstanceEntityController<V1alpha1Alert, V1alpha1AlertSpec, V1alpha1AlertStatus, AlertConf, AlertInfo>,
-        IEntityController<V1alpha1Alert>
+    public partial class V1AlertController :
+        V1InstanceEntityController<V1Alert, V1AlertSpec, V1AlertStatus, AlertConf, AlertInfo>,
+        IEntityController<V1Alert>
     {
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace Alethic.Seq.Operator.Alerts
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1AlertController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1AlertController> logger) :
+        public V1AlertController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1AlertController> logger) :
             base(kube, cache, lookup, options, logger)
         {
 
@@ -51,19 +51,19 @@ namespace Alethic.Seq.Operator.Alerts
         protected override string EntityTypeName => "Alert";
 
         /// <inheritdoc />
-        protected override Task<bool> CanAttachFromAsync(V1alpha1Instance instance, V1alpha1Alert entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.Alerts?.Attach, cancellationToken);
+        protected override Task<bool> CanAttachFromAsync(V1Instance instance, V1Alert entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.Alerts?.Attach, cancellationToken);
 
         /// <inheritdoc />
-        protected override Task<bool> CanCreateFromAsync(V1alpha1Instance instance, V1alpha1Alert entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.Alerts?.Create, cancellationToken);
+        protected override Task<bool> CanCreateFromAsync(V1Instance instance, V1Alert entity, CancellationToken cancellationToken) => instance.CheckPermissionAsync(Lookup, entity, false, p => p.Alerts?.Create, cancellationToken);
 
         /// <inheritdoc />
-        protected override async Task<string?> FindAsync(V1alpha1Alert entity, SeqConnection api, V1alpha1AlertSpec spec, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string?> FindAsync(V1Alert entity, SeqConnection api, V1AlertSpec spec, string defaultNamespace, CancellationToken cancellationToken)
         {
             return null;
         }
 
         /// <inheritdoc />
-        protected override async Task<AlertInfo?> GetAsync(V1alpha1Alert entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<AlertInfo?> GetAsync(V1Alert entity, SeqConnection api, string id, string defaultNamespace, CancellationToken cancellationToken)
         {
             try
             {
@@ -76,13 +76,13 @@ namespace Alethic.Seq.Operator.Alerts
         }
 
         /// <inheritdoc />
-        protected override async Task<string?> ValidateUpdateAsync(V1alpha1Instance instance, V1alpha1Alert entity, AlertConf? conf, CancellationToken cancellationToken)
+        protected override async Task<string?> ValidateUpdateAsync(V1Instance instance, V1Alert entity, AlertConf? conf, CancellationToken cancellationToken)
         {
             return null;
         }
 
         /// <inheritdoc />
-        protected override async Task<string> CreateAsync(V1alpha1Instance instance, V1alpha1Alert entity, SeqConnection api, AlertConf? conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task<string> CreateAsync(V1Instance instance, V1Alert entity, SeqConnection api, AlertConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} creating Alert in Seq.", EntityTypeName);
             var self = await api.Alerts.AddAsync(ApplyToApi(new AlertEntity(), conf, null), cancellationToken);
@@ -91,7 +91,7 @@ namespace Alethic.Seq.Operator.Alerts
         }
 
         /// <inheritdoc />
-        protected override async Task UpdateAsync(V1alpha1Instance instance, V1alpha1Alert entity, SeqConnection api, string id, AlertInfo? info, AlertConf? conf, string defaultNamespace, CancellationToken cancellationToken)
+        protected override async Task UpdateAsync(V1Instance instance, V1Alert entity, SeqConnection api, string id, AlertInfo? info, AlertConf? conf, string defaultNamespace, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} updating Alert in Seq with id: {Id}", EntityTypeName, id);
             await api.Alerts.UpdateAsync(ApplyToApi(await api.Alerts.FindAsync(id, cancellationToken), conf, info), cancellationToken);
@@ -99,7 +99,7 @@ namespace Alethic.Seq.Operator.Alerts
         }
 
         /// <inheritdoc />
-        protected override async Task DeleteAsync(V1alpha1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken)
+        protected override async Task DeleteAsync(V1Instance instance, SeqConnection api, string id, CancellationToken cancellationToken)
         {
             Logger.LogInformation("{EntityTypeName} deleting Alert from Seq with ID: {Id} (reason: Kubernetes entity deleted)", EntityTypeName, id);
             await api.Alerts.RemoveAsync(await api.Alerts.FindAsync(id, cancellationToken), cancellationToken);

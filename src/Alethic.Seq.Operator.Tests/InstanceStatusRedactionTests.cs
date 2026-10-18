@@ -24,9 +24,9 @@ namespace Alethic.Seq.Operator.Tests
                 },
             };
 
-            V1alpha1InstanceController.RedactSecrets(info);
+            V1InstanceController.RedactSecrets(info);
 
-            Assert.AreEqual(V1alpha1InstanceController.RedactedValue, info.Auth.Entra.ClientKey);
+            Assert.AreEqual(V1InstanceController.RedactedValue, info.Auth.Entra.ClientKey);
             Assert.AreEqual("client", info.Auth.Entra.ClientId);
         }
 
@@ -41,9 +41,9 @@ namespace Alethic.Seq.Operator.Tests
                 },
             };
 
-            V1alpha1InstanceController.RedactSecrets(info);
+            V1InstanceController.RedactSecrets(info);
 
-            Assert.AreEqual(V1alpha1InstanceController.RedactedValue, info.Auth.Oidc.ClientSecret);
+            Assert.AreEqual(V1InstanceController.RedactedValue, info.Auth.Oidc.ClientSecret);
             Assert.AreEqual("client", info.Auth.Oidc.ClientId);
             Assert.AreEqual("https://login.example.com", info.Auth.Oidc.Authority);
         }
@@ -62,7 +62,7 @@ namespace Alethic.Seq.Operator.Tests
                 },
             };
 
-            V1alpha1InstanceController.RedactSecrets(info);
+            V1InstanceController.RedactSecrets(info);
 
             Assert.AreEqual("", info.Auth.Oidc.ClientSecret);
         }
@@ -71,7 +71,7 @@ namespace Alethic.Seq.Operator.Tests
         public void ToleratesNoAuth()
         {
             var info = new InstanceInfo();
-            Assert.AreSame(info, V1alpha1InstanceController.RedactSecrets(info));
+            Assert.AreSame(info, V1InstanceController.RedactSecrets(info));
             Assert.IsNull(info.Auth);
         }
 

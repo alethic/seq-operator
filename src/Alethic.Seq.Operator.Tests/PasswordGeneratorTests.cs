@@ -20,7 +20,7 @@ namespace Alethic.Seq.Operator.Tests
         public void GeneratesRequestedLength()
         {
             foreach (var length in new[] { 4, 20, 64 })
-                Assert.AreEqual(length, V1alpha1InstanceController.GeneratePassword(length).Length);
+                Assert.AreEqual(length, V1InstanceController.GeneratePassword(length).Length);
         }
 
         [TestMethod]
@@ -28,7 +28,7 @@ namespace Alethic.Seq.Operator.Tests
         {
             for (var i = 0; i < 1000; i++)
             {
-                var password = V1alpha1InstanceController.GeneratePassword(20);
+                var password = V1InstanceController.GeneratePassword(20);
                 Assert.IsTrue(password.Any(char.IsAsciiLetterLower), password);
                 Assert.IsTrue(password.Any(char.IsAsciiLetterUpper), password);
                 Assert.IsTrue(password.Any(char.IsAsciiDigit), password);
@@ -44,7 +44,7 @@ namespace Alethic.Seq.Operator.Tests
         {
             var first = new HashSet<bool>();
             for (var i = 0; i < 1000; i++)
-                first.Add(char.IsAsciiLetterOrDigit(V1alpha1InstanceController.GeneratePassword(20)[0]));
+                first.Add(char.IsAsciiLetterOrDigit(V1InstanceController.GeneratePassword(20)[0]));
 
             Assert.AreEqual(2, first.Count);
         }
@@ -52,14 +52,14 @@ namespace Alethic.Seq.Operator.Tests
         [TestMethod]
         public void DoesNotRepeat()
         {
-            var passwords = Enumerable.Range(0, 1000).Select(_ => V1alpha1InstanceController.GeneratePassword(20)).ToHashSet();
+            var passwords = Enumerable.Range(0, 1000).Select(_ => V1InstanceController.GeneratePassword(20)).ToHashSet();
             Assert.AreEqual(1000, passwords.Count);
         }
 
         [TestMethod]
         public void RejectsLengthTooShortForEveryClass()
         {
-            Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => V1alpha1InstanceController.GeneratePassword(3));
+            Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => V1InstanceController.GeneratePassword(3));
         }
 
     }

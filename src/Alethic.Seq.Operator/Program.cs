@@ -25,7 +25,7 @@ namespace Alethic.Seq.Operator
 
                 // KubeOps would otherwise attach every registered finalizer on each reconciliation, including the
                 // retired identifiers that stay registered only so entities already carrying them can drain. Finalizer
-                // attachment is owned by V1alpha1Controller instead; see EntityFinalizers.
+                // attachment is owned by V1Controller instead; see EntityFinalizers.
                 s.AutoAttachFinalizers = false;
             }).RegisterComponents();
 

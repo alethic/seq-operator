@@ -1,7 +1,7 @@
 ﻿namespace Alethic.Seq.Operator
 {
 
-    public interface V1alpha1InstanceEntityStatus<TConf> : V1alpha1EntityStatus<TConf>
+    public interface V1InstanceEntityStatus<TConf> : V1EntityStatus<TConf>
         where TConf : class
     {
 

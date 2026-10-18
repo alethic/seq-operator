@@ -33,15 +33,15 @@ namespace Alethic.Seq.Operator.Instance
     // the controller's entity types, so without it the generated role omits namespaces and has to be patched by hand
     // wherever it is copied.
     [EntityRbac(typeof(V1Namespace), Verbs = RbacVerb.Get | RbacVerb.List | RbacVerb.Watch)]
-    [EntityRbac(typeof(V1alpha1Instance), Verbs = RbacVerb.All)]
+    [EntityRbac(typeof(V1Instance), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Secret), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1Service), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1ServiceAccount), Verbs = RbacVerb.All)]
     [EntityRbac(typeof(V1StatefulSet), Verbs = RbacVerb.All)]
-    [EntityRbac(typeof(V1alpha1ApiKey), Verbs = RbacVerb.All)]
-    public partial class V1alpha1InstanceController :
-        V1alpha1Controller<V1alpha1Instance, V1alpha1InstanceSpec, V1alpha1InstanceStatus, InstanceConf, InstanceInfo>,
-        IEntityController<V1alpha1Instance>
+    [EntityRbac(typeof(V1ApiKey), Verbs = RbacVerb.All)]
+    public partial class V1InstanceController :
+        V1Controller<V1Instance, V1InstanceSpec, V1InstanceStatus, InstanceConf, InstanceInfo>,
+        IEntityController<V1Instance>
     {
 
         const string PasswordLowerChars = "abcdefghijkmnopqrstuvwxyz";
@@ -81,7 +81,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="lookup"></param>
         /// <param name="options"></param>
         /// <param name="logger"></param>
-        public V1alpha1InstanceController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1alpha1InstanceController> logger) :
+        public V1InstanceController(IKubernetesClient kube, IMemoryCache cache, LookupService lookup, IOptions<OperatorOptions> options, ILogger<V1InstanceController> logger) :
             base(kube, cache, lookup, options, logger)
         {
 
@@ -93,12 +93,12 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="instance"></param>
         /// <param name="password"></param>
         /// <returns></returns>
-        public string CalculatePasswordHash(V1alpha1Instance instance, string password)
+        public string CalculatePasswordHash(V1Instance instance, string password)
         {
             var instanceNamespace = instance.Namespace();
             var instanceName = instance.Name();
 
-            return Cache.GetOrCreate((typeof(V1alpha1InstanceController), nameof(CalculatePasswordHash), instanceNamespace, instanceName, password), e =>
+            return Cache.GetOrCreate((typeof(V1InstanceController), nameof(CalculatePasswordHash), instanceNamespace, instanceName, password), e =>
             {
                 var salt = SHA256.HashData(Encoding.UTF8.GetBytes($"{instanceNamespace}/{instanceName}"))[0..16];
                 var hash = SeqPasswordHash.Calculate(password, salt);
@@ -112,7 +112,7 @@ namespace Alethic.Seq.Operator.Instance
         protected override string EntityTypeName => "Instance";
 
         /// <inheritdoc />
-        protected override async Task<V1alpha1Instance> Reconcile(V1alpha1Instance instance, CancellationToken cancellationToken)
+        protected override async Task<V1Instance> Reconcile(V1Instance instance, CancellationToken cancellationToken)
         {
             // deploy locally if no remote specified
             if (instance.Spec.Remote is null)
@@ -149,7 +149,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="deployment"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<V1alpha1Instance> ReconcileDeploymentAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
+        async Task<V1Instance> ReconcileDeploymentAsync(V1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
         {
             deployment ??= new InstanceDeploymentSpec();
 
@@ -186,7 +186,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="instance"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<T?> GetRelatedObject<T>(V1alpha1Instance instance, string resource, CancellationToken cancellationToken)
+        async Task<T?> GetRelatedObject<T>(V1Instance instance, string resource, CancellationToken cancellationToken)
             where T : IKubernetesObject<V1ObjectMeta>
         {
             var l = await Kube.ListAsync<T>(instance.Namespace(), $"seq.k8s.datalust.co/instance={instance.Name()},seq.k8s.datalust.co/resource={resource}", cancellationToken: cancellationToken);
@@ -201,7 +201,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="RetryException"></exception>
-        async Task<V1Secret?> ReconcileDeploymentLoginSecretAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
+        async Task<V1Secret?> ReconcileDeploymentLoginSecretAsync(V1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
         {
             var operatorLoginSecret = await GetRelatedObject<V1Secret>(instance, "operator-login", cancellationToken);
 
@@ -266,7 +266,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="instance"></param>
         /// <param name="deployment"></param>
         /// <param name="adminSecret"></param>
-        V1Secret ApplyDeploymentLoginSecret(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1Secret adminSecret)
+        V1Secret ApplyDeploymentLoginSecret(V1Instance instance, InstanceDeploymentSpec deployment, V1Secret adminSecret)
         {
             adminSecret.Data ??= new Dictionary<string, byte[]>();
             adminSecret.StringData ??= new Dictionary<string, string>();
@@ -293,9 +293,9 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="deployment"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<V1alpha1ApiKey?> ReconcileDeploymentAdminApiKeyAsync(V1alpha1Instance instance, InstanceDeploymentSpec deployment, CancellationToken cancellationToken)
+        async Task<V1ApiKey?> ReconcileDeploymentAdminApiKeyAsync(V1Instance instance, InstanceDeploymentSpec deployment, CancellationToken cancellationToken)
         {
-            var operatorTokenApiKey = await GetRelatedObject<V1alpha1ApiKey>(instance, "operator-token", cancellationToken);
+            var operatorTokenApiKey = await GetRelatedObject<V1ApiKey>(instance, "operator-token", cancellationToken);
 
             // no deployment, we have an existing operator apikey owned by us, delete
             if (deployment is null && operatorTokenApiKey is not null && operatorTokenApiKey.IsOwnedBy(instance))
@@ -335,7 +335,7 @@ namespace Alethic.Seq.Operator.Instance
                             ApplyDeploymentAdminApiKey(
                                 instance,
                                 deployment,
-                                new V1alpha1ApiKey() { Metadata = new V1ObjectMeta() { NamespaceProperty = operatorTokenApiKeyNamespace, Name = operatorTokenApiKeyName } }.WithOwnerReference(instance))),
+                                new V1ApiKey() { Metadata = new V1ObjectMeta() { NamespaceProperty = operatorTokenApiKeyNamespace, Name = operatorTokenApiKeyName } }.WithOwnerReference(instance))),
                         cancellationToken);
                 }
 
@@ -359,10 +359,10 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="deployment"></param>
         /// <param name="apikey"></param>
         /// <returns></returns>
-        V1alpha1ApiKey ApplyDeploymentAdminApiKey(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1alpha1ApiKey apikey)
+        V1ApiKey ApplyDeploymentAdminApiKey(V1Instance instance, InstanceDeploymentSpec deployment, V1ApiKey apikey)
         {
-            apikey.Spec ??= new V1alpha1ApiKeySpec();
-            apikey.Spec.InstanceRef = new V1alpha1InstanceReference() { Name = instance.Name(), Namespace = instance.Namespace() };
+            apikey.Spec ??= new V1ApiKeySpec();
+            apikey.Spec.InstanceRef = new V1InstanceReference() { Name = instance.Name(), Namespace = instance.Namespace() };
             apikey.Spec.SecretRef = deployment.TokenSecretRef;
             apikey.Spec.Conf = new ApiKeyConf();
             apikey.Spec.Conf.Permissions = [ApiKeyPermission.Public, ApiKeyPermission.Ingest, ApiKeyPermission.Read, ApiKeyPermission.Write, ApiKeyPermission.Project, ApiKeyPermission.System, ApiKeyPermission.Organization];
@@ -376,7 +376,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="deployment"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<V1ServiceAccount?> ReconcileDeploymentServiceAccountAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
+        async Task<V1ServiceAccount?> ReconcileDeploymentServiceAccountAsync(V1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
         {
             var serviceAccount = await GetRelatedObject<V1ServiceAccount>(instance, "service-account", cancellationToken);
 
@@ -438,7 +438,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="adminSecret"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<V1StatefulSet?> ReconcileDeploymentStatefulSetAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, V1Secret? adminSecret, V1ServiceAccount? serviceAccount, V1Service? service, CancellationToken cancellationToken)
+        async Task<V1StatefulSet?> ReconcileDeploymentStatefulSetAsync(V1Instance instance, InstanceDeploymentSpec? deployment, V1Secret? adminSecret, V1ServiceAccount? serviceAccount, V1Service? service, CancellationToken cancellationToken)
         {
             var statefulSet = await GetRelatedObject<V1StatefulSet>(instance, "stateful-set", cancellationToken);
 
@@ -515,7 +515,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="adminSecret"></param>
         /// <param name="instance"></param>
         /// <param name="service"></param>
-        V1StatefulSet ApplyDeploymentStatefulSet(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1StatefulSet statefulSet, V1Secret adminSecret, V1ServiceAccount serviceAccount, V1Service service)
+        V1StatefulSet ApplyDeploymentStatefulSet(V1Instance instance, InstanceDeploymentSpec deployment, V1StatefulSet statefulSet, V1Secret adminSecret, V1ServiceAccount serviceAccount, V1Service service)
         {
             statefulSet.Spec ??= new();
             // spec.serviceName cannot be changed once the StatefulSet exists, so it is only set on creation. Sets created
@@ -655,7 +655,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="deployment"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<V1Service?> ReconcileDeploymentServiceAsync(V1alpha1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
+        async Task<V1Service?> ReconcileDeploymentServiceAsync(V1Instance instance, InstanceDeploymentSpec? deployment, CancellationToken cancellationToken)
         {
             var service = await GetRelatedObject<V1Service>(instance, "service", cancellationToken);
 
@@ -719,7 +719,7 @@ namespace Alethic.Seq.Operator.Instance
         /// </summary>
         /// <param name="service"></param>
         /// <param name="deployment"></param>
-        V1Service ApplyDeploymentService(V1alpha1Instance instance, InstanceDeploymentSpec deployment, V1Service service)
+        V1Service ApplyDeploymentService(V1Instance instance, InstanceDeploymentSpec deployment, V1Service service)
         {
             var m = service.EnsureMetadata();
             var l = m.EnsureLabels();
@@ -778,7 +778,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="resource"></param>
         /// <param name="entity"></param>
         /// <returns></returns>
-        T ApplyDeploymentResource<T>(V1alpha1Instance instance, InstanceDeploymentSpec deployment, string resource, T entity)
+        T ApplyDeploymentResource<T>(V1Instance instance, InstanceDeploymentSpec deployment, string resource, T entity)
             where T : IMetadata<V1ObjectMeta>
         {
             var m = entity.EnsureMetadata();
@@ -803,10 +803,10 @@ namespace Alethic.Seq.Operator.Instance
         }
 
         /// <inheritdoc />
-        public override Task<ReconciliationResult<V1alpha1Instance>> DeletedAsync(V1alpha1Instance entity, CancellationToken cancellationToken)
+        public override Task<ReconciliationResult<V1Instance>> DeletedAsync(V1Instance entity, CancellationToken cancellationToken)
         {
             Logger.LogWarning("Unsupported operation deleting entity {Entity}.", entity);
-            return Task.FromResult(ReconciliationResult<V1alpha1Instance>.Success(entity));
+            return Task.FromResult(ReconciliationResult<V1Instance>.Success(entity));
         }
 
         /// <summary>
@@ -949,7 +949,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="valueRef"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task<string?> ResolveSecretSettingAsync(V1alpha1Instance instance, string name, string? value, V1SecretKeySelector? valueRef, CancellationToken cancellationToken)
+        async Task<string?> ResolveSecretSettingAsync(V1Instance instance, string name, string? value, V1SecretKeySelector? valueRef, CancellationToken cancellationToken)
         {
             if (value is not null && valueRef is not null)
                 throw new InvalidOperationException($"{EntityTypeName} {instance.Namespace()}/{instance.Name()} is invalid: set only one of {name} and {name}Ref.");
@@ -982,7 +982,7 @@ namespace Alethic.Seq.Operator.Instance
             return info;
         }
 
-        async Task PutSettingValueAsync<T>(V1alpha1Instance instance, SeqConnection api, SettingName name, T? value, CancellationToken cancellationToken)
+        async Task PutSettingValueAsync<T>(V1Instance instance, SeqConnection api, SettingName name, T? value, CancellationToken cancellationToken)
         {
             Logger.LogDebug("{EntityTypeName} {EntityNamespace}/{EntityName} putting Seq setting {SettingName}.", EntityTypeName, instance.Namespace(), instance.Name(), name);
             var setting = await api.Settings.FindNamedAsync(name, cancellationToken);
@@ -999,7 +999,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="conf"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task PutConfAsync(V1alpha1Instance instance, SeqConnection api, InstanceInfo? info, InstanceConf conf, CancellationToken cancellationToken)
+        async Task PutConfAsync(V1Instance instance, SeqConnection api, InstanceInfo? info, InstanceConf conf, CancellationToken cancellationToken)
         {
             if (conf is not null)
             {
@@ -1121,7 +1121,7 @@ namespace Alethic.Seq.Operator.Instance
         /// <param name="conf"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        async Task PutAuthSettingsAsync(V1alpha1Instance instance, SeqConnection api, InstanceConfAuthenticationSpec? info, InstanceConfAuthenticationSpec conf, CancellationToken cancellationToken)
+        async Task PutAuthSettingsAsync(V1Instance instance, SeqConnection api, InstanceConfAuthenticationSpec? info, InstanceConfAuthenticationSpec conf, CancellationToken cancellationToken)
         {
             if (conf.Local is { } local)
             {
